@@ -12,7 +12,7 @@ import logging
 import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional, Callable, List
 import json
 
 from ..config import (
@@ -21,6 +21,7 @@ from ..config import (
     DATA_DIR,
     RAW_DATA_DIR,
     PROCESSED_DATA_DIR,
+    PREFERRED_POSTCODES,
 )
 from ..scrapers import RealEstateAuctionScraper
 from ..storage import AuctionDatabase, export_to_csv
@@ -49,6 +50,7 @@ class WeeklyCollector:
 
     def run_collection(
         self,
+        postcodes: Optional[list] = None,
         max_suburbs: Optional[int] = None,
         save_raw: bool = True,
     ) -> dict:
@@ -56,7 +58,10 @@ class WeeklyCollector:
         Run the full collection process.
 
         Args:
-            max_suburbs: Limit number of suburbs (for testing)
+            postcodes: List of postcodes to collect (RECOMMENDED, max 10).
+                      If None, uses PREFERRED_POSTCODES from config.
+                      If empty list, falls back to max_suburbs limit.
+            max_suburbs: Limit number of suburbs (fallback if no postcodes)
             save_raw: Save raw JSON data to file
 
         Returns:
@@ -75,15 +80,26 @@ class WeeklyCollector:
         errors = 0
         suburbs_scraped = 0
 
+        # Use postcodes if provided, otherwise fall back to config or max_suburbs
+        use_postcodes = postcodes if postcodes is not None else PREFERRED_POSTCODES
+
         try:
             with RealEstateAuctionScraper() as scraper:
-                # Get suburb URLs
-                suburb_urls = scraper.get_suburb_urls("nsw")
+                # RECOMMENDED: Use postcode filtering (API-friendly)
+                if use_postcodes:
+                    logger.info(f"Using postcode filter: {use_postcodes}")
+                    suburb_urls = scraper.get_urls_for_postcodes(use_postcodes)
+                else:
+                    # Fallback: get all suburbs (not recommended)
+                    logger.warning(
+                        "No postcodes specified - consider using postcodes "
+                        "to be API-friendly"
+                    )
+                    suburb_urls = scraper.get_suburb_urls("nsw")
+                    if max_suburbs:
+                        suburb_urls = suburb_urls[:max_suburbs]
 
-                if max_suburbs:
-                    suburb_urls = suburb_urls[:max_suburbs]
-
-                logger.info(f"Found {len(suburb_urls)} suburbs to scrape")
+                logger.info(f"Will scrape {len(suburb_urls)} suburbs")
 
                 for i, url in enumerate(suburb_urls, 1):
                     try:
@@ -91,7 +107,7 @@ class WeeklyCollector:
                         results.extend(suburb_results)
                         suburbs_scraped += 1
 
-                        if i % 20 == 0:
+                        if i % 5 == 0 or i == len(suburb_urls):
                             logger.info(
                                 f"Progress: {i}/{len(suburb_urls)} suburbs, "
                                 f"{len(results)} results"

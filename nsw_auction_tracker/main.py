@@ -18,7 +18,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from .config import ensure_directories, DATA_DIR, PROCESSED_DATA_DIR
+from .config import ensure_directories, DATA_DIR, PROCESSED_DATA_DIR, PREFERRED_POSTCODES, MAX_POSTCODES
 from .storage import AuctionDatabase, export_to_csv, export_to_excel
 from .scrapers import RealEstateAuctionScraper
 from .aggregator import AuctionAnalyzer, generate_weekly_report
@@ -40,12 +40,27 @@ def setup_logging(verbose: bool = False):
 
 def cmd_collect(args):
     """Run data collection."""
-    print(f"Starting auction data collection...")
-    print(f"Max suburbs: {args.max_suburbs or 'all'}")
+    # Determine postcodes to use
+    postcodes = None
+    if args.postcodes:
+        postcodes = [p.strip() for p in args.postcodes.split(",")]
+    elif PREFERRED_POSTCODES:
+        postcodes = PREFERRED_POSTCODES
+
+    if postcodes:
+        print(f"Collecting auction data for {len(postcodes)} postcodes...")
+        print(f"Postcodes: {', '.join(postcodes)}")
+    elif args.max_suburbs:
+        print(f"Collecting auction data (limited to {args.max_suburbs} suburbs)...")
+    else:
+        print("WARNING: No postcodes specified. This will scrape ALL suburbs.")
+        print("Consider using --postcodes to be API-friendly.")
+        print(f"Max suburbs: {args.max_suburbs or 'all'}")
 
     collector = WeeklyCollector()
     summary = collector.run_collection(
-        max_suburbs=args.max_suburbs,
+        postcodes=postcodes,
+        max_suburbs=args.max_suburbs if not postcodes else None,
         save_raw=not args.no_raw,
     )
 
@@ -267,11 +282,25 @@ def main():
     collect_parser = subparsers.add_parser(
         "collect",
         help="Run data collection",
+        description="""
+Collect auction results data. RECOMMENDED: Use --postcodes to limit to specific
+suburbs (max 10) to be API-friendly and avoid overloading the website.
+
+Examples:
+  %(prog)s --postcodes 2021,2026,2042    # Specific postcodes
+  %(prog)s                                # Uses PREFERRED_POSTCODES from config
+  %(prog)s --max-suburbs 5               # Fallback: limit by count
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    collect_parser.add_argument(
+        "-p", "--postcodes",
+        help="Comma-separated list of postcodes to collect (RECOMMENDED, max 10)",
     )
     collect_parser.add_argument(
         "--max-suburbs",
         type=int,
-        help="Limit number of suburbs to scrape (for testing)",
+        help="Limit number of suburbs (fallback if no postcodes specified)",
     )
     collect_parser.add_argument(
         "--no-raw",

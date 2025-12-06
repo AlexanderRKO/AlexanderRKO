@@ -41,11 +41,37 @@ NSW_REGIONS = [
     "hills-district",
 ]
 
-# Request settings
+# =============================================================================
+# PREFERRED POSTCODES - Configure your suburbs of interest here
+# =============================================================================
+# Add up to 10 postcodes you want to track. This is the recommended approach
+# as it minimizes server load and respects the website.
+#
+# Example postcodes by area:
+#   Eastern Suburbs: 2021 (Paddington), 2022 (Bondi Junction), 2026 (Bondi)
+#   Inner West: 2042 (Newtown), 2043 (Erskineville), 2044 (St Peters)
+#   North Shore: 2060 (North Sydney), 2061 (Kirribilli), 2065 (Crows Nest)
+#   Northern Beaches: 2095 (Manly), 2097 (Collaroy), 2099 (Dee Why)
+#   Hills District: 2153 (Baulkham Hills), 2154 (Castle Hill)
+#   Sutherland: 2229 (Caringbah), 2230 (Cronulla)
+
+PREFERRED_POSTCODES = [
+    # Add your postcodes here (max 10 recommended)
+    # "2021",  # Paddington
+    # "2026",  # Bondi
+    # "2042",  # Newtown
+]
+
+# Maximum postcodes to track (to stay API-friendly)
+MAX_POSTCODES = 10
+
+# =============================================================================
+# Request settings - Conservative defaults to be respectful
+# =============================================================================
 REQUEST_TIMEOUT = 30
-REQUEST_DELAY_MIN = 2  # Minimum seconds between requests
-REQUEST_DELAY_MAX = 5  # Maximum seconds between requests
-MAX_RETRIES = 3
+REQUEST_DELAY_MIN = 5   # Minimum seconds between requests (increased for safety)
+REQUEST_DELAY_MAX = 10  # Maximum seconds between requests (increased for safety)
+MAX_RETRIES = 2         # Fewer retries to avoid hammering
 
 # User agent rotation pool (for ethical scraping)
 USER_AGENTS = [

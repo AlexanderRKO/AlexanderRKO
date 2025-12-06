@@ -4,12 +4,12 @@ A Python framework for collecting, storing, and analyzing weekly auction results
 
 ## Features
 
-- **Automated Data Collection**: Scrape auction results from thousands of NSW suburbs
+- **Postcode-Focused Collection**: Track up to 10 specific postcodes (API-friendly approach)
 - **SQLite Storage**: Persistent storage with full history tracking
 - **Weekly Scheduling**: Automated collection every Sunday (after 5am refresh)
 - **Data Analysis**: Clearance rates, price statistics, suburb comparisons
 - **Multiple Export Formats**: CSV, Excel, JSON
-- **Anti-Detection**: Rate limiting, user-agent rotation, retry logic
+- **Respectful Scraping**: Conservative rate limiting (5-10s delays) to avoid server overload
 
 ## Project Structure
 
@@ -54,11 +54,14 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Quick Start
+### Quick Start (Recommended: Postcode-Based)
 
 ```bash
-# Run data collection (test with limited suburbs)
-python -m nsw_auction_tracker collect --max-suburbs 5
+# 1. Configure your preferred postcodes in config.py
+#    OR pass them directly via command line
+
+# Collect data for specific postcodes (RECOMMENDED - API friendly)
+python -m nsw_auction_tracker collect --postcodes 2021,2026,2042
 
 # View statistics
 python -m nsw_auction_tracker stats
@@ -68,6 +71,26 @@ python -m nsw_auction_tracker analyze
 
 # Export to CSV
 python -m nsw_auction_tracker export --format csv
+```
+
+### Configure Preferred Postcodes
+
+Edit `nsw_auction_tracker/config.py` to set your preferred postcodes:
+
+```python
+PREFERRED_POSTCODES = [
+    "2021",  # Paddington
+    "2026",  # Bondi
+    "2042",  # Newtown
+    "2060",  # North Sydney
+    "2095",  # Manly
+    # Add up to 10 postcodes
+]
+```
+
+Then simply run:
+```bash
+python -m nsw_auction_tracker collect  # Uses your configured postcodes
 ```
 
 ### Commands
@@ -85,15 +108,24 @@ python -m nsw_auction_tracker export --format csv
 ### Collection Options
 
 ```bash
-# Full collection (all suburbs)
+# RECOMMENDED: Collect specific postcodes (API-friendly, max 10)
+python -m nsw_auction_tracker collect --postcodes 2021,2026,2042,2060,2095
+
+# Use postcodes from config.py
 python -m nsw_auction_tracker collect
 
-# Limited collection (for testing)
+# Fallback: Limited collection by suburb count (if no postcodes)
 python -m nsw_auction_tracker collect --max-suburbs 10
 
 # Verbose output
 python -m nsw_auction_tracker -v collect
 ```
+
+**Why limit to postcodes?**
+- Respects the website's servers (only 10 requests vs 1000+)
+- Faster collection (minutes instead of hours)
+- Focus on areas you actually care about
+- More reliable (less chance of being blocked)
 
 ### Analysis Options
 

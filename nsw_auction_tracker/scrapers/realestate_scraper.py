@@ -26,6 +26,8 @@ from ..config import (
     BASE_URL,
     AUCTION_RESULTS_URL,
     NSW_REGIONS,
+    PREFERRED_POSTCODES,
+    MAX_POSTCODES,
     ScraperConfig,
 )
 from ..models import AuctionResult, AuctionOutcome, PropertyType
@@ -86,6 +88,116 @@ class RealEstateAuctionScraper(BaseScraper):
         except ScraperError as e:
             self.logger.error(f"Failed to get suburb URLs: {e}")
             return []
+
+    def filter_urls_by_postcodes(
+        self, urls: List[str], postcodes: List[str]
+    ) -> List[str]:
+        """
+        Filter suburb URLs to only include specified postcodes.
+
+        Args:
+            urls: List of suburb URLs
+            postcodes: List of postcodes to include
+
+        Returns:
+            Filtered list of URLs
+        """
+        filtered = []
+        postcode_set = set(postcodes)
+
+        for url in urls:
+            _, postcode = self._extract_suburb_postcode_from_url(url)
+            if postcode in postcode_set:
+                filtered.append(url)
+
+        self.logger.info(
+            f"Filtered to {len(filtered)} URLs for postcodes: {postcodes}"
+        )
+        return filtered
+
+    def get_urls_for_postcodes(
+        self, postcodes: List[str], state: str = "nsw"
+    ) -> List[str]:
+        """
+        Get suburb URLs for specific postcodes only.
+
+        This is the RECOMMENDED method - it only fetches the main page once
+        and filters to your postcodes, minimizing server requests.
+
+        Args:
+            postcodes: List of postcodes to track (max 10 recommended)
+            state: State code (default: nsw)
+
+        Returns:
+            List of suburb URLs for the specified postcodes
+        """
+        if len(postcodes) > MAX_POSTCODES:
+            self.logger.warning(
+                f"Limiting to {MAX_POSTCODES} postcodes to stay API-friendly"
+            )
+            postcodes = postcodes[:MAX_POSTCODES]
+
+        all_urls = self.get_suburb_urls(state)
+        return self.filter_urls_by_postcodes(all_urls, postcodes)
+
+    def scrape_by_postcodes(
+        self, postcodes: Optional[List[str]] = None
+    ) -> List[AuctionResult]:
+        """
+        Scrape auction results for specific postcodes only.
+
+        This is the RECOMMENDED and most API-friendly approach.
+        Only makes requests for the postcodes you care about.
+
+        Args:
+            postcodes: List of postcodes to scrape.
+                      If None, uses PREFERRED_POSTCODES from config.
+                      Maximum 10 postcodes to stay API-friendly.
+
+        Returns:
+            List of AuctionResult objects
+
+        Example:
+            results = scraper.scrape_by_postcodes(["2021", "2026", "2042"])
+        """
+        # Use config postcodes if none provided
+        if postcodes is None:
+            postcodes = PREFERRED_POSTCODES
+
+        if not postcodes:
+            self.logger.warning(
+                "No postcodes configured. Add postcodes to PREFERRED_POSTCODES "
+                "in config.py or pass them as an argument."
+            )
+            return []
+
+        # Enforce limit
+        if len(postcodes) > MAX_POSTCODES:
+            self.logger.warning(
+                f"Reducing from {len(postcodes)} to {MAX_POSTCODES} postcodes"
+            )
+            postcodes = postcodes[:MAX_POSTCODES]
+
+        self.logger.info(f"Scraping {len(postcodes)} postcodes: {postcodes}")
+
+        # Get filtered URLs
+        suburb_urls = self.get_urls_for_postcodes(postcodes)
+
+        if not suburb_urls:
+            self.logger.warning("No matching suburbs found for specified postcodes")
+            return []
+
+        # Scrape each suburb
+        all_results: List[AuctionResult] = []
+        for i, url in enumerate(suburb_urls, 1):
+            self.logger.info(f"[{i}/{len(suburb_urls)}] {url}")
+            results = self.scrape_suburb_page(url)
+            all_results.extend(results)
+
+        self.logger.info(
+            f"Complete: {len(all_results)} results from {len(suburb_urls)} suburbs"
+        )
+        return all_results
 
     def _extract_json_data(self, html: str) -> Optional[Dict[str, Any]]:
         """
