@@ -61,6 +61,7 @@ PREFERRED_POSTCODES = [
     "2138",  # Concord West, Liberty Grove, Rhodes
     "2127",  # Newington, Sydney Olympic Park, Wentworth Point
     "2481",  # Byron Bay, Suffolk Park
+    "2479",  # Bangalow, Nashua, Newrybar
 ]
 
 # Maximum postcodes to track (to stay API-friendly)
