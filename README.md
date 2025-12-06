@@ -1,152 +1,112 @@
-# NSW Auction Results Scraper
+# NSW Auction Results - Personal Tracker
 
-A Python framework for collecting and analyzing weekly auction results from realestate.com.au for New South Wales suburbs.
+A personal tool to track weekly auction results for specific suburbs you're interested in from realestate.com.au.
 
 ## Overview
 
-Every Saturday, realestate.com.au publishes auction results for NSW, updating them Sunday morning at 5am AEDT. This framework automates the collection, storage, and analysis of this data across thousands of Sydney and regional NSW postcodes.
+Every Saturday, realestate.com.au publishes auction results for NSW. This tool lets you track **only the suburbs you care about** - checking them once per week like a person casually browsing the site.
 
-## Features
+This is designed for genuine personal use:
+- Track only YOUR chosen postcodes (not mass scraping)
+- Human-like browsing behavior (8-20 second delays between pages)
+- Once per week, Sunday mornings
+- Respectful to the website
 
-- **Automated Weekly Collection**: Scrapes auction results from all NSW suburbs
-- **Historical Database**: SQLite storage for tracking trends over time
-- **CSV Exports**: Weekly data exports for external analysis
-- **Regional Aggregation**: Pre-calculated summaries by region (Sydney Inner, North Shore, etc.)
-- **Trend Analysis**: Track clearance rates and median prices over time
-- **Flexible Scheduling**: Cron jobs or GitHub Actions for automation
+## Quick Start
+
+1. **Install dependencies:**
+```bash
+pip install -r requirements.txt
+```
+
+2. **Configure your postcodes:**
+
+Edit `config/my_postcodes.py`:
+```python
+TRACKED_POSTCODES = {
+    "2021": "paddington",
+    "2026": "bondi",
+    "2065": "crows-nest",
+    # Add your suburbs here
+}
+```
+
+To find the correct format:
+- Go to https://www.realestate.com.au/auction-results/nsw
+- Click on your suburb
+- Copy the suburb-postcode from URL: `/auction-results/nsw/paddington-2021`
+
+3. **Check your configuration:**
+```bash
+python src/runner.py config
+```
+
+4. **Run your weekly check:**
+```bash
+python src/runner.py scrape
+```
+
+## Commands
+
+```bash
+python src/runner.py config    # Show your tracked postcodes
+python src/runner.py scrape    # Run weekly check
+python src/runner.py report    # View latest results
+python src/runner.py weeks     # List collected weeks
+```
+
+## Scheduling Weekly Runs
+
+**Using cron (Linux/Mac):**
+```bash
+# Install (runs Sundays at 6am)
+./scripts/schedule_scraper.sh install
+
+# Check status
+./scripts/schedule_scraper.sh status
+
+# Run manually
+./scripts/schedule_scraper.sh run
+```
 
 ## Project Structure
 
 ```
 AlexanderRKO/
 ├── config/
-│   └── settings.py        # Configuration and NSW region definitions
+│   ├── settings.py        # Rate limiting and general config
+│   └── my_postcodes.py    # YOUR tracked suburbs (edit this!)
 ├── src/
-│   ├── models.py          # Data models (AuctionResult, SuburbSummary, etc.)
-│   ├── scraper.py         # Web scraping logic
-│   ├── storage.py         # Database and CSV export
-│   ├── aggregator.py      # Statistics and trend analysis
-│   └── runner.py          # Main entry point
-├── scripts/
-│   └── schedule_scraper.sh  # Cron job management
+│   ├── scraper.py         # Fetches auction data
+│   ├── storage.py         # SQLite database
+│   ├── aggregator.py      # Statistics
+│   └── runner.py          # Main CLI
 ├── data/
-│   ├── raw/               # Raw scraped data
-│   ├── processed/         # Weekly CSV exports and reports
-│   └── archive/           # Historical archives
-├── logs/                  # Scraper logs
-├── tests/                 # Unit tests
-└── .github/workflows/     # GitHub Actions for automated runs
+│   └── processed/         # Weekly CSV exports
+└── logs/                  # Activity logs
 ```
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/AlexanderRKO.git
-cd AlexanderRKO
-```
-
-2. Create a virtual environment (recommended):
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-## Usage
-
-### Run a Manual Scrape
-
-```bash
-# Full scrape of all suburbs
-python src/runner.py scrape
-
-# Test with limited suburbs
-python src/runner.py scrape --limit 10
-
-# Skip CSV export
-python src/runner.py scrape --no-csv
-```
-
-### View Reports
-
-```bash
-# View the latest weekly report
-python src/runner.py report
-
-# View a specific week
-python src/runner.py report --week 2024-12-07
-
-# List all available weeks
-python src/runner.py weeks
-```
-
-### Schedule Weekly Runs
-
-**Using cron (Linux/Mac):**
-```bash
-# Install the cron job (runs Sundays at 6am)
-./scripts/schedule_scraper.sh install
-
-# Check status
-./scripts/schedule_scraper.sh status
-
-# Remove the cron job
-./scripts/schedule_scraper.sh remove
-```
-
-**Using GitHub Actions:**
-
-The included workflow runs automatically every Sunday. You can also trigger it manually from the GitHub Actions tab.
 
 ## Data Collected
 
-### Individual Auction Results
-- Property address and suburb
-- Postcode and region
-- Property type (house, unit, apartment, etc.)
-- Bedrooms, bathrooms, parking
-- Sale price (if disclosed)
-- Outcome (sold, passed in, withdrawn, etc.)
-- Real estate agent
-
-### Suburb Summaries
-- Total auctions and sales
+For each suburb you track:
 - Clearance rate percentage
-- Median sale price
-- Regional classification
+- Number of auctions
+- Individual property results (address, price, outcome)
+- Property details (beds, baths, type)
 
-### Regional Aggregations
-- Sydney Inner, East, North, South, West, Southwest
-- Northern Beaches
-- Central Coast
-- Newcastle
-- Wollongong
-- Regional NSW
+All data is stored locally in SQLite (`data/auction_results.db`) and exported to CSV.
 
-## Configuration
+## Browsing Behavior
 
-Edit `config/settings.py` to customize:
+The scraper behaves like a person casually checking auction results:
 
-```python
-# Rate limiting (be respectful to the server)
-REQUEST_DELAY_MIN = 2  # Seconds between requests
-REQUEST_DELAY_MAX = 5
+- **8-20 seconds** between page loads (random, natural delays)
+- **Occasional longer pauses** (like checking your phone)
+- **Single browser session** per run
+- **Only visits your tracked suburbs** - nothing else
+- **Backs off significantly** if there are any issues
 
-# Schedule settings
-SCHEDULE_DAY = "sunday"
-SCHEDULE_TIME = "06:00"
-
-# Add custom regions
-NSW_REGIONS = {
-    "sydney_inner": ["2000", "2010", ...],
-    # Add your own groupings
-}
-```
+For 5 suburbs, a typical run takes 1-2 minutes.
 
 ## API Usage
 
@@ -155,65 +115,34 @@ from src.storage import Database
 from src.aggregator import AuctionAggregator
 from datetime import date
 
-# Initialize
 db = Database()
 aggregator = AuctionAggregator(db)
 
-# Get weekly data
+# Get data for a specific week
 week = date(2024, 12, 7)
 summaries = db.get_suburb_summaries_by_week(week)
 
-# Get clearance rate trend
-trend = aggregator.get_clearance_rate_trend(weeks=12)
-for week_date, rate in trend:
-    print(f"{week_date}: {rate}%")
-
-# Compare regions
-regions = aggregator.compare_regions(week)
-for r in regions:
-    print(f"{r.region}: {r.clearance_rate}% ({r.total_auctions} auctions)")
-
-# Get top suburbs
-top = aggregator.get_top_suburbs(week, metric='clearance_rate', limit=10)
+for s in summaries:
+    print(f"{s.suburb}: {s.clearance_rate}% ({s.total_auctions} auctions)")
 ```
 
 ## Troubleshooting
 
-### Website Blocking
+**No data returned?**
+- The HTML structure may have changed - check `src/scraper.py`
+- Try running at a different time
+- Check `logs/scraper.log` for details
 
-If the website blocks requests:
+**Rate limited?**
+- The scraper will automatically back off for 3 minutes
+- You can increase delays in `config/settings.py`
 
-1. Try using Selenium for JavaScript rendering:
-```bash
-pip install selenium webdriver-manager
-python src/runner.py scrape --selenium
-```
+## Ethics
 
-2. Adjust rate limiting in `config/settings.py`:
-```python
-REQUEST_DELAY_MIN = 5
-REQUEST_DELAY_MAX = 10
-```
+This tool is for personal tracking of publicly available information. It:
+- Only fetches suburbs you explicitly configure
+- Uses long delays to minimize server impact
+- Behaves like normal browsing activity
+- Runs once per week maximum
 
-### No Data Returned
-
-The website structure may have changed. Check the scraper's HTML parsing in `src/scraper.py`:
-- `get_suburb_list()` - Extracts suburb links from main page
-- `_parse_property_card()` - Extracts data from individual listings
-
-## Legal & Ethical Considerations
-
-- This tool is for personal/research use
-- Respect the website's terms of service
-- Use appropriate rate limiting to avoid overloading servers
-- Data collected is publicly available information
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
+Please use responsibly and respect the website's resources.

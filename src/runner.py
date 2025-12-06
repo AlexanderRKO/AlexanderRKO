@@ -1,7 +1,7 @@
 """
-Main runner script for NSW Auction Results Scraper
+Main runner script for NSW Auction Results - Personal Tracker
 
-This is the entry point for running the weekly scraping job.
+Run your weekly auction check for tracked postcodes.
 """
 import sys
 import logging
@@ -14,6 +14,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config.settings import BASE_DIR, LOG_LEVEL
+from config.my_postcodes import get_tracked_suburbs, validate_config, TRACKED_POSTCODES
 from src.scraper import AuctionScraper, create_scraper
 from src.storage import Database, CSVExporter
 from src.aggregator import AuctionAggregator, generate_weekly_report
@@ -24,7 +25,7 @@ log_dir.mkdir(exist_ok=True)
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(log_dir / "scraper.log"),
         logging.StreamHandler()
@@ -40,28 +41,36 @@ def get_week_ending() -> date:
     return today - timedelta(days=days_since_saturday)
 
 
-def run_scrape(
-    use_selenium: bool = False,
-    limit: Optional[int] = None,
-    export_csv: bool = True
-) -> dict:
+def run_scrape(export_csv: bool = True) -> dict:
     """
-    Run the weekly scraping job.
+    Run the weekly scrape for YOUR tracked postcodes only.
 
     Args:
-        use_selenium: Whether to use Selenium for JS rendering
-        limit: Optional limit on suburbs to scrape (for testing)
         export_csv: Whether to export results to CSV
 
     Returns:
-        Dictionary with scraping results summary
+        Dictionary with results summary
     """
-    week_ending = get_week_ending()
-    logger.info(f"Starting scrape for week ending {week_ending}")
+    # Check configuration first
+    if not validate_config():
+        return {
+            'status': 'error',
+            'error': 'No postcodes configured. Edit config/my_postcodes.py first.'
+        }
 
-    # Initialize components
+    week_ending = get_week_ending()
+    suburbs = get_tracked_suburbs()
+
+    logger.info("=" * 50)
+    logger.info("NSW Auction Results - Weekly Check")
+    logger.info("=" * 50)
+    logger.info(f"Week ending: {week_ending}")
+    logger.info(f"Tracking {len(suburbs)} suburb(s)")
+    logger.info("")
+
+    # Initialize
     db = Database()
-    scraper = create_scraper(use_selenium)
+    scraper = create_scraper()
     exporter = CSVExporter()
 
     # Log scrape start
@@ -76,8 +85,8 @@ def run_scrape(
     conn.close()
 
     try:
-        # Scrape all suburbs
-        summaries, results = scraper.scrape_all_suburbs(limit=limit)
+        # Scrape only YOUR tracked suburbs
+        summaries, results = scraper.scrape_my_suburbs()
 
         # Save to database
         if summaries:
@@ -90,17 +99,7 @@ def run_scrape(
         if export_csv and (summaries or results):
             exports = exporter.export_weekly_report(week_ending, db)
 
-        # Generate aggregations
-        aggregator = AuctionAggregator(db)
-        weekly_data = aggregator.aggregate_week(week_ending)
-
-        # Generate report
-        report = generate_weekly_report(db, week_ending)
-        report_path = BASE_DIR / "data" / "processed" / f"weekly_report_{week_ending}.txt"
-        report_path.write_text(report)
-        logger.info(f"Weekly report saved to {report_path}")
-
-        # Update scrape run status
+        # Update scrape run
         conn = db._get_connection()
         cursor = conn.cursor()
         cursor.execute("""
@@ -119,13 +118,18 @@ def run_scrape(
             'status': 'completed'
         }
 
-        logger.info(f"Scrape completed: {result}")
+        logger.info("")
+        logger.info("=" * 50)
+        logger.info("Weekly check complete!")
+        logger.info(f"  Suburbs with data: {len(summaries)}/{len(suburbs)}")
+        logger.info(f"  Individual results: {len(results)}")
+        logger.info("=" * 50)
+
         return result
 
     except Exception as e:
         logger.error(f"Scrape failed: {e}", exc_info=True)
 
-        # Update scrape run status
         conn = db._get_connection()
         cursor = conn.cursor()
         cursor.execute("""
@@ -143,19 +147,36 @@ def run_scrape(
         }
 
 
-def view_report(week_ending: Optional[date] = None):
-    """
-    View the report for a specific week.
+def show_config():
+    """Show current configuration."""
+    print("\nNSW Auction Results - Configuration")
+    print("=" * 40)
 
-    Args:
-        week_ending: The week to view. Uses most recent if not provided.
-    """
+    if not TRACKED_POSTCODES:
+        print("\nNo postcodes configured!")
+        print("\nEdit config/my_postcodes.py to add suburbs.")
+        print("Example:")
+        print('  TRACKED_POSTCODES = {')
+        print('      "2021": "paddington",')
+        print('      "2026": "bondi",')
+        print('  }')
+        return
+
+    suburbs = get_tracked_suburbs()
+    print(f"\nTracking {len(suburbs)} suburb(s):\n")
+
+    for s in suburbs:
+        print(f"  {s['suburb']:20} ({s['postcode']}) - {s['url']}")
+
+
+def view_report(week_ending: Optional[date] = None):
+    """View the report for a specific week."""
     db = Database()
 
     if week_ending is None:
         weeks = db.get_available_weeks()
         if not weeks:
-            print("No data available. Run a scrape first.")
+            print("No data available yet. Run 'python runner.py scrape' first.")
             return
         week_ending = weeks[0]
 
@@ -164,47 +185,51 @@ def view_report(week_ending: Optional[date] = None):
 
 
 def list_weeks():
-    """List all available weeks in the database."""
+    """List all weeks with data."""
     db = Database()
     weeks = db.get_available_weeks()
 
     if not weeks:
-        print("No data available. Run a scrape first.")
+        print("No data collected yet.")
+        print("Run 'python runner.py scrape' to collect your first week of data.")
         return
 
-    print("Available weeks:")
+    print("\nWeeks with data:")
+    print("-" * 40)
     for week in weeks:
         summaries = db.get_suburb_summaries_by_week(week)
-        print(f"  - {week} ({len(summaries)} suburbs)")
+        print(f"  {week}  ({len(summaries)} suburbs)")
 
 
 def main():
-    """Main entry point with CLI argument parsing."""
+    """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description='NSW Auction Results Scraper',
+        description='NSW Auction Results - Personal Tracker',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Commands:
+  config   Show your tracked postcodes
+  scrape   Run weekly auction check (for YOUR postcodes only)
+  report   View latest weekly report
+  weeks    List all weeks with data
+
 Examples:
-  python runner.py scrape              # Run weekly scrape
-  python runner.py scrape --limit 10   # Test with 10 suburbs
-  python runner.py report              # View latest report
-  python runner.py report --week 2024-12-07  # View specific week
-  python runner.py weeks               # List available weeks
+  python runner.py config               # See what you're tracking
+  python runner.py scrape               # Run weekly check
+  python runner.py report               # View latest report
+  python runner.py report --week 2024-12-07
+
+First time? Edit config/my_postcodes.py to add your suburbs.
         """
     )
 
-    subparsers = parser.add_subparsers(dest='command', help='Command to run')
+    subparsers = parser.add_subparsers(dest='command', help='Command')
+
+    # Config command
+    subparsers.add_parser('config', help='Show tracked postcodes')
 
     # Scrape command
-    scrape_parser = subparsers.add_parser('scrape', help='Run the weekly scrape')
-    scrape_parser.add_argument(
-        '--selenium', action='store_true',
-        help='Use Selenium for JavaScript rendering'
-    )
-    scrape_parser.add_argument(
-        '--limit', type=int,
-        help='Limit number of suburbs to scrape (for testing)'
-    )
+    scrape_parser = subparsers.add_parser('scrape', help='Run weekly check')
     scrape_parser.add_argument(
         '--no-csv', action='store_true',
         help='Skip CSV export'
@@ -220,25 +245,16 @@ Examples:
     # Weeks command
     subparsers.add_parser('weeks', help='List available weeks')
 
-    # Test command
-    test_parser = subparsers.add_parser('test', help='Test the scraper')
-    test_parser.add_argument(
-        '--url', type=str,
-        help='Test fetching a specific URL'
-    )
-
     args = parser.parse_args()
 
-    if args.command == 'scrape':
-        result = run_scrape(
-            use_selenium=args.selenium,
-            limit=args.limit,
-            export_csv=not args.no_csv
-        )
-        print(f"\nScrape completed: {result['status']}")
-        if result['status'] == 'completed':
-            print(f"  Suburbs: {result['suburbs_scraped']}")
-            print(f"  Results: {result['results_collected']}")
+    if args.command == 'config':
+        show_config()
+
+    elif args.command == 'scrape':
+        result = run_scrape(export_csv=not args.no_csv)
+        if result['status'] == 'error':
+            print(f"\nError: {result['error']}")
+            sys.exit(1)
 
     elif args.command == 'report':
         week = None
@@ -249,18 +265,14 @@ Examples:
     elif args.command == 'weeks':
         list_weeks()
 
-    elif args.command == 'test':
-        print("Testing scraper...")
-        scraper = AuctionScraper()
-        suburbs = scraper.get_suburb_list()
-        print(f"Found {len(suburbs)} suburbs")
-        if suburbs and args.url:
-            summary, results = scraper.get_suburb_results(args.url)
-            print(f"Summary: {summary}")
-            print(f"Results: {len(results)}")
-
     else:
+        # Default: show help
         parser.print_help()
+        print("\n" + "=" * 50)
+        print("Quick start:")
+        print("  1. Edit config/my_postcodes.py to add your suburbs")
+        print("  2. Run: python runner.py scrape")
+        print("=" * 50)
 
 
 if __name__ == "__main__":

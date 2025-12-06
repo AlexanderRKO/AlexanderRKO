@@ -33,11 +33,12 @@ REQUEST_HEADERS = {
     "Upgrade-Insecure-Requests": "1",
 }
 
-# Rate limiting - be respectful to the server
-REQUEST_DELAY_MIN = 2  # Minimum seconds between requests
-REQUEST_DELAY_MAX = 5  # Maximum seconds between requests
-MAX_RETRIES = 3
-RETRY_DELAY = 10  # Seconds to wait before retry
+# Rate limiting - human-like browsing behavior
+# These delays mimic someone casually browsing the site on a Sunday morning
+REQUEST_DELAY_MIN = 8   # Minimum seconds between requests (reading time)
+REQUEST_DELAY_MAX = 20  # Maximum seconds between requests (varies naturally)
+MAX_RETRIES = 2         # Don't hammer the server if something fails
+RETRY_DELAY = 60        # Wait a full minute before retry (like a real user would)
 
 # Schedule settings
 # Auction results refresh every Sunday at 5am AEDT
