@@ -56,10 +56,11 @@ NSW_REGIONS = [
 #   Sutherland: 2229 (Caringbah), 2230 (Cronulla)
 
 PREFERRED_POSTCODES = [
-    # Add your postcodes here (max 10 recommended)
-    # "2021",  # Paddington
-    # "2026",  # Bondi
-    # "2042",  # Newtown
+    "2137",  # Breakfast Point, Cabarita, Mortlake, Rodd Point
+    "2150",  # Parramatta, Harris Park
+    "2138",  # Concord West, Liberty Grove, Rhodes
+    "2127",  # Newington, Sydney Olympic Park, Wentworth Point
+    "2481",  # Byron Bay, Suffolk Park
 ]
 
 # Maximum postcodes to track (to stay API-friendly)
