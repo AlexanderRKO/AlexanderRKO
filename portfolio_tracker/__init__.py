@@ -23,6 +23,13 @@ from .dividend_tracker import (
     get_portfolio_dividends,
     calculate_income_projection,
 )
+from .alerts import (
+    Alert,
+    AlertType,
+    AlertStatus,
+    AlertManager,
+    TriggeredAlert,
+)
 
 __all__ = [
     "Holding",
@@ -45,4 +52,9 @@ __all__ = [
     "DividendFetcher",
     "get_portfolio_dividends",
     "calculate_income_projection",
+    "Alert",
+    "AlertType",
+    "AlertStatus",
+    "AlertManager",
+    "TriggeredAlert",
 ]

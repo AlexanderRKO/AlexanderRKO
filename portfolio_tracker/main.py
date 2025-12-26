@@ -28,6 +28,7 @@ from .visualizer import PortfolioVisualizer, plot_portfolio_history, plot_alloca
 from .price_fetcher import ASXPriceFetcher, update_portfolio_prices
 from .sector_lookup import classify_portfolio, get_sector_summary
 from .dividend_tracker import DividendFetcher, get_portfolio_dividends, calculate_income_projection
+from .alerts import AlertManager, AlertType, format_alert_list, format_triggered_alerts
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -673,6 +674,118 @@ def cmd_dividends(args):
         print(f"{'Monthly Average':<20} ${projection['average_monthly']:>14,.2f}")
 
 
+def cmd_alerts(args):
+    """Manage portfolio alerts."""
+    manager = AlertManager(DATA_DIR)
+    db = PortfolioDatabase()
+    db.initialize()
+
+    # Add new alert
+    if args.add:
+        alert_type_map = {
+            "price-above": AlertType.PRICE_ABOVE,
+            "price-below": AlertType.PRICE_BELOW,
+            "profit-above": AlertType.PROFIT_ABOVE,
+            "loss-below": AlertType.LOSS_BELOW,
+            "value-above": AlertType.PORTFOLIO_VALUE_ABOVE,
+            "value-below": AlertType.PORTFOLIO_VALUE_BELOW,
+            "weight-above": AlertType.WEIGHT_ABOVE,
+            "daily-up": AlertType.DAILY_CHANGE_ABOVE,
+            "daily-down": AlertType.DAILY_CHANGE_BELOW,
+        }
+
+        if args.add not in alert_type_map:
+            print(f"Unknown alert type: {args.add}")
+            print(f"Valid types: {', '.join(alert_type_map.keys())}")
+            sys.exit(1)
+
+        if not args.threshold:
+            print("Error: --threshold required when adding alerts")
+            sys.exit(1)
+
+        alert_type = alert_type_map[args.add]
+
+        # Validate code requirement
+        needs_code = alert_type not in (AlertType.PORTFOLIO_VALUE_ABOVE, AlertType.PORTFOLIO_VALUE_BELOW)
+        if needs_code and not args.code:
+            print(f"Error: --code required for {args.add} alerts")
+            sys.exit(1)
+
+        alert = manager.add_alert(
+            alert_type=alert_type,
+            threshold=Decimal(str(args.threshold)),
+            code=args.code,
+            description=args.note or "",
+        )
+        print(f"Created alert {alert.id}: {alert_type.value}")
+        if alert.code:
+            print(f"  Stock: {alert.code}")
+        print(f"  Threshold: {args.threshold}")
+        return
+
+    # Remove alert
+    if args.remove:
+        if manager.remove_alert(args.remove):
+            print(f"Removed alert {args.remove}")
+        else:
+            print(f"Alert {args.remove} not found")
+        return
+
+    # Reset alert
+    if args.reset:
+        if manager.reset_alert(args.reset):
+            print(f"Reset alert {args.reset} to active")
+        else:
+            print(f"Alert {args.reset} not found")
+        return
+
+    # Dismiss alert
+    if args.dismiss:
+        if manager.dismiss_alert(args.dismiss):
+            print(f"Dismissed alert {args.dismiss}")
+        else:
+            print(f"Alert {args.dismiss} not found")
+        return
+
+    # Check alerts against current portfolio
+    if args.check:
+        portfolio = db.get_latest_portfolio()
+        if not portfolio:
+            print("No portfolio data found. Import a CSV first.")
+            sys.exit(1)
+
+        triggered = manager.check_alerts(portfolio)
+        if triggered:
+            print(format_triggered_alerts(triggered))
+        else:
+            print("No alerts triggered.")
+        return
+
+    # List all alerts (default)
+    print("\n" + "=" * 65)
+    print("PORTFOLIO ALERTS")
+    print("=" * 65)
+
+    active = manager.get_active_alerts()
+    triggered = manager.get_triggered_alerts()
+
+    if active:
+        print(f"\nActive Alerts ({len(active)}):")
+        print(format_alert_list(active))
+
+    if triggered:
+        print(f"\nTriggered Alerts ({len(triggered)}):")
+        print(format_alert_list(triggered))
+
+    if not active and not triggered:
+        print("\nNo alerts configured.")
+        print("\nExample commands:")
+        print("  alerts --add price-above --code CBA --threshold 150")
+        print("  alerts --add value-below --threshold 2000000")
+        print("  alerts --add loss-below --code VAS --threshold 10")
+        print("  alerts --check")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -765,6 +878,17 @@ Examples:
     dividends_parser.add_argument("--list", "-l", dest="holdings", action="store_true", help="List holdings with yields")
     dividends_parser.add_argument("--projection", "-p", action="store_true", help="Show 12-month income projection")
 
+    # Alerts command
+    alerts_parser = subparsers.add_parser("alerts", help="Manage portfolio alerts")
+    alerts_parser.add_argument("--add", "-a", metavar="TYPE", help="Add alert (price-above, price-below, profit-above, loss-below, value-above, value-below, weight-above, daily-up, daily-down)")
+    alerts_parser.add_argument("--code", "-c", help="Stock code for the alert")
+    alerts_parser.add_argument("--threshold", "-t", type=float, help="Threshold value")
+    alerts_parser.add_argument("--note", "-n", help="Optional note/description")
+    alerts_parser.add_argument("--remove", metavar="ID", help="Remove alert by ID")
+    alerts_parser.add_argument("--reset", metavar="ID", help="Reset triggered alert to active")
+    alerts_parser.add_argument("--dismiss", metavar="ID", help="Dismiss a triggered alert")
+    alerts_parser.add_argument("--check", action="store_true", help="Check alerts against current portfolio")
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
@@ -794,6 +918,8 @@ Examples:
         cmd_sectors(args)
     elif args.command == "dividends":
         cmd_dividends(args)
+    elif args.command == "alerts":
+        cmd_alerts(args)
     else:
         parser.print_help()
 
