@@ -63,6 +63,15 @@ from .fy_analysis import (
     format_fy_report,
     compare_financial_years,
 )
+from .formatting import (
+    green, red, yellow, blue, cyan, bold, dim,
+    format_money, format_percent, format_change, progress_bar,
+)
+from .status_dashboard import (
+    generate_status_dashboard,
+    generate_welcome_message,
+    COMMAND_ALIASES,
+)
 
 __all__ = [
     "Holding",
@@ -111,4 +120,18 @@ __all__ = [
     "analyze_financial_year",
     "format_fy_report",
     "compare_financial_years",
+    "green",
+    "red",
+    "yellow",
+    "blue",
+    "cyan",
+    "bold",
+    "dim",
+    "format_money",
+    "format_percent",
+    "format_change",
+    "progress_bar",
+    "generate_status_dashboard",
+    "generate_welcome_message",
+    "COMMAND_ALIASES",
 ]

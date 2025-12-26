@@ -39,6 +39,15 @@ except ImportError:
 from .tax_reporting import generate_tax_report, format_tax_report, get_financial_year, analyze_unrealised_gains
 from .change_tracker import compare_portfolios, get_fy_comparison, generate_change_report, get_import_history
 from .fy_analysis import analyze_financial_year, format_fy_report, compare_financial_years, get_fy_dates
+from .formatting import (
+    green, red, yellow, blue, cyan, bold, dim,
+    format_money, format_percent, format_change, progress_bar,
+    header, subheader
+)
+from .status_dashboard import (
+    generate_status_dashboard, generate_welcome_message,
+    COMMAND_ALIASES, resolve_alias
+)
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -1002,6 +1011,31 @@ def cmd_fy(args):
         print(f"  EOFY:        {fy.end_date.strftime('%A, %d %B %Y')}")
 
 
+def cmd_status(args):
+    """Quick portfolio status dashboard."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    if not portfolio:
+        print(generate_welcome_message(has_data=False))
+        return
+
+    dashboard = generate_status_dashboard(db, portfolio, compact=args.compact)
+    print(dashboard)
+
+
+def cmd_welcome(args):
+    """Show welcome message and getting started guide."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    has_data = portfolio is not None
+
+    print(generate_welcome_message(has_data=has_data))
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -1133,6 +1167,17 @@ Examples:
     fy_parser.add_argument("--dates", action="store_true", help="Show key FY dates")
     fy_parser.add_argument("--json", action="store_true", help="Output as JSON")
 
+    # Status command (quick overview)
+    status_parser = subparsers.add_parser("status", aliases=["s", "st"], help="Quick portfolio status")
+    status_parser.add_argument("--compact", "-c", action="store_true", help="Compact output")
+
+    # Welcome/help command
+    welcome_parser = subparsers.add_parser("welcome", help="Show welcome message and getting started guide")
+
+    # Resolve command aliases before parsing
+    if len(sys.argv) > 1 and sys.argv[1] in COMMAND_ALIASES:
+        sys.argv[1] = resolve_alias(sys.argv[1])
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
@@ -1172,6 +1217,24 @@ Examples:
         cmd_changes(args)
     elif args.command == "fy":
         cmd_fy(args)
+    elif args.command in ("status", "s", "st"):
+        cmd_status(args)
+    elif args.command == "welcome":
+        cmd_welcome(args)
+    elif args.command is None:
+        # No command - show status if data exists, otherwise welcome
+        db = PortfolioDatabase()
+        db.initialize()
+        portfolio = db.get_latest_portfolio()
+        if portfolio:
+            # Create a simple namespace for status args
+            class StatusArgs:
+                compact = False
+            cmd_status(StatusArgs())
+        else:
+            class WelcomeArgs:
+                pass
+            cmd_welcome(WelcomeArgs())
     else:
         parser.print_help()
 
