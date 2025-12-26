@@ -145,6 +145,11 @@ class CommSecCSVParser:
             source_file=str(file_path),
         )
 
+        # Auto-classify sectors
+        from .sector_lookup import classify_portfolio
+        classify_result = classify_portfolio(portfolio)
+        logger.debug(f"Classified {classify_result['classified']}/{classify_result['total']} holdings by sector")
+
         logger.info(
             f"Parsed {len(holdings)} holdings from {file_path.name}, "
             f"Total value: ${float(portfolio.total_market_value):,.2f}"

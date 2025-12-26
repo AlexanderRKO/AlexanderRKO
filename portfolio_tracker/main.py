@@ -26,6 +26,7 @@ from .storage import PortfolioDatabase, export_portfolio_to_csv
 from .analysis import PortfolioAnalyzer, generate_portfolio_report, compare_snapshots
 from .visualizer import PortfolioVisualizer, plot_portfolio_history, plot_allocation_pie
 from .price_fetcher import ASXPriceFetcher, update_portfolio_prices
+from .sector_lookup import classify_portfolio, get_sector_summary
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -508,6 +509,71 @@ def cmd_quote(args):
     print(f"\nLast Updated: {quote.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
 
 
+def cmd_sectors(args):
+    """Show sector breakdown of portfolio."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    if not portfolio:
+        print("No portfolio data found. Import a CSV first.")
+        sys.exit(1)
+
+    # Reclassify if requested
+    if args.reclassify:
+        result = classify_portfolio(portfolio)
+        print(f"Reclassified {result['classified']}/{result['total']} holdings")
+        if result['unknown_codes']:
+            print(f"Unknown: {', '.join(result['unknown_codes'][:10])}")
+        print()
+
+    # Get sector summary
+    sector_data = get_sector_summary(portfolio)
+
+    print("\n" + "=" * 70)
+    print("SECTOR BREAKDOWN")
+    print("=" * 70)
+
+    print(f"\n{'Sector':<25} {'Holdings':>8} {'Value':>15} {'Weight':>8} {'Return':>8}")
+    print("-" * 70)
+
+    for sector_name, data in sector_data.items():
+        print(
+            f"{sector_name:<25} "
+            f"{data['count']:>8} "
+            f"${data['market_value']:>14,.2f} "
+            f"{data['weight']:>7.1f}% "
+            f"{data['return_percent']:>+7.1f}%"
+        )
+
+    print("-" * 70)
+    print(
+        f"{'TOTAL':<25} "
+        f"{portfolio.holding_count:>8} "
+        f"${float(portfolio.total_market_value):>14,.2f} "
+        f"{'100.0%':>8} "
+        f"{float(portfolio.total_profit_loss_percent):>+7.1f}%"
+    )
+
+    # Show holdings by sector if verbose
+    if args.holdings:
+        print("\n" + "=" * 70)
+        print("HOLDINGS BY SECTOR")
+        print("=" * 70)
+        for sector_name, data in sector_data.items():
+            if data['holdings']:
+                print(f"\n{sector_name}:")
+                holdings = [portfolio.get_holding(code) for code in data['holdings']]
+                holdings = sorted([h for h in holdings if h], key=lambda x: x.market_value, reverse=True)
+                for h in holdings:
+                    print(f"  {h.code:<6} ${float(h.market_value):>12,.2f} ({float(h.portfolio_weight):>5.1f}%)")
+
+    # Save if requested
+    if args.save:
+        snapshot_id = db.save_portfolio(portfolio)
+        print(f"\nSaved updated sectors to snapshot: {snapshot_id}")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -589,6 +655,12 @@ Examples:
     quote_parser = subparsers.add_parser("quote", help="Get live quote for a stock")
     quote_parser.add_argument("code", help="ASX ticker code (e.g., CBA, BHP)")
 
+    # Sectors command
+    sectors_parser = subparsers.add_parser("sectors", help="Show sector breakdown")
+    sectors_parser.add_argument("--list", "-l", dest="holdings", action="store_true", help="List holdings per sector")
+    sectors_parser.add_argument("--reclassify", "-r", action="store_true", help="Reclassify all holdings")
+    sectors_parser.add_argument("--save", "-s", action="store_true", help="Save updated sectors")
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
@@ -614,6 +686,8 @@ Examples:
         cmd_update(args)
     elif args.command == "quote":
         cmd_quote(args)
+    elif args.command == "sectors":
+        cmd_sectors(args)
     else:
         parser.print_help()
 
