@@ -30,6 +30,12 @@ from .sector_lookup import classify_portfolio, get_sector_summary
 from .dividend_tracker import DividendFetcher, get_portfolio_dividends, calculate_income_projection
 from .alerts import AlertManager, AlertType, format_alert_list, format_triggered_alerts
 
+# Optional web dashboard (requires Flask)
+try:
+    from .web_dashboard import run_dashboard
+except ImportError:
+    run_dashboard = None
+
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
 PORTFOLIO_DATA_DIR = DATA_DIR / "portfolio"
@@ -786,6 +792,24 @@ def cmd_alerts(args):
         print("  alerts --check")
 
 
+def cmd_web(args):
+    """Launch web dashboard."""
+    if run_dashboard is None:
+        print("Error: Flask is required for the web dashboard")
+        print("Install with: pip install flask")
+        sys.exit(1)
+
+    try:
+        run_dashboard(
+            host=args.host,
+            port=args.port,
+            debug=args.debug,
+        )
+    except Exception as e:
+        print(f"Error starting web server: {e}")
+        sys.exit(1)
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -889,6 +913,12 @@ Examples:
     alerts_parser.add_argument("--dismiss", metavar="ID", help="Dismiss a triggered alert")
     alerts_parser.add_argument("--check", action="store_true", help="Check alerts against current portfolio")
 
+    # Web dashboard command
+    web_parser = subparsers.add_parser("web", help="Launch web dashboard")
+    web_parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
+    web_parser.add_argument("--port", "-p", type=int, default=5000, help="Port to run on (default: 5000)")
+    web_parser.add_argument("--debug", "-d", action="store_true", help="Enable debug mode")
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
@@ -920,6 +950,8 @@ Examples:
         cmd_dividends(args)
     elif args.command == "alerts":
         cmd_alerts(args)
+    elif args.command == "web":
+        cmd_web(args)
     else:
         parser.print_help()
 

@@ -31,6 +31,13 @@ from .alerts import (
     TriggeredAlert,
 )
 
+# Optional web dashboard (requires Flask)
+try:
+    from .web_dashboard import create_app, run_dashboard
+except ImportError:
+    create_app = None
+    run_dashboard = None
+
 __all__ = [
     "Holding",
     "Portfolio",
@@ -57,4 +64,6 @@ __all__ = [
     "AlertStatus",
     "AlertManager",
     "TriggeredAlert",
+    "create_app",
+    "run_dashboard",
 ]
