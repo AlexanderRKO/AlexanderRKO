@@ -55,6 +55,14 @@ from .change_tracker import (
     generate_change_report,
     get_import_history,
 )
+from .fy_analysis import (
+    FYDates,
+    FYAnalysis,
+    get_fy_dates,
+    analyze_financial_year,
+    format_fy_report,
+    compare_financial_years,
+)
 
 __all__ = [
     "Holding",
@@ -97,4 +105,10 @@ __all__ = [
     "get_fy_comparison",
     "generate_change_report",
     "get_import_history",
+    "FYDates",
+    "FYAnalysis",
+    "get_fy_dates",
+    "analyze_financial_year",
+    "format_fy_report",
+    "compare_financial_years",
 ]

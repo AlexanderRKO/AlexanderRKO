@@ -38,6 +38,7 @@ except ImportError:
 
 from .tax_reporting import generate_tax_report, format_tax_report, get_financial_year, analyze_unrealised_gains
 from .change_tracker import compare_portfolios, get_fy_comparison, generate_change_report, get_import_history
+from .fy_analysis import analyze_financial_year, format_fy_report, compare_financial_years, get_fy_dates
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -951,6 +952,56 @@ def cmd_changes(args):
         print("Error loading snapshots for comparison.")
 
 
+def cmd_fy(args):
+    """Financial year analysis and reporting."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    # Determine which FY to analyze
+    fy_string = args.year if args.year else None
+
+    # Compare two FYs if requested
+    if args.compare:
+        try:
+            fy1, fy2 = args.compare.split(",")
+            comparison = compare_financial_years(db, fy1.strip(), fy2.strip())
+            if args.json:
+                import json
+                print(json.dumps(comparison, indent=2))
+            else:
+                print(f"\nComparing FY {fy1} vs FY {fy2}")
+                print("=" * 50)
+                print(f"FY {fy1} Return: {comparison['fy1_data']['performance']['value_change_percent']:.1f}%")
+                print(f"FY {fy2} Return: {comparison['fy2_data']['performance']['value_change_percent']:.1f}%")
+                print(f"Difference: {comparison['comparison']['return_diff']:.1f}%")
+            return
+        except ValueError:
+            print("Error: --compare requires two FYs separated by comma (e.g., 2023-24,2024-25)")
+            return
+
+    # Get FY analysis
+    analysis = analyze_financial_year(db, fy_string)
+
+    if args.json:
+        import json
+        print(json.dumps(analysis.to_dict(), indent=2))
+    else:
+        portfolio = db.get_latest_portfolio()
+        print(format_fy_report(analysis, portfolio))
+
+    # Show key dates if requested
+    if args.dates:
+        fy = get_fy_dates(fy_string)
+        print("\n" + "-" * 50)
+        print("KEY DATES")
+        print("-" * 50)
+        print(f"  FY Start:    {fy.start_date.strftime('%A, %d %B %Y')}")
+        print(f"  Q1 End:      {fy.q1_end.strftime('%A, %d %B %Y')}")
+        print(f"  Q2 End:      {fy.q2_end.strftime('%A, %d %B %Y')}")
+        print(f"  Q3 End:      {fy.q3_end.strftime('%A, %d %B %Y')}")
+        print(f"  EOFY:        {fy.end_date.strftime('%A, %d %B %Y')}")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -1075,6 +1126,13 @@ Examples:
     changes_parser.add_argument("--new", help="New snapshot ID for comparison")
     changes_parser.add_argument("--json", action="store_true", help="Output as JSON")
 
+    # Financial Year analysis command
+    fy_parser = subparsers.add_parser("fy", help="Financial year analysis (July 1 - June 30)")
+    fy_parser.add_argument("year", nargs="?", help="Financial year (e.g., 2024-25). Defaults to current FY")
+    fy_parser.add_argument("--compare", help="Compare two FYs (e.g., 2023-24,2024-25)")
+    fy_parser.add_argument("--dates", action="store_true", help="Show key FY dates")
+    fy_parser.add_argument("--json", action="store_true", help="Output as JSON")
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
@@ -1112,6 +1170,8 @@ Examples:
         cmd_tax(args)
     elif args.command == "changes":
         cmd_changes(args)
+    elif args.command == "fy":
+        cmd_fy(args)
     else:
         parser.print_help()
 
