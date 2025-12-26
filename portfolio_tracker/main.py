@@ -36,6 +36,8 @@ try:
 except ImportError:
     run_dashboard = None
 
+from .tax_reporting import generate_tax_report, format_tax_report, get_financial_year, analyze_unrealised_gains
+
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
 PORTFOLIO_DATA_DIR = DATA_DIR / "portfolio"
@@ -810,6 +812,57 @@ def cmd_web(args):
         sys.exit(1)
 
 
+def cmd_tax(args):
+    """Generate tax report."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    if not portfolio:
+        print("No portfolio data found. Import a CSV first.")
+        sys.exit(1)
+
+    # Determine financial year
+    fy = args.fy if args.fy else get_financial_year()
+
+    print(f"\nGenerating tax report for FY {fy}...")
+
+    # Generate report
+    summary = generate_tax_report(portfolio, fy)
+
+    if args.json:
+        import json
+        print(json.dumps(summary.to_dict(), indent=2))
+    else:
+        print(format_tax_report(summary, portfolio))
+
+    # Show tax-loss harvesting suggestions if requested
+    if args.harvest:
+        print("\n" + "=" * 70)
+        print("TAX-LOSS HARVESTING ANALYSIS")
+        print("=" * 70)
+
+        losses = [h for h in portfolio.holdings if h.profit_loss < 0]
+        gains = [h for h in portfolio.holdings if h.profit_loss > 0]
+
+        total_losses = sum(abs(h.profit_loss) for h in losses)
+        total_gains = sum(h.profit_loss for h in gains)
+
+        print(f"\n  Total Unrealised Gains:  ${float(total_gains):>12,.2f}")
+        print(f"  Total Unrealised Losses: ${float(total_losses):>12,.2f}")
+
+        if losses:
+            print(f"\n  Selling all loss-making positions would:")
+            print(f"  - Crystallise ${float(total_losses):,.2f} in capital losses")
+            print(f"  - Offset gains, reducing taxable amount")
+
+            # Estimate tax saving (assume 47% marginal rate)
+            potential_saving = total_losses * Decimal("0.47")
+            if total_gains > 0:
+                discount = min(total_gains, total_losses) * Decimal("0.5") * Decimal("0.47")
+                print(f"  - Potential tax saving: up to ${float(potential_saving):,.0f}")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -919,6 +972,12 @@ Examples:
     web_parser.add_argument("--port", "-p", type=int, default=5000, help="Port to run on (default: 5000)")
     web_parser.add_argument("--debug", "-d", action="store_true", help="Enable debug mode")
 
+    # Tax reporting command
+    tax_parser = subparsers.add_parser("tax", help="Tax report and CGT analysis")
+    tax_parser.add_argument("--fy", help="Financial year (e.g., 2024-25). Defaults to current FY")
+    tax_parser.add_argument("--harvest", action="store_true", help="Show tax-loss harvesting opportunities")
+    tax_parser.add_argument("--json", action="store_true", help="Output as JSON")
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
@@ -952,6 +1011,8 @@ Examples:
         cmd_alerts(args)
     elif args.command == "web":
         cmd_web(args)
+    elif args.command == "tax":
+        cmd_tax(args)
     else:
         parser.print_help()
 

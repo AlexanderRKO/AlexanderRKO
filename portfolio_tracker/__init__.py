@@ -38,6 +38,16 @@ except ImportError:
     create_app = None
     run_dashboard = None
 
+from .tax_reporting import (
+    TaxSummary,
+    CapitalGain,
+    DividendIncome,
+    generate_tax_report,
+    analyze_unrealised_gains,
+    format_tax_report,
+    get_financial_year,
+)
+
 __all__ = [
     "Holding",
     "Portfolio",
@@ -66,4 +76,11 @@ __all__ = [
     "TriggeredAlert",
     "create_app",
     "run_dashboard",
+    "TaxSummary",
+    "CapitalGain",
+    "DividendIncome",
+    "generate_tax_report",
+    "analyze_unrealised_gains",
+    "format_tax_report",
+    "get_financial_year",
 ]
