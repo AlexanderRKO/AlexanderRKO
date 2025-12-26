@@ -37,6 +37,7 @@ except ImportError:
     run_dashboard = None
 
 from .tax_reporting import generate_tax_report, format_tax_report, get_financial_year, analyze_unrealised_gains
+from .change_tracker import compare_portfolios, get_fy_comparison, generate_change_report, get_import_history
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -863,6 +864,93 @@ def cmd_tax(args):
                 print(f"  - Potential tax saving: up to ${float(potential_saving):,.0f}")
 
 
+def cmd_changes(args):
+    """Show portfolio changes between snapshots."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    # Show import history if requested
+    if args.history:
+        history = get_import_history(db, limit=args.limit or 10)
+        if not history:
+            print("No import history found.")
+            return
+
+        print("\n" + "=" * 70)
+        print("IMPORT HISTORY")
+        print("=" * 70)
+        print(f"\n  {'ID':<12} {'Date':<12} {'Holdings':>8} {'Value':>15} {'P/L':>12}")
+        print("  " + "-" * 63)
+        for h in history:
+            print(
+                f"  {h['snapshot_id']:<12} "
+                f"{h['date']:<12} "
+                f"{h['holdings']:>8} "
+                f"${h['value']:>14,.0f} "
+                f"${h['profit']:>+11,.0f}"
+            )
+        return
+
+    # FY comparison
+    if args.fy:
+        comparison = get_fy_comparison(db, args.fy)
+        if not comparison:
+            print(f"Insufficient data for FY {args.fy} comparison.")
+            print("Need at least 2 snapshots within the financial year.")
+            return
+
+        if args.json:
+            import json
+            print(json.dumps(comparison.to_dict(), indent=2))
+        else:
+            print(generate_change_report(comparison))
+        return
+
+    # Compare two specific snapshots
+    if args.old and args.new:
+        old_portfolio = db.get_portfolio(args.old)
+        new_portfolio = db.get_portfolio(args.new)
+
+        if not old_portfolio:
+            print(f"Snapshot '{args.old}' not found.")
+            return
+        if not new_portfolio:
+            print(f"Snapshot '{args.new}' not found.")
+            return
+
+        comparison = compare_portfolios(old_portfolio, new_portfolio)
+
+        if args.json:
+            import json
+            print(json.dumps(comparison.to_dict(), indent=2))
+        else:
+            print(generate_change_report(comparison))
+        return
+
+    # Default: compare latest two snapshots
+    snapshots = db.get_all_snapshots()
+    if len(snapshots) < 2:
+        print("Need at least 2 snapshots to compare changes.")
+        print("Import another CSV file to track changes over time.")
+        return
+
+    latest = snapshots[0]
+    previous = snapshots[1]
+
+    old_portfolio = db.get_portfolio(previous.snapshot_id)
+    new_portfolio = db.get_portfolio(latest.snapshot_id)
+
+    if old_portfolio and new_portfolio:
+        comparison = compare_portfolios(old_portfolio, new_portfolio)
+        if args.json:
+            import json
+            print(json.dumps(comparison.to_dict(), indent=2))
+        else:
+            print(generate_change_report(comparison))
+    else:
+        print("Error loading snapshots for comparison.")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -978,6 +1066,15 @@ Examples:
     tax_parser.add_argument("--harvest", action="store_true", help="Show tax-loss harvesting opportunities")
     tax_parser.add_argument("--json", action="store_true", help="Output as JSON")
 
+    # Changes command
+    changes_parser = subparsers.add_parser("changes", help="Track portfolio changes between imports")
+    changes_parser.add_argument("--history", action="store_true", help="Show import history")
+    changes_parser.add_argument("--limit", type=int, help="Limit history entries (default: 10)")
+    changes_parser.add_argument("--fy", help="Compare for financial year (e.g., 2024-25)")
+    changes_parser.add_argument("--old", help="Old snapshot ID for comparison")
+    changes_parser.add_argument("--new", help="New snapshot ID for comparison")
+    changes_parser.add_argument("--json", action="store_true", help="Output as JSON")
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
@@ -1013,6 +1110,8 @@ Examples:
         cmd_web(args)
     elif args.command == "tax":
         cmd_tax(args)
+    elif args.command == "changes":
+        cmd_changes(args)
     else:
         parser.print_help()
 

@@ -47,6 +47,14 @@ from .tax_reporting import (
     format_tax_report,
     get_financial_year,
 )
+from .change_tracker import (
+    HoldingChange,
+    PortfolioComparison,
+    compare_portfolios,
+    get_fy_comparison,
+    generate_change_report,
+    get_import_history,
+)
 
 __all__ = [
     "Holding",
@@ -83,4 +91,10 @@ __all__ = [
     "analyze_unrealised_gains",
     "format_tax_report",
     "get_financial_year",
+    "HoldingChange",
+    "PortfolioComparison",
+    "compare_portfolios",
+    "get_fy_comparison",
+    "generate_change_report",
+    "get_import_history",
 ]
