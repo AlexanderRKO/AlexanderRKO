@@ -16,6 +16,13 @@ from .sector_lookup import (
     classify_portfolio,
     get_sector_summary,
 )
+from .dividend_tracker import (
+    Dividend,
+    DividendInfo,
+    DividendFetcher,
+    get_portfolio_dividends,
+    calculate_income_projection,
+)
 
 __all__ = [
     "Holding",
@@ -33,4 +40,9 @@ __all__ = [
     "classify_holding",
     "classify_portfolio",
     "get_sector_summary",
+    "Dividend",
+    "DividendInfo",
+    "DividendFetcher",
+    "get_portfolio_dividends",
+    "calculate_income_projection",
 ]

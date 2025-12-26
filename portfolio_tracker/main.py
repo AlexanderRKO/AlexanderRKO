@@ -27,6 +27,7 @@ from .analysis import PortfolioAnalyzer, generate_portfolio_report, compare_snap
 from .visualizer import PortfolioVisualizer, plot_portfolio_history, plot_allocation_pie
 from .price_fetcher import ASXPriceFetcher, update_portfolio_prices
 from .sector_lookup import classify_portfolio, get_sector_summary
+from .dividend_tracker import DividendFetcher, get_portfolio_dividends, calculate_income_projection
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -574,6 +575,104 @@ def cmd_sectors(args):
         print(f"\nSaved updated sectors to snapshot: {snapshot_id}")
 
 
+def cmd_dividends(args):
+    """Show dividend information for portfolio."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    if not portfolio:
+        print("No portfolio data found. Import a CSV first.")
+        sys.exit(1)
+
+    print(f"\nFetching dividend data for {portfolio.holding_count} holdings...")
+
+    try:
+        fetcher = DividendFetcher()
+        dividend_data = get_portfolio_dividends(portfolio, fetcher)
+    except ImportError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error fetching dividends: {e}")
+        sys.exit(1)
+
+    print("\n" + "=" * 80)
+    print("DIVIDEND ANALYSIS")
+    print("=" * 80)
+
+    print(f"\nData fetched for {dividend_data['fetched']}/{dividend_data['fetched'] + dividend_data['failed']} holdings")
+
+    # Summary
+    print(f"\n{'PORTFOLIO INCOME SUMMARY':^80}")
+    print("-" * 80)
+    print(f"  Portfolio Value:        ${float(portfolio.total_market_value):>15,.2f}")
+    print(f"  Expected Annual Income: ${dividend_data['total_annual_income']:>15,.2f}")
+    print(f"  Portfolio Yield:        {dividend_data['portfolio_yield']:>15.2f}%")
+    print(f"  Monthly Average:        ${dividend_data['total_annual_income']/12:>15,.2f}")
+
+    # Holdings table
+    if args.holdings:
+        print("\n" + "=" * 80)
+        print("DIVIDEND YIELD BY HOLDING")
+        print("=" * 80)
+        print(f"\n{'Code':<6} {'Name':<25} {'Value':>12} {'Yield':>7} {'Annual':>12} {'Freq':<10}")
+        print("-" * 80)
+
+        # Sort by yield
+        holdings = sorted(dividend_data['holdings'], key=lambda x: x['dividend_yield'], reverse=True)
+
+        for h in holdings:
+            name = h['name'][:24] if len(h['name']) > 24 else h['name']
+            yield_str = f"{h['dividend_yield']:.2f}%" if h['dividend_yield'] > 0 else "-"
+            annual_str = f"${h['expected_annual_income']:,.0f}" if h['expected_annual_income'] > 0 else "-"
+            print(
+                f"{h['code']:<6} "
+                f"{name:<25} "
+                f"${h['market_value']:>10,.0f} "
+                f"{yield_str:>7} "
+                f"{annual_str:>12} "
+                f"{h['frequency']:<10}"
+            )
+
+    # Upcoming dividends
+    upcoming = dividend_data.get('upcoming_dividends', [])
+    if upcoming:
+        print("\n" + "=" * 80)
+        print("UPCOMING EX-DIVIDEND DATES")
+        print("=" * 80)
+        print(f"\n{'Code':<6} {'Ex-Date':<12} {'Days':>6} {'Est. Payment':>15}")
+        print("-" * 45)
+
+        for div in upcoming[:10]:  # Top 10 upcoming
+            print(
+                f"{div['code']:<6} "
+                f"{div['ex_date']:<12} "
+                f"{div['days_to_ex']:>6} "
+                f"${div['estimated_payment']:>14,.2f}"
+            )
+    else:
+        print("\n  No upcoming ex-dividend dates found.")
+
+    # Income projection
+    if args.projection:
+        projection = calculate_income_projection(portfolio, dividend_data)
+        print("\n" + "=" * 80)
+        print("12-MONTH INCOME PROJECTION")
+        print("=" * 80)
+        print(f"\n{'Month':<20} {'Expected Income':>15}")
+        print("-" * 40)
+
+        for month in projection['projection']:
+            income = float(month['expected_income'])
+            bar = "█" * int(income / 500) if income > 0 else ""
+            print(f"{month['label']:<20} ${income:>14,.2f}  {bar}")
+
+        print("-" * 40)
+        print(f"{'Annual Total':<20} ${projection['total_annual']:>14,.2f}")
+        print(f"{'Monthly Average':<20} ${projection['average_monthly']:>14,.2f}")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -661,6 +760,11 @@ Examples:
     sectors_parser.add_argument("--reclassify", "-r", action="store_true", help="Reclassify all holdings")
     sectors_parser.add_argument("--save", "-s", action="store_true", help="Save updated sectors")
 
+    # Dividends command
+    dividends_parser = subparsers.add_parser("dividends", help="Show dividend analysis")
+    dividends_parser.add_argument("--list", "-l", dest="holdings", action="store_true", help="List holdings with yields")
+    dividends_parser.add_argument("--projection", "-p", action="store_true", help="Show 12-month income projection")
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
@@ -688,6 +792,8 @@ Examples:
         cmd_quote(args)
     elif args.command == "sectors":
         cmd_sectors(args)
+    elif args.command == "dividends":
+        cmd_dividends(args)
     else:
         parser.print_help()
 
