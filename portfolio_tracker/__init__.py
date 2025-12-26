@@ -72,6 +72,20 @@ from .status_dashboard import (
     generate_welcome_message,
     COMMAND_ALIASES,
 )
+from .charts import (
+    ascii_bar_chart,
+    ascii_pie_chart,
+    ascii_sparkline,
+    ascii_table,
+    sector_tree,
+    check_matplotlib,
+    create_pie_chart,
+    create_bar_chart,
+    create_line_chart,
+    get_sector_chart_data,
+    get_performance_chart_data,
+    get_holdings_chart_data,
+)
 
 __all__ = [
     "Holding",
@@ -134,4 +148,16 @@ __all__ = [
     "generate_status_dashboard",
     "generate_welcome_message",
     "COMMAND_ALIASES",
+    "ascii_bar_chart",
+    "ascii_pie_chart",
+    "ascii_sparkline",
+    "ascii_table",
+    "sector_tree",
+    "check_matplotlib",
+    "create_pie_chart",
+    "create_bar_chart",
+    "create_line_chart",
+    "get_sector_chart_data",
+    "get_performance_chart_data",
+    "get_holdings_chart_data",
 ]

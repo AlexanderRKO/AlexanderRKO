@@ -48,6 +48,11 @@ from .status_dashboard import (
     generate_status_dashboard, generate_welcome_message,
     COMMAND_ALIASES, resolve_alias
 )
+from .charts import (
+    ascii_bar_chart, ascii_pie_chart, sector_tree,
+    check_matplotlib, create_pie_chart, create_bar_chart,
+    get_sector_chart_data, get_performance_chart_data
+)
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -1036,6 +1041,88 @@ def cmd_welcome(args):
     print(generate_welcome_message(has_data=has_data))
 
 
+def cmd_chart(args):
+    """Display portfolio charts."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    if not portfolio:
+        print("No portfolio data found. Import a CSV first.")
+        sys.exit(1)
+
+    chart_type = args.type or "sectors"
+
+    if chart_type == "sectors":
+        # Sector allocation chart
+        data = get_sector_chart_data(portfolio)
+        sector_data = dict(zip(data["labels"], data["values"]))
+        print("\n" + ascii_pie_chart(sector_data, title="Sector Allocation"))
+
+    elif chart_type == "tree":
+        # Tree view of holdings by sector
+        print("\n" + sector_tree(portfolio))
+
+    elif chart_type == "performance":
+        # Performance bar chart
+        perf_data = get_performance_chart_data(portfolio)
+        # Top 15 performers
+        top_data = dict(zip(perf_data["labels"][:15], perf_data["values"][:15]))
+        print("\n" + ascii_bar_chart(top_data, title="Top Performers (% Return)", width=30))
+
+    elif chart_type == "holdings":
+        # Holdings by value
+        holdings = sorted(portfolio.holdings, key=lambda h: h.market_value, reverse=True)[:15]
+        data = {h.code: float(h.market_value) for h in holdings}
+        print("\n" + ascii_bar_chart(data, title="Top Holdings by Value", width=40))
+
+    elif chart_type == "gainers":
+        # Daily gainers
+        gainers = sorted(portfolio.holdings, key=lambda h: h.daily_change_percent, reverse=True)[:10]
+        data = {h.code: float(h.daily_change_percent) for h in gainers if h.daily_change_percent > 0}
+        if data:
+            print("\n" + ascii_bar_chart(data, title="Today's Gainers (%)", width=30))
+        else:
+            print("\nNo gainers today")
+
+    elif chart_type == "losers":
+        # Daily losers
+        losers = sorted(portfolio.holdings, key=lambda h: h.daily_change_percent)[:10]
+        data = {h.code: float(h.daily_change_percent) for h in losers if h.daily_change_percent < 0}
+        if data:
+            print("\n" + ascii_bar_chart(data, title="Today's Losers (%)", width=30))
+        else:
+            print("\nNo losers today")
+
+    # Export to PNG if requested
+    if args.export:
+        if not check_matplotlib():
+            print("\nmatplotlib required for image export: pip install matplotlib")
+            return
+
+        output_path = Path(args.export)
+        if chart_type == "sectors":
+            data = get_sector_chart_data(portfolio)
+            sector_data = dict(zip(data["labels"], data["values"]))
+            result = create_pie_chart(sector_data, "Sector Allocation", output_path)
+        elif chart_type in ("performance", "holdings"):
+            if chart_type == "performance":
+                perf_data = get_performance_chart_data(portfolio)
+                chart_data = dict(zip(perf_data["labels"][:15], perf_data["values"][:15]))
+                title = "Top Performers (% Return)"
+            else:
+                holdings = sorted(portfolio.holdings, key=lambda h: h.market_value, reverse=True)[:15]
+                chart_data = {h.code: float(h.market_value) for h in holdings}
+                title = "Top Holdings by Value"
+            result = create_bar_chart(chart_data, title, output_path=output_path)
+        else:
+            print(f"\nExport not supported for chart type: {chart_type}")
+            return
+
+        if result:
+            print(f"\nChart saved to: {result}")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -1174,6 +1261,17 @@ Examples:
     # Welcome/help command
     welcome_parser = subparsers.add_parser("welcome", help="Show welcome message and getting started guide")
 
+    # Chart command
+    chart_parser = subparsers.add_parser("chart", help="Display portfolio charts")
+    chart_parser.add_argument(
+        "type",
+        nargs="?",
+        choices=["sectors", "tree", "performance", "holdings", "gainers", "losers"],
+        default="sectors",
+        help="Chart type (default: sectors)"
+    )
+    chart_parser.add_argument("--export", "-e", metavar="FILE", help="Export to PNG file (requires matplotlib)")
+
     # Resolve command aliases before parsing
     if len(sys.argv) > 1 and sys.argv[1] in COMMAND_ALIASES:
         sys.argv[1] = resolve_alias(sys.argv[1])
@@ -1221,6 +1319,8 @@ Examples:
         cmd_status(args)
     elif args.command == "welcome":
         cmd_welcome(args)
+    elif args.command == "chart":
+        cmd_chart(args)
     elif args.command is None:
         # No command - show status if data exists, otherwise welcome
         db = PortfolioDatabase()
