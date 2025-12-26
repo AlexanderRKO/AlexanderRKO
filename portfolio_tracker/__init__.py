@@ -9,6 +9,7 @@ from .parser import CommSecCSVParser
 from .storage import PortfolioDatabase
 from .analysis import PortfolioAnalyzer
 from .visualizer import PortfolioVisualizer
+from .price_fetcher import ASXPriceFetcher, PriceQuote, update_portfolio_prices
 
 __all__ = [
     "Holding",
@@ -18,4 +19,7 @@ __all__ = [
     "PortfolioDatabase",
     "PortfolioAnalyzer",
     "PortfolioVisualizer",
+    "ASXPriceFetcher",
+    "PriceQuote",
+    "update_portfolio_prices",
 ]

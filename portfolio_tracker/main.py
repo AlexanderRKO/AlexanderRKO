@@ -25,6 +25,7 @@ from .parser import CommSecCSVParser
 from .storage import PortfolioDatabase, export_portfolio_to_csv
 from .analysis import PortfolioAnalyzer, generate_portfolio_report, compare_snapshots
 from .visualizer import PortfolioVisualizer, plot_portfolio_history, plot_allocation_pie
+from .price_fetcher import ASXPriceFetcher, update_portfolio_prices
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -417,6 +418,96 @@ def cmd_holding(args):
             print(f"  {h['date']}: {h['quantity']:,} @ ${float(h['current_price']):.2f} = ${float(h['market_value']):,.2f}")
 
 
+def cmd_update(args):
+    """Update portfolio with live ASX prices."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    if not portfolio:
+        print("No portfolio data found. Import a CSV first.")
+        sys.exit(1)
+
+    print(f"Updating prices for {portfolio.holding_count} holdings...")
+    print(f"Current value: ${float(portfolio.total_market_value):,.2f}")
+
+    try:
+        fetcher = ASXPriceFetcher()
+        result = update_portfolio_prices(portfolio, fetcher)
+    except ImportError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error fetching prices: {e}")
+        sys.exit(1)
+
+    print("\n" + "=" * 50)
+    print("PRICE UPDATE COMPLETE")
+    print("=" * 50)
+    print(f"Updated:     {result['updated']}/{result['total']} holdings")
+    if result['failed'] > 0:
+        print(f"Failed:      {result['failed']} (check logs)")
+
+    print(f"\nPortfolio Value:")
+    print(f"  Before:    ${result['old_value']:>15,.2f}")
+    print(f"  After:     ${result['new_value']:>15,.2f}")
+
+    change = result['value_change']
+    change_pct = (change / result['old_value'] * 100) if result['old_value'] > 0 else 0
+    arrow = "▲" if change >= 0 else "▼"
+    print(f"  Change:    {arrow} ${abs(change):>14,.2f} ({change_pct:+.2f}%)")
+
+    # Save updated portfolio if requested
+    if args.save:
+        snapshot_id = db.save_portfolio(portfolio)
+        print(f"\nSaved as new snapshot: {snapshot_id}")
+    else:
+        print("\nUse --save to store updated prices as a new snapshot")
+
+    # Show top movers
+    if result['updated'] > 0:
+        print("\nTop Daily Movers:")
+        movers = sorted(portfolio.holdings, key=lambda h: abs(float(h.daily_change_percent)), reverse=True)
+        for h in movers[:5]:
+            arrow = "▲" if h.daily_change >= 0 else "▼"
+            print(f"  {h.code:<6} {arrow} {float(h.daily_change_percent):>+6.2f}%  (${float(h.daily_change):>+8.2f})")
+
+
+def cmd_quote(args):
+    """Get a live quote for a single stock."""
+    try:
+        fetcher = ASXPriceFetcher()
+        quote = fetcher.get_quote(args.code)
+    except ImportError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error fetching quote: {e}")
+        sys.exit(1)
+
+    if not quote:
+        print(f"Could not fetch quote for {args.code.upper()}")
+        sys.exit(1)
+
+    print("\n" + "=" * 50)
+    print(f"{quote.code} - {quote.name}")
+    print("=" * 50)
+
+    arrow = "▲" if quote.change >= 0 else "▼"
+    print(f"\nPrice:       ${float(quote.price):,.4f}")
+    print(f"Change:      {arrow} ${float(quote.change):+.4f} ({float(quote.change_percent):+.2f}%)")
+    print(f"Volume:      {quote.volume:,}")
+
+    if quote.day_high and quote.day_low:
+        print(f"Day Range:   ${float(quote.day_low):.2f} - ${float(quote.day_high):.2f}")
+    if quote.year_high and quote.year_low:
+        print(f"52wk Range:  ${float(quote.year_low):.2f} - ${float(quote.year_high):.2f}")
+    if quote.market_cap:
+        print(f"Market Cap:  ${float(quote.market_cap):,.0f}")
+
+    print(f"\nLast Updated: {quote.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -432,6 +523,8 @@ Examples:
   portfolio_tracker analyze --report         Detailed analysis report
   portfolio_tracker query --min-return 10    Find holdings with >10% return
   portfolio_tracker holding CBA              Details for specific holding
+  portfolio_tracker update                   Fetch live ASX prices
+  portfolio_tracker quote BHP                Get live quote for a stock
   portfolio_tracker history                  Show portfolio history
         """
     )
@@ -488,6 +581,14 @@ Examples:
     holding_parser = subparsers.add_parser("holding", help="View specific holding")
     holding_parser.add_argument("code", help="Stock/ETF ticker code (e.g., CBA, VAS)")
 
+    # Update command (live prices)
+    update_parser = subparsers.add_parser("update", help="Update portfolio with live ASX prices")
+    update_parser.add_argument("--save", "-s", action="store_true", help="Save as new snapshot")
+
+    # Quote command (single stock quote)
+    quote_parser = subparsers.add_parser("quote", help="Get live quote for a stock")
+    quote_parser.add_argument("code", help="ASX ticker code (e.g., CBA, BHP)")
+
     args = parser.parse_args()
     setup_logging(args.verbose)
 
@@ -509,6 +610,10 @@ Examples:
         cmd_stats(args)
     elif args.command == "holding":
         cmd_holding(args)
+    elif args.command == "update":
+        cmd_update(args)
+    elif args.command == "quote":
+        cmd_quote(args)
     else:
         parser.print_help()
 
