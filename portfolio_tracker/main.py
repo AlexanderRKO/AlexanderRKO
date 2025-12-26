@@ -48,6 +48,10 @@ from .status_dashboard import (
     generate_status_dashboard, generate_welcome_message,
     COMMAND_ALIASES, resolve_alias
 )
+from .news_feed import (
+    fetch_portfolio_news, fetch_stock_news,
+    format_news_feed, format_stock_news
+)
 from .charts import (
     ascii_bar_chart, ascii_pie_chart, sector_tree,
     check_matplotlib, create_pie_chart, create_bar_chart,
@@ -1123,6 +1127,41 @@ def cmd_chart(args):
             print(f"\nChart saved to: {result}")
 
 
+def cmd_news(args):
+    """Display news feed for portfolio holdings."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    if not portfolio:
+        print("No portfolio data found. Import a CSV first.")
+        sys.exit(1)
+
+    # Check if filtering by specific stock
+    if args.code:
+        code = args.code.upper()
+        # Check if stock is in portfolio
+        holding = portfolio.get_holding(code)
+        if not holding:
+            print(f"\n{code} is not in your portfolio.")
+            print("Use 'news' without --code to see all portfolio news.")
+            return
+
+        print(f"\nFetching news for {code}...")
+        news = fetch_stock_news(code, max_items=10)
+        if news:
+            print(format_stock_news(code, news))
+        else:
+            print(f"\nNo recent news found for {code}.")
+    else:
+        # Fetch news for entire portfolio
+        print("\nFetching news for your portfolio holdings...")
+        print(dim("(This may take a moment)"))
+
+        news = fetch_portfolio_news(portfolio, max_per_stock=3)
+        print(format_news_feed(news, portfolio, max_items=args.limit or 20))
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -1272,6 +1311,11 @@ Examples:
     )
     chart_parser.add_argument("--export", "-e", metavar="FILE", help="Export to PNG file (requires matplotlib)")
 
+    # News command
+    news_parser = subparsers.add_parser("news", help="Live news feed for portfolio holdings")
+    news_parser.add_argument("--code", "-c", metavar="CODE", help="Filter news by stock code")
+    news_parser.add_argument("--limit", "-l", type=int, default=20, help="Max articles to show (default: 20)")
+
     # Resolve command aliases before parsing
     if len(sys.argv) > 1 and sys.argv[1] in COMMAND_ALIASES:
         sys.argv[1] = resolve_alias(sys.argv[1])
@@ -1321,6 +1365,8 @@ Examples:
         cmd_welcome(args)
     elif args.command == "chart":
         cmd_chart(args)
+    elif args.command == "news":
+        cmd_news(args)
     elif args.command is None:
         # No command - show status if data exists, otherwise welcome
         db = PortfolioDatabase()

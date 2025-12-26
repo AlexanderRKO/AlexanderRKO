@@ -86,6 +86,14 @@ from .charts import (
     get_performance_chart_data,
     get_holdings_chart_data,
 )
+from .news_feed import (
+    NewsItem,
+    fetch_stock_news,
+    fetch_portfolio_news,
+    format_news_feed,
+    format_stock_news,
+    get_news_summary,
+)
 
 __all__ = [
     "Holding",
@@ -160,4 +168,10 @@ __all__ = [
     "get_sector_chart_data",
     "get_performance_chart_data",
     "get_holdings_chart_data",
+    "NewsItem",
+    "fetch_stock_news",
+    "fetch_portfolio_news",
+    "format_news_feed",
+    "format_stock_news",
+    "get_news_summary",
 ]
