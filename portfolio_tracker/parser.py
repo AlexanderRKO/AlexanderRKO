@@ -1,15 +1,18 @@
 """
 CommSec CSV Parser - Parse portfolio exports from CommSec.
 
-CommSec CSV format typically includes:
+CommSec CSV format (as of Dec 2025):
 - Code: ASX ticker symbol
-- Company: Full company name
-- Quantity: Number of shares held
-- Avg Cost: Average purchase price per share
-- Current Price: Current market price
-- Market Value: Current total value
-- Profit/Loss $: Dollar profit/loss
-- Profit/Loss %: Percentage profit/loss
+- Avail Units: Number of shares held
+- Purchase: Average purchase price per share
+- Last $: Current market price
+- Change $: Daily price change
+- Chg %: Daily change percentage
+- Profit/Loss: Dollar profit/loss
+- P/L %: Percentage profit/loss
+- Mkt Value: Current market value
+- Wgt %: Portfolio weight percentage
+- Value Chg: Daily value change
 """
 
 import csv
@@ -27,15 +30,19 @@ logger = logging.getLogger(__name__)
 
 # Known ETFs on ASX for classification
 KNOWN_ETFS = {
-    "VAS", "VGS", "VTS", "VEU", "VAP", "VAE", "VGB", "VGE", "VSO",  # Vanguard
-    "A200", "QUAL", "ETHI", "FAIR", "NDQ", "ASIA", "TECH", "HACK",  # BetaShares
-    "IOZ", "IVV", "IJH", "IJR", "IVE", "IEM", "IEU", "IAF", "IHVV",  # iShares
-    "STW", "SYI", "SLF", "MVW", "MVB", "MVE", "MVS", "SFY",  # SPDR
-    "VDHG", "VDGR", "VDBA", "VDCO",  # Vanguard diversified
-    "DHHF", "DGGF",  # BetaShares diversified
-    "GEAR", "GGUS", "BBOZ", "BBUS",  # Leveraged/inverse
-    "QFN", "QAU", "QRE", "QOZ",  # BetaShares sector
-    "MOAT", "UMAX", "YMAX", "QMAX",  # VanEck
+    # Vanguard
+    "VAS", "VGS", "VTS", "VEU", "VAP", "VAE", "VGB", "VGE", "VSO",
+    "VDHG", "VDGR", "VDBA", "VDCO", "VHY",
+    # BetaShares
+    "A200", "QUAL", "ETHI", "FAIR", "NDQ", "ASIA", "TECH", "HACK",
+    "DHHF", "DGGF", "GEAR", "GGUS", "BBOZ", "BBUS", "ACDC", "CRYP",
+    "QFN", "QAU", "QRE", "QOZ", "HVST",
+    # iShares
+    "IOZ", "IVV", "IJH", "IJR", "IVE", "IEM", "IEU", "IAF", "IHVV",
+    # SPDR
+    "STW", "SYI", "SLF", "MVW", "MVB", "MVE", "MVS", "SFY",
+    # VanEck
+    "MOAT", "UMAX", "YMAX", "QMAX",
 }
 
 # Known REITs
@@ -60,17 +67,21 @@ class CommSecCSVParser:
     may use in their exports.
     """
 
-    # Column name mappings (CommSec may use different names)
+    # Column name mappings (CommSec format as of Dec 2025)
     COLUMN_MAPPINGS = {
         "code": ["code", "ticker", "symbol", "asx code", "stock code"],
         "name": ["company", "name", "security", "stock name", "description"],
-        "quantity": ["quantity", "qty", "units", "shares", "holding"],
-        "avg_cost": ["avg cost", "average cost", "avg price", "average price", "cost price", "purchase price"],
-        "current_price": ["current price", "price", "last price", "market price", "close price"],
-        "market_value": ["market value", "value", "current value", "total value"],
-        "profit_loss": ["profit/loss $", "profit/loss", "gain/loss $", "gain/loss", "p/l $", "p&l $", "unrealised gain/loss"],
-        "profit_loss_percent": ["profit/loss %", "gain/loss %", "p/l %", "p&l %", "return %", "% return"],
+        "quantity": ["avail units", "quantity", "qty", "units", "shares", "holding"],
+        "avg_cost": ["purchase", "avg cost", "average cost", "avg price", "average price", "cost price", "purchase price"],
+        "current_price": ["last $", "current price", "price", "last price", "market price", "close price", "last"],
+        "market_value": ["mkt value", "market value", "value", "current value", "total value"],
+        "profit_loss": ["profit/loss", "profit/loss $", "gain/loss $", "gain/loss", "p/l $", "p&l $", "unrealised gain/loss"],
+        "profit_loss_percent": ["p/l %", "profit/loss %", "gain/loss %", "p&l %", "return %", "% return"],
         "cost_base": ["cost base", "total cost", "cost", "purchase value"],
+        "daily_change": ["change $", "change", "day change"],
+        "daily_change_percent": ["chg %", "change %", "day change %"],
+        "portfolio_weight": ["wgt %", "weight %", "weight", "portfolio weight"],
+        "value_change": ["value chg", "value change"],
     }
 
     def __init__(self):
@@ -206,6 +217,11 @@ class CommSecCSVParser:
         profit_loss = self._parse_decimal(self._get_value(row, column_map, "profit_loss", "0"))
         profit_loss_pct = self._parse_decimal(self._get_value(row, column_map, "profit_loss_percent", "0"))
 
+        # Parse daily change fields (CommSec real-time data)
+        daily_change = self._parse_decimal(self._get_value(row, column_map, "daily_change", "0"))
+        daily_change_pct = self._parse_decimal(self._get_value(row, column_map, "daily_change_percent", "0"))
+        value_change = self._parse_decimal(self._get_value(row, column_map, "value_change", "0"))
+
         # Classify the holding
         asset_class = self._classify_asset(code, name)
 
@@ -219,6 +235,9 @@ class CommSecCSVParser:
             market_value=market_value,
             profit_loss=profit_loss,
             profit_loss_percent=profit_loss_pct,
+            daily_change=daily_change,
+            daily_change_percent=daily_change_pct,
+            value_change=value_change,
             asset_class=asset_class,
         )
 

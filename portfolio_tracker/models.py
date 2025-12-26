@@ -72,6 +72,11 @@ class Holding:
     profit_loss: Decimal = Decimal("0")  # market_value - cost_base
     profit_loss_percent: Decimal = Decimal("0")  # (profit_loss / cost_base) * 100
 
+    # Daily changes (from CommSec real-time data)
+    daily_change: Decimal = Decimal("0")  # Change $ today
+    daily_change_percent: Decimal = Decimal("0")  # Chg % today
+    value_change: Decimal = Decimal("0")  # Value Chg today
+
     # Optional income tracking
     dividends_received: Decimal = Decimal("0")
     franking_credits: Decimal = Decimal("0")
@@ -142,6 +147,9 @@ class Holding:
             "market_value": float(self.market_value),
             "profit_loss": float(self.profit_loss),
             "profit_loss_percent": float(self.profit_loss_percent),
+            "daily_change": float(self.daily_change),
+            "daily_change_percent": float(self.daily_change_percent),
+            "value_change": float(self.value_change),
             "dividends_received": float(self.dividends_received),
             "franking_credits": float(self.franking_credits),
             "asset_class": self.asset_class.value,
