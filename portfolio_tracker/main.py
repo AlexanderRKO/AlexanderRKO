@@ -85,6 +85,12 @@ from .goal_tracker import (
     format_goals_dashboard, format_goal_detail,
     calculate_goal_projection,
 )
+from .investor_profile import (
+    InvestorProfileManager, InvestorProfile,
+    RiskTolerance as InvestorRiskTolerance, InvestmentGoal,
+    PROFILE_QUESTIONS, run_questionnaire, create_profile_from_answers,
+    format_profile_summary, compare_portfolio_to_profile,
+)
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -1832,6 +1838,142 @@ def cmd_goals(args):
     print(format_goals_dashboard(goals, portfolio))
 
 
+def cmd_investor(args):
+    """Manage investor profile and risk assessment."""
+    db_path = PORTFOLIO_DATA_DIR / "investor_profiles.db"
+    manager = InvestorProfileManager(db_path)
+
+    portfolio_db = PortfolioDatabase()
+    portfolio_db.initialize()
+    portfolio = portfolio_db.get_latest_portfolio()
+
+    # Run questionnaire to create new profile
+    if args.new:
+        try:
+            answers, age, retirement_age = run_questionnaire()
+
+            # Get name for profile
+            name = input("\nEnter a name for this profile (e.g., 'Primary', 'Joint'): ").strip()
+            if not name:
+                name = "Primary"
+
+            # Create profile
+            profile = create_profile_from_answers(name, answers, age, retirement_age)
+
+            # Save to database
+            profile_id = manager.save_profile(profile)
+            profile.id = profile_id
+
+            print("\n" + "=" * 70)
+            print(f"{green('✓')} Profile created successfully!")
+            print("=" * 70)
+            print(format_profile_summary(profile))
+
+        except KeyboardInterrupt:
+            print("\n\nQuestionnaire cancelled.")
+            return
+
+        return
+
+    # Delete a profile
+    if args.delete:
+        if manager.delete_profile(args.delete):
+            print(f"{green('✓')} Deleted profile #{args.delete}")
+        else:
+            print(f"Profile #{args.delete} not found")
+        return
+
+    # List all profiles
+    if args.list:
+        profiles = manager.get_all_profiles()
+        if not profiles:
+            print("\nNo investor profiles found.")
+            print("Run 'investor --new' to create a profile.")
+            return
+
+        print("\n" + "=" * 70)
+        print("INVESTOR PROFILES")
+        print("=" * 70)
+        print(f"\n  {'ID':<4} {'Name':<15} {'Age':<5} {'Risk':<18} {'Retirement':<12}")
+        print("  " + "-" * 60)
+
+        for p in profiles:
+            risk = p.risk_tolerance.value.replace("_", " ").title()
+            print(f"  {p.id:<4} {p.name:<15} {p.age:<5} {risk:<18} {p.years_to_retirement} years")
+
+        print(f"\n  Use 'investor --view ID' to see full profile details.")
+        return
+
+    # View a specific profile
+    if args.view:
+        profile = manager.get_profile(args.view)
+        if not profile:
+            print(f"Profile #{args.view} not found")
+            return
+
+        print(format_profile_summary(profile))
+
+        # Compare with current portfolio if requested
+        if args.compare and portfolio:
+            # Get current portfolio allocation by asset class
+            from .models import AssetClass
+
+            allocation = {"stocks": 0.0, "bonds": 0.0, "cash": 0.0, "property": 0.0}
+            total_value = float(portfolio.total_market_value)
+
+            if total_value > 0:
+                for holding in portfolio.holdings:
+                    weight = float(holding.market_value) / total_value * 100
+                    if holding.asset_class == AssetClass.CASH:
+                        allocation["cash"] += weight
+                    elif holding.asset_class in (AssetClass.FIXED_INCOME, AssetClass.BOND):
+                        allocation["bonds"] += weight
+                    elif holding.asset_class in (AssetClass.REIT, AssetClass.PROPERTY):
+                        allocation["property"] += weight
+                    else:
+                        allocation["stocks"] += weight
+
+                comparison = compare_portfolio_to_profile(profile, allocation)
+
+                print("\n" + "=" * 70)
+                print("PORTFOLIO vs RECOMMENDED ALLOCATION")
+                print("=" * 70)
+                print(f"\n  {'Asset':<22} {'Actual':>10} {'Target':>10} {'Diff':>10} {'Status':<12}")
+                print("  " + "-" * 60)
+
+                for asset, data in comparison["differences"].items():
+                    diff_str = f"{data['difference']:+.1f}%"
+                    print(
+                        f"  {asset.title():<22} {data['actual']:>9.1f}% "
+                        f"{data['target']:>9}% {diff_str:>10} {data['status']:<12}"
+                    )
+
+                if comparison["aligned"]:
+                    print(f"\n  {green('✓')} Your portfolio is aligned with your risk profile!")
+                else:
+                    print(f"\n  Suggested adjustments:")
+                    for adj in comparison["adjustments"]:
+                        print(f"    → {adj['action'].title()} {adj['asset']} by {adj['amount']:.1f}%")
+
+        return
+
+    # Default: show current profile or prompt to create one
+    profile = manager.get_profile()
+
+    if not profile:
+        print("\n" + "=" * 70)
+        print("INVESTOR PROFILE")
+        print("=" * 70)
+        print("\n  No investor profile found.")
+        print("\n  Create one by answering 10 quick questions about your")
+        print("  investment goals, risk tolerance, and retirement timeline.")
+        print(f"\n  Run: {bold('investor --new')}")
+        print("")
+        return
+
+    print(format_profile_summary(profile))
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -2071,6 +2213,14 @@ Examples:
     goals_parser.add_argument("--active", action="store_true", help="Show only active goals")
     goals_parser.add_argument("--completed", action="store_true", help="Show only completed goals")
 
+    # Investor profile command
+    investor_parser = subparsers.add_parser("investor", help="Investor profile and risk assessment")
+    investor_parser.add_argument("--new", "-n", action="store_true", help="Create new profile (interactive questionnaire)")
+    investor_parser.add_argument("--view", "-v", type=int, metavar="ID", help="View profile details")
+    investor_parser.add_argument("--list", "-l", action="store_true", help="List all profiles")
+    investor_parser.add_argument("--delete", "-d", type=int, metavar="ID", help="Delete a profile")
+    investor_parser.add_argument("--compare", "-c", action="store_true", help="Compare portfolio to profile allocation")
+
     # Resolve command aliases before parsing
     if len(sys.argv) > 1 and sys.argv[1] in COMMAND_ALIASES:
         sys.argv[1] = resolve_alias(sys.argv[1])
@@ -2134,6 +2284,8 @@ Examples:
         cmd_transactions(args)
     elif args.command == "goals":
         cmd_goals(args)
+    elif args.command == "investor":
+        cmd_investor(args)
     elif args.command is None:
         # No command - show status if data exists, otherwise welcome
         db = PortfolioDatabase()

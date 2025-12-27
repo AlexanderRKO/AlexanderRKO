@@ -161,6 +161,17 @@ from .goal_tracker import (
     format_goal_detail,
     calculate_goal_projection,
 )
+from .investor_profile import (
+    InvestorProfile,
+    InvestorProfileManager,
+    RiskTolerance,
+    InvestmentGoal,
+    PROFILE_QUESTIONS,
+    run_questionnaire,
+    create_profile_from_answers,
+    format_profile_summary,
+    compare_portfolio_to_profile,
+)
 
 __all__ = [
     "Holding",
@@ -296,4 +307,13 @@ __all__ = [
     "format_goals_dashboard",
     "format_goal_detail",
     "calculate_goal_projection",
+    "InvestorProfile",
+    "InvestorProfileManager",
+    "RiskTolerance",
+    "InvestmentGoal",
+    "PROFILE_QUESTIONS",
+    "run_questionnaire",
+    "create_profile_from_answers",
+    "format_profile_summary",
+    "compare_portfolio_to_profile",
 ]
