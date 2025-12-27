@@ -94,6 +94,14 @@ from .news_feed import (
     format_stock_news,
     get_news_summary,
 )
+from .export_formats import (
+    export_to_excel,
+    export_to_pdf,
+    export_tax_package,
+    check_export_dependencies,
+    EXCEL_AVAILABLE,
+    PDF_AVAILABLE,
+)
 
 __all__ = [
     "Holding",
@@ -174,4 +182,10 @@ __all__ = [
     "format_news_feed",
     "format_stock_news",
     "get_news_summary",
+    "export_to_excel",
+    "export_to_pdf",
+    "export_tax_package",
+    "check_export_dependencies",
+    "EXCEL_AVAILABLE",
+    "PDF_AVAILABLE",
 ]

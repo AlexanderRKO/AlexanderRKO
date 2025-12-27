@@ -367,20 +367,58 @@ def cmd_export(args):
             sys.exit(1)
 
     output_path = Path(args.output) if args.output else PORTFOLIO_DATA_DIR
+    export_format = args.format or "csv"
 
-    if args.format == "csv":
+    # Import export functions
+    from .export_formats import (
+        export_to_excel, export_to_pdf, export_tax_package,
+        EXCEL_AVAILABLE, PDF_AVAILABLE
+    )
+
+    if export_format == "csv":
         filepath = output_path / f"portfolio_export_{portfolio.snapshot_date}.csv"
         export_portfolio_to_csv(portfolio, filepath)
-    elif args.format == "json":
+        print(f"\n{green('✓')} Exported to: {filepath}")
+
+    elif export_format == "json":
         filepath = output_path / f"portfolio_export_{portfolio.snapshot_date}.json"
         with open(filepath, "w") as f:
             json.dump(portfolio.to_dict(), f, indent=2)
-    elif args.format == "report":
+        print(f"\n{green('✓')} Exported to: {filepath}")
+
+    elif export_format == "report":
         filepath = output_path / f"portfolio_report_{portfolio.snapshot_date}.txt"
         with open(filepath, "w") as f:
             f.write(generate_portfolio_report(portfolio))
+        print(f"\n{green('✓')} Exported to: {filepath}")
 
-    print(f"Exported to: {filepath}")
+    elif export_format == "excel":
+        if not EXCEL_AVAILABLE:
+            print(f"\n{red('✗')} Excel export requires openpyxl: pip install openpyxl")
+            sys.exit(1)
+        filepath = output_path / f"portfolio_{portfolio.snapshot_date}.xlsx"
+        export_to_excel(portfolio, filepath)
+        print(f"\n{green('✓')} Exported to: {filepath}")
+        print("    Worksheets: Summary, Holdings, Sectors, Performance, Tax Planning")
+
+    elif export_format == "pdf":
+        if not PDF_AVAILABLE:
+            print(f"\n{red('✗')} PDF export requires reportlab: pip install reportlab")
+            sys.exit(1)
+        filepath = output_path / f"portfolio_report_{portfolio.snapshot_date}.pdf"
+        export_to_pdf(portfolio, filepath)
+        print(f"\n{green('✓')} Exported to: {filepath}")
+
+    elif export_format == "tax":
+        tax_dir = output_path / f"tax_package_{portfolio.snapshot_date}"
+        files = export_tax_package(portfolio, tax_dir)
+        print(f"\n{green('✓')} Tax package exported to: {tax_dir}/")
+        for name, path in files.items():
+            print(f"    - {path.name}")
+
+    else:
+        print(f"Unknown format: {export_format}")
+        sys.exit(1)
 
 
 def cmd_stats(args):
@@ -1260,7 +1298,12 @@ Examples:
     # Export command
     export_parser = subparsers.add_parser("export", help="Export portfolio")
     export_parser.add_argument("--snapshot", "-s", help="Specific snapshot ID")
-    export_parser.add_argument("--format", choices=["csv", "json", "report"], default="csv")
+    export_parser.add_argument(
+        "--format", "-f",
+        choices=["csv", "json", "report", "excel", "pdf", "tax"],
+        default="csv",
+        help="Export format: csv, json, report, excel (.xlsx), pdf, or tax (package)"
+    )
     export_parser.add_argument("--output", "-o", help="Output directory")
 
     # Stats command
