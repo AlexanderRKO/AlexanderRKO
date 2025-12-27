@@ -180,6 +180,7 @@ class Portfolio:
     holdings: List[Holding] = field(default_factory=list)
     snapshot_date: date = field(default_factory=date.today)
     snapshot_id: Optional[str] = None
+    name: Optional[str] = None  # User-friendly portfolio name
 
     # Aggregated values (calculated)
     total_cost_base: Decimal = Decimal("0")
@@ -342,6 +343,7 @@ class PortfolioSnapshot:
     total_cost_base: Decimal
     total_profit_loss: Decimal
     total_profit_loss_percent: Decimal
+    name: Optional[str] = None  # User-friendly portfolio name
 
     @classmethod
     def from_portfolio(cls, portfolio: Portfolio) -> "PortfolioSnapshot":

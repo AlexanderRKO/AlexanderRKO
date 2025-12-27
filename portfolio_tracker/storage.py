@@ -52,6 +52,7 @@ class PortfolioDatabase:
             CREATE TABLE IF NOT EXISTS portfolio_snapshots (
                 snapshot_id TEXT PRIMARY KEY,
                 snapshot_date DATE NOT NULL,
+                name TEXT,
                 total_holdings INTEGER NOT NULL,
                 total_cost_base REAL NOT NULL,
                 total_market_value REAL NOT NULL,
@@ -103,6 +104,13 @@ class PortfolioDatabase:
             ON portfolio_snapshots(snapshot_date)
         """)
 
+        # Migration: Add name column if it doesn't exist (for existing databases)
+        cursor.execute("PRAGMA table_info(portfolio_snapshots)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if "name" not in columns:
+            cursor.execute("ALTER TABLE portfolio_snapshots ADD COLUMN name TEXT")
+            logger.info("Migrated database: added 'name' column to portfolio_snapshots")
+
         conn.commit()
         logger.info(f"Database initialized at {self.db_path}")
 
@@ -122,15 +130,16 @@ class PortfolioDatabase:
         # Insert portfolio snapshot
         cursor.execute("""
             INSERT OR REPLACE INTO portfolio_snapshots (
-                snapshot_id, snapshot_date, total_holdings,
+                snapshot_id, snapshot_date, name, total_holdings,
                 total_cost_base, total_market_value,
                 total_profit_loss, total_profit_loss_percent,
                 total_dividends, total_franking_credits,
                 source_file, import_timestamp
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             portfolio.snapshot_id,
             portfolio.snapshot_date.isoformat(),
+            getattr(portfolio, 'name', None),
             len(portfolio.holdings),
             float(portfolio.total_cost_base),
             float(portfolio.total_market_value),
@@ -228,12 +237,15 @@ class PortfolioDatabase:
                 notes=h["notes"] or "",
             ))
 
-        return Portfolio(
+        portfolio = Portfolio(
             holdings=holdings,
             snapshot_date=date.fromisoformat(row["snapshot_date"]),
             snapshot_id=row["snapshot_id"],
             source_file=row["source_file"] or "",
         )
+        # Set name if available (may not exist in older databases)
+        portfolio.name = row["name"] if "name" in row.keys() else None
+        return portfolio
 
     def get_latest_portfolio(self) -> Optional[Portfolio]:
         """Get the most recent portfolio snapshot."""
@@ -270,6 +282,7 @@ class PortfolioDatabase:
                 total_cost_base=Decimal(str(row["total_cost_base"])),
                 total_profit_loss=Decimal(str(row["total_profit_loss"])),
                 total_profit_loss_percent=Decimal(str(row["total_profit_loss_percent"])),
+                name=row["name"] if "name" in row.keys() else None,
             ))
 
         return snapshots
@@ -347,6 +360,45 @@ class PortfolioDatabase:
             },
             "latest_portfolio_value": latest_value,
         }
+
+    def rename_portfolio(self, snapshot_id: str, name: str) -> bool:
+        """
+        Rename a portfolio snapshot.
+
+        Args:
+            snapshot_id: ID of the snapshot to rename
+            name: New name for the portfolio
+
+        Returns:
+            True if renamed successfully
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "UPDATE portfolio_snapshots SET name = ? WHERE snapshot_id = ?",
+            (name, snapshot_id)
+        )
+        conn.commit()
+
+        success = cursor.rowcount > 0
+        if success:
+            logger.info(f"Renamed snapshot {snapshot_id} to '{name}'")
+        return success
+
+    def get_portfolio_by_name(self, name: str) -> Optional[Portfolio]:
+        """Get portfolio by name."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT snapshot_id FROM portfolio_snapshots WHERE name = ? ORDER BY snapshot_date DESC LIMIT 1",
+            (name,)
+        )
+        row = cursor.fetchone()
+        if row:
+            return self.get_portfolio(row["snapshot_id"])
+        return None
 
     def delete_snapshot(self, snapshot_id: str) -> bool:
         """Delete a portfolio snapshot and its holdings."""

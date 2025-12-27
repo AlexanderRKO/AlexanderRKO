@@ -275,24 +275,27 @@ def cmd_history(args):
         print("No portfolio history found.")
         return
 
-    print("\n" + "=" * 70)
+    print("\n" + "=" * 85)
     print("PORTFOLIO HISTORY")
-    print("=" * 70)
-    print(f"{'ID':<14} {'Date':<12} {'Holdings':>8} {'Value':>15} {'P/L':>15} {'P/L %':>8}")
-    print("-" * 70)
+    print("=" * 85)
+    print(f"{'ID':<14} {'Name':<16} {'Date':<12} {'Holdings':>8} {'Value':>15} {'P/L %':>8}")
+    print("-" * 85)
 
     for s in snapshots[:20]:  # Show last 20
+        name = (s.name[:15] if s.name else "-")
         print(
             f"{s.snapshot_id:<14} "
+            f"{name:<16} "
             f"{s.snapshot_date.isoformat():<12} "
             f"{s.total_holdings:>8} "
             f"${float(s.total_market_value):>14,.2f} "
-            f"${float(s.total_profit_loss):>14,.2f} "
             f"{float(s.total_profit_loss_percent):>+7.2f}%"
         )
 
     if len(snapshots) > 20:
         print(f"\n... and {len(snapshots) - 20} more snapshots")
+
+    print(f"\n{dim('Tip: Use')} portfolio rename <ID> <name> {dim('to name a portfolio')}")
 
     # Value chart if matplotlib available
     if args.chart and len(snapshots) >= 2:
@@ -1162,6 +1165,39 @@ def cmd_news(args):
         print(format_news_feed(news, portfolio, max_items=args.limit or 20))
 
 
+def cmd_rename(args):
+    """Rename a portfolio snapshot."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    snapshot_id = args.snapshot_id
+    new_name = args.name
+
+    # Check if snapshot exists
+    portfolio = db.get_portfolio(snapshot_id)
+    if not portfolio:
+        # Try to find by partial ID
+        snapshots = db.get_all_snapshots()
+        matches = [s for s in snapshots if s.snapshot_id.startswith(snapshot_id)]
+        if len(matches) == 1:
+            snapshot_id = matches[0].snapshot_id
+        elif len(matches) > 1:
+            print(f"Multiple snapshots match '{snapshot_id}':")
+            for m in matches:
+                print(f"  {m.snapshot_id} ({m.snapshot_date})")
+            return
+        else:
+            print(f"Snapshot not found: {snapshot_id}")
+            return
+
+    # Rename the portfolio
+    success = db.rename_portfolio(snapshot_id, new_name)
+    if success:
+        print(f"\n{green('✓')} Renamed portfolio {snapshot_id[:12]} to '{bold(new_name)}'")
+    else:
+        print(f"\n{red('✗')} Failed to rename portfolio")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -1316,6 +1352,11 @@ Examples:
     news_parser.add_argument("--code", "-c", metavar="CODE", help="Filter news by stock code")
     news_parser.add_argument("--limit", "-l", type=int, default=20, help="Max articles to show (default: 20)")
 
+    # Rename command
+    rename_parser = subparsers.add_parser("rename", help="Rename a portfolio snapshot")
+    rename_parser.add_argument("snapshot_id", help="Snapshot ID (or partial ID)")
+    rename_parser.add_argument("name", help="New name for the portfolio")
+
     # Resolve command aliases before parsing
     if len(sys.argv) > 1 and sys.argv[1] in COMMAND_ALIASES:
         sys.argv[1] = resolve_alias(sys.argv[1])
@@ -1367,6 +1408,8 @@ Examples:
         cmd_chart(args)
     elif args.command == "news":
         cmd_news(args)
+    elif args.command == "rename":
+        cmd_rename(args)
     elif args.command is None:
         # No command - show status if data exists, otherwise welcome
         db = PortfolioDatabase()
