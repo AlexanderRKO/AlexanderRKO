@@ -119,6 +119,26 @@ from .viz_export import (
     check_plotly,
     PLOTLY_AVAILABLE,
 )
+from .cashflow_forecast import (
+    CashflowForecast,
+    DividendPayment,
+    MonthlyForecast,
+    generate_cashflow_forecast,
+    simulate_drp,
+    format_cashflow_calendar,
+    format_drp_projection,
+    get_dividend_calendar_data,
+)
+from .portfolio_profile import (
+    RiskProfile,
+    InvestmentStyle,
+    ProfileMetrics,
+    PortfolioProfile,
+    RebalanceSuggestion,
+    analyze_portfolio_profile,
+    format_portfolio_profile,
+    get_profile_comparison,
+)
 
 __all__ = [
     "Holding",
@@ -220,4 +240,20 @@ __all__ = [
     "export_visualizations",
     "check_plotly",
     "PLOTLY_AVAILABLE",
+    "CashflowForecast",
+    "DividendPayment",
+    "MonthlyForecast",
+    "generate_cashflow_forecast",
+    "simulate_drp",
+    "format_cashflow_calendar",
+    "format_drp_projection",
+    "get_dividend_calendar_data",
+    "RiskProfile",
+    "InvestmentStyle",
+    "ProfileMetrics",
+    "PortfolioProfile",
+    "RebalanceSuggestion",
+    "analyze_portfolio_profile",
+    "format_portfolio_profile",
+    "get_profile_comparison",
 ]

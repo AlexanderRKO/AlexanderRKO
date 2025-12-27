@@ -66,6 +66,15 @@ from .viz_export import (
     export_to_markdown,
     check_plotly, PLOTLY_AVAILABLE
 )
+from .cashflow_forecast import (
+    generate_cashflow_forecast, simulate_drp,
+    format_cashflow_calendar, format_drp_projection,
+    get_dividend_calendar_data
+)
+from .portfolio_profile import (
+    analyze_portfolio_profile, format_portfolio_profile,
+    get_profile_comparison, RiskProfile
+)
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -1404,6 +1413,117 @@ def cmd_viz(args):
     print("  • Markdown: View in GitHub, Notion, Obsidian, or any MD renderer")
 
 
+def cmd_cashflow(args):
+    """Display dividend calendar and cashflow forecast."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    if not portfolio:
+        print("No portfolio data found. Import a CSV first.")
+        sys.exit(1)
+
+    print(f"\nFetching dividend data for {portfolio.holding_count} holdings...")
+
+    try:
+        fetcher = DividendFetcher()
+        dividend_data = get_portfolio_dividends(portfolio, fetcher)
+    except ImportError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error fetching dividends: {e}")
+        sys.exit(1)
+
+    # Generate forecast
+    forecast = generate_cashflow_forecast(portfolio, dividend_data, forecast_months=12)
+
+    # Display calendar
+    print(format_cashflow_calendar(forecast, show_payments=args.detailed))
+
+    # Show DRP simulation if requested
+    if args.drp:
+        drp = simulate_drp(portfolio, forecast, years=10)
+        forecast.drp_projection = drp
+        print(format_drp_projection(drp))
+
+    # Export to JSON if requested
+    if args.json:
+        calendar_data = get_dividend_calendar_data(portfolio, dividend_data)
+        print(json.dumps(calendar_data, indent=2))
+
+
+def cmd_profile(args):
+    """Analyze portfolio risk profile and investment style."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    if not portfolio:
+        print("No portfolio data found. Import a CSV first.")
+        sys.exit(1)
+
+    # Analyze profile
+    profile = analyze_portfolio_profile(portfolio)
+
+    # JSON output
+    if args.json:
+        output = {
+            "risk_profile": profile.metrics.risk_profile.value,
+            "investment_style": profile.metrics.investment_style.value,
+            "scores": {
+                "risk": profile.metrics.risk_score,
+                "income": profile.metrics.income_score,
+                "growth": profile.metrics.growth_score,
+                "diversification": profile.metrics.diversification_score,
+            },
+            "summary": profile.profile_summary,
+            "strengths": profile.metrics.strengths,
+            "risk_factors": profile.metrics.risk_factors,
+            "suggestions": [
+                {"action": s.action, "target": s.code or s.sector, "reason": s.reason}
+                for s in profile.rebalance_suggestions[:5]
+            ],
+        }
+        print(json.dumps(output, indent=2))
+        return
+
+    # Display profile
+    print(format_portfolio_profile(profile))
+
+    # Compare to target profile if specified
+    if args.compare:
+        target_map = {
+            "conservative": RiskProfile.CONSERVATIVE,
+            "balanced": RiskProfile.BALANCED,
+            "growth": RiskProfile.GROWTH,
+            "aggressive": RiskProfile.AGGRESSIVE,
+        }
+        target = target_map.get(args.compare.lower())
+        if target:
+            comparison = get_profile_comparison(portfolio, target)
+            print("-" * 70)
+            print(f"COMPARISON TO {args.compare.upper()} PROFILE")
+            print("-" * 70)
+            print(f"  Current: {comparison['current_profile'].replace('_', ' ').title()}")
+            print(f"  Target:  {comparison['target_profile'].replace('_', ' ').title()}")
+            print(f"  Rebalance Amount: ~${comparison['total_rebalance_amount']:,.0f}")
+            print("")
+            if comparison['changes_required']:
+                print("  Required Changes:")
+                for change in comparison['changes_required'][:5]:
+                    arrow = "↑" if change['action'] == 'increase' else "↓"
+                    print(
+                        f"    {arrow} {change['sector']}: "
+                        f"{change['current']:.0f}% → {change['target']:.0f}% "
+                        f"(${change['dollar_amount']:,.0f})"
+                    )
+            print("")
+        else:
+            print(f"Unknown profile: {args.compare}")
+            print("Valid options: conservative, balanced, growth, aggressive")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -1578,6 +1698,21 @@ Examples:
     )
     viz_parser.add_argument("--output", "-o", help="Output directory")
 
+    # Cashflow forecast command
+    cashflow_parser = subparsers.add_parser("cashflow", help="Dividend calendar and cashflow forecast")
+    cashflow_parser.add_argument("--detailed", "-d", action="store_true", help="Show individual payments per month")
+    cashflow_parser.add_argument("--drp", action="store_true", help="Show DRP (Dividend Reinvestment Plan) simulation")
+    cashflow_parser.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # Portfolio profile command
+    profile_parser = subparsers.add_parser("profile", help="Analyze portfolio risk profile and investment style")
+    profile_parser.add_argument(
+        "--compare", "-c",
+        choices=["conservative", "balanced", "growth", "aggressive"],
+        help="Compare to target profile"
+    )
+    profile_parser.add_argument("--json", action="store_true", help="Output as JSON")
+
     # Resolve command aliases before parsing
     if len(sys.argv) > 1 and sys.argv[1] in COMMAND_ALIASES:
         sys.argv[1] = resolve_alias(sys.argv[1])
@@ -1633,6 +1768,10 @@ Examples:
         cmd_rename(args)
     elif args.command == "viz":
         cmd_viz(args)
+    elif args.command == "cashflow":
+        cmd_cashflow(args)
+    elif args.command == "profile":
+        cmd_profile(args)
     elif args.command is None:
         # No command - show status if data exists, otherwise welcome
         db = PortfolioDatabase()
