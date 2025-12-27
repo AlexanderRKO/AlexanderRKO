@@ -102,6 +102,22 @@ from .export_formats import (
     EXCEL_AVAILABLE,
     PDF_AVAILABLE,
 )
+from .viz_export import (
+    export_sankey_format,
+    export_sankey_profit_loss,
+    export_flourish_sankey,
+    export_flourish_treemap,
+    create_plotly_sankey,
+    create_plotly_treemap,
+    create_plotly_sunburst,
+    create_plotly_dashboard,
+    export_artifact_code,
+    export_artifact_json,
+    export_artifact_data,
+    export_visualizations,
+    check_plotly,
+    PLOTLY_AVAILABLE,
+)
 
 __all__ = [
     "Holding",
@@ -188,4 +204,18 @@ __all__ = [
     "check_export_dependencies",
     "EXCEL_AVAILABLE",
     "PDF_AVAILABLE",
+    "export_sankey_format",
+    "export_sankey_profit_loss",
+    "export_flourish_sankey",
+    "export_flourish_treemap",
+    "create_plotly_sankey",
+    "create_plotly_treemap",
+    "create_plotly_sunburst",
+    "create_plotly_dashboard",
+    "export_artifact_code",
+    "export_artifact_json",
+    "export_artifact_data",
+    "export_visualizations",
+    "check_plotly",
+    "PLOTLY_AVAILABLE",
 ]

@@ -57,6 +57,14 @@ from .charts import (
     check_matplotlib, create_pie_chart, create_bar_chart,
     get_sector_chart_data, get_performance_chart_data
 )
+from .viz_export import (
+    export_sankey_format, export_sankey_profit_loss,
+    export_flourish_sankey, export_flourish_treemap,
+    create_plotly_sankey, create_plotly_treemap, create_plotly_sunburst,
+    create_plotly_dashboard, export_visualizations,
+    export_artifact_code, export_artifact_json, export_artifact_data,
+    check_plotly, PLOTLY_AVAILABLE
+)
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -1236,6 +1244,151 @@ def cmd_rename(args):
         print(f"\n{red('✗')} Failed to rename portfolio")
 
 
+def cmd_viz(args):
+    """Export portfolio data for external visualization tools."""
+    db = PortfolioDatabase()
+    db.initialize()
+
+    portfolio = db.get_latest_portfolio()
+    if not portfolio:
+        print("No portfolio data found. Import a CSV first.")
+        sys.exit(1)
+
+    output_dir = Path(args.output) if args.output else PORTFOLIO_DATA_DIR / "visualizations"
+    viz_format = args.format or "all"
+
+    print(f"\n{bold('Visualization Export')}")
+    print(f"Portfolio: ${float(portfolio.total_market_value):,.0f} ({portfolio.holding_count} holdings)")
+    print(f"Output: {output_dir}\n")
+
+    if viz_format == "sankey":
+        # SankeyMATIC text format
+        path = output_dir / f"sankey_{portfolio.snapshot_date}.txt"
+        export_sankey_format(portfolio, path)
+        print(f"{green('✓')} SankeyMATIC format: {path}")
+        print(f"  {dim('Paste contents into https://sankeymatic.com/build/')}")
+
+        # Also export P/L flow
+        pl_path = output_dir / f"sankey_profitloss_{portfolio.snapshot_date}.txt"
+        export_sankey_profit_loss(portfolio, pl_path)
+        print(f"{green('✓')} Profit/Loss flow: {pl_path}")
+
+    elif viz_format == "flourish":
+        # Flourish CSV formats
+        sankey_path = output_dir / f"flourish_sankey_{portfolio.snapshot_date}.csv"
+        export_flourish_sankey(portfolio, sankey_path)
+        print(f"{green('✓')} Flourish Sankey CSV: {sankey_path}")
+
+        treemap_path = output_dir / f"flourish_treemap_{portfolio.snapshot_date}.csv"
+        export_flourish_treemap(portfolio, treemap_path)
+        print(f"{green('✓')} Flourish Treemap CSV: {treemap_path}")
+
+        print(f"\n  {dim('Upload to https://flourish.studio/')}")
+
+    elif viz_format == "plotly":
+        # Interactive HTML charts
+        if not PLOTLY_AVAILABLE:
+            print(f"{red('✗')} Plotly not installed. Run: pip install plotly")
+            sys.exit(1)
+
+        sankey_path = output_dir / f"plotly_sankey_{portfolio.snapshot_date}.html"
+        create_plotly_sankey(portfolio, sankey_path)
+        print(f"{green('✓')} Interactive Sankey: {sankey_path}")
+
+        treemap_path = output_dir / f"plotly_treemap_{portfolio.snapshot_date}.html"
+        create_plotly_treemap(portfolio, treemap_path)
+        print(f"{green('✓')} Interactive Treemap: {treemap_path}")
+
+        sunburst_path = output_dir / f"plotly_sunburst_{portfolio.snapshot_date}.html"
+        create_plotly_sunburst(portfolio, sunburst_path)
+        print(f"{green('✓')} Interactive Sunburst: {sunburst_path}")
+
+        dashboard_path = output_dir / f"plotly_dashboard_{portfolio.snapshot_date}.html"
+        create_plotly_dashboard(portfolio, dashboard_path)
+        print(f"{green('✓')} Full Dashboard: {dashboard_path}")
+
+        print(f"\n  {dim('Open HTML files in any web browser')}")
+
+    elif viz_format == "artifact":
+        # Claude Artifacts format (React/Recharts)
+        code_path = output_dir / f"artifact_dashboard_{portfolio.snapshot_date}.jsx"
+        export_artifact_code(portfolio, code_path)
+        print(f"{green('✓')} React Component: {code_path}")
+
+        json_path = output_dir / f"artifact_data_{portfolio.snapshot_date}.json"
+        export_artifact_json(portfolio, json_path)
+        print(f"{green('✓')} JSON Data: {json_path}")
+
+        print(f"\n  {dim('Copy the .jsx file contents into a Claude Artifact')}")
+        print(f"  {dim('Or use the JSON data with your own React component')}")
+
+    elif viz_format == "all":
+        # Export all formats
+        print("Exporting all visualization formats...\n")
+
+        # SankeyMATIC
+        path = output_dir / f"sankey_{portfolio.snapshot_date}.txt"
+        export_sankey_format(portfolio, path)
+        print(f"{green('✓')} SankeyMATIC: {path.name}")
+
+        pl_path = output_dir / f"sankey_profitloss_{portfolio.snapshot_date}.txt"
+        export_sankey_profit_loss(portfolio, pl_path)
+        print(f"{green('✓')} P/L Flow: {pl_path.name}")
+
+        # Flourish
+        sankey_csv = output_dir / f"flourish_sankey_{portfolio.snapshot_date}.csv"
+        export_flourish_sankey(portfolio, sankey_csv)
+        print(f"{green('✓')} Flourish Sankey: {sankey_csv.name}")
+
+        treemap_csv = output_dir / f"flourish_treemap_{portfolio.snapshot_date}.csv"
+        export_flourish_treemap(portfolio, treemap_csv)
+        print(f"{green('✓')} Flourish Treemap: {treemap_csv.name}")
+
+        # Claude Artifacts
+        code_path = output_dir / f"artifact_dashboard_{portfolio.snapshot_date}.jsx"
+        export_artifact_code(portfolio, code_path)
+        print(f"{green('✓')} Claude Artifact: {code_path.name}")
+
+        json_path = output_dir / f"artifact_data_{portfolio.snapshot_date}.json"
+        export_artifact_json(portfolio, json_path)
+        print(f"{green('✓')} Artifact Data: {json_path.name}")
+
+        # Plotly (if available)
+        if PLOTLY_AVAILABLE:
+            sankey_html = output_dir / f"plotly_sankey_{portfolio.snapshot_date}.html"
+            create_plotly_sankey(portfolio, sankey_html)
+            print(f"{green('✓')} Plotly Sankey: {sankey_html.name}")
+
+            treemap_html = output_dir / f"plotly_treemap_{portfolio.snapshot_date}.html"
+            create_plotly_treemap(portfolio, treemap_html)
+            print(f"{green('✓')} Plotly Treemap: {treemap_html.name}")
+
+            sunburst_html = output_dir / f"plotly_sunburst_{portfolio.snapshot_date}.html"
+            create_plotly_sunburst(portfolio, sunburst_html)
+            print(f"{green('✓')} Plotly Sunburst: {sunburst_html.name}")
+
+            dashboard_html = output_dir / f"plotly_dashboard_{portfolio.snapshot_date}.html"
+            create_plotly_dashboard(portfolio, dashboard_html)
+            print(f"{green('✓')} Plotly Dashboard: {dashboard_html.name}")
+        else:
+            print(f"{yellow('!')} Plotly not installed - skipping interactive charts")
+            print(f"  {dim('Install with: pip install plotly')}")
+
+        print(f"\nAll files saved to: {output_dir}")
+
+    else:
+        print(f"Unknown format: {viz_format}")
+        print("Valid formats: sankey, flourish, plotly, artifact, all")
+        sys.exit(1)
+
+    # Show usage tips
+    print(f"\n{bold('Usage Tips:')}")
+    print("  • SankeyMATIC: Copy text → paste at sankeymatic.com/build/")
+    print("  • Flourish: Upload CSV → create animated charts")
+    print("  • Plotly: Open HTML in browser for interactive charts")
+    print("  • Claude Artifact: Copy .jsx → paste in Claude's artifact editor")
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -1400,6 +1553,16 @@ Examples:
     rename_parser.add_argument("snapshot_id", help="Snapshot ID (or partial ID)")
     rename_parser.add_argument("name", help="New name for the portfolio")
 
+    # Visualization export command
+    viz_parser = subparsers.add_parser("viz", help="Export portfolio for external visualization tools")
+    viz_parser.add_argument(
+        "--format", "-f",
+        choices=["sankey", "flourish", "plotly", "artifact", "all"],
+        default="all",
+        help="Export format: sankey (SankeyMATIC), flourish (CSV), plotly (HTML), artifact (Claude), all"
+    )
+    viz_parser.add_argument("--output", "-o", help="Output directory")
+
     # Resolve command aliases before parsing
     if len(sys.argv) > 1 and sys.argv[1] in COMMAND_ALIASES:
         sys.argv[1] = resolve_alias(sys.argv[1])
@@ -1453,6 +1616,8 @@ Examples:
         cmd_news(args)
     elif args.command == "rename":
         cmd_rename(args)
+    elif args.command == "viz":
+        cmd_viz(args)
     elif args.command is None:
         # No command - show status if data exists, otherwise welcome
         db = PortfolioDatabase()

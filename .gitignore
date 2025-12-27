@@ -42,6 +42,7 @@ data/portfolio/*.csv
 data/portfolio/*.xlsx
 data/portfolio/*.pdf
 data/portfolio/tax_package_*/
+data/portfolio/visualizations/
 !data/portfolio/sample_commsec_export.csv
 data/*.db
 data/*.log
