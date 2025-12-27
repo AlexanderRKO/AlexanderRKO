@@ -39,6 +39,9 @@ data/processed/*.csv
 data/processed/*.xlsx
 data/processed/*.json
 data/portfolio/*.csv
+data/portfolio/*.xlsx
+data/portfolio/*.pdf
+data/portfolio/tax_package_*/
 !data/portfolio/sample_commsec_export.csv
 data/*.db
 data/*.log
