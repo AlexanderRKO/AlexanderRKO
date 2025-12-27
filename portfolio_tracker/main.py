@@ -75,6 +75,16 @@ from .portfolio_profile import (
     analyze_portfolio_profile, format_portfolio_profile,
     get_profile_comparison, RiskProfile
 )
+from .transaction_log import (
+    TransactionLog, Transaction, TransactionType, CostMethod,
+    format_transaction_history, format_transaction_summary,
+    format_realized_gains_report,
+)
+from .goal_tracker import (
+    GoalTracker, Goal, GoalType, GoalStatus,
+    format_goals_dashboard, format_goal_detail,
+    calculate_goal_projection,
+)
 
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -1524,6 +1534,304 @@ def cmd_profile(args):
             print("Valid options: conservative, balanced, growth, aggressive")
 
 
+def cmd_transactions(args):
+    """Manage and view transaction history."""
+    db_path = PORTFOLIO_DATA_DIR / "transactions.db"
+    tx_log = TransactionLog(db_path)
+
+    portfolio_db = PortfolioDatabase()
+    portfolio_db.initialize()
+
+    # Add a buy transaction
+    if args.buy:
+        if not all([args.code, args.quantity, args.price]):
+            print("Error: --buy requires --code, --quantity, and --price")
+            sys.exit(1)
+
+        tx_date = date.fromisoformat(args.date) if args.date else date.today()
+        fees = Decimal(str(args.fees)) if args.fees else Decimal("0")
+
+        tx_id = tx_log.record_buy(
+            code=args.code,
+            date=tx_date,
+            quantity=args.quantity,
+            price=Decimal(str(args.price)),
+            fees=fees,
+            notes=args.notes or "",
+        )
+        print(f"\n{green('✓')} Recorded BUY transaction #{tx_id}")
+        print(f"  {args.code}: {args.quantity:,} shares @ ${args.price:.4f}")
+        print(f"  Total: ${args.quantity * args.price:,.2f} + ${float(fees):.2f} fees")
+        return
+
+    # Add a sell transaction
+    if args.sell:
+        if not all([args.code, args.quantity, args.price]):
+            print("Error: --sell requires --code, --quantity, and --price")
+            sys.exit(1)
+
+        tx_date = date.fromisoformat(args.date) if args.date else date.today()
+        fees = Decimal(str(args.fees)) if args.fees else Decimal("0")
+
+        cost_method = CostMethod.FIFO
+        if args.lifo:
+            cost_method = CostMethod.LIFO
+        elif args.average:
+            cost_method = CostMethod.AVERAGE
+
+        tx_id, realized = tx_log.record_sell(
+            code=args.code,
+            date=tx_date,
+            quantity=args.quantity,
+            price=Decimal(str(args.price)),
+            fees=fees,
+            notes=args.notes or "",
+            cost_method=cost_method,
+        )
+        print(f"\n{green('✓')} Recorded SELL transaction #{tx_id}")
+        print(f"  {args.code}: {args.quantity:,} shares @ ${args.price:.4f}")
+        print(f"  Proceeds: ${float(realized.proceeds):,.2f}")
+        print(f"  Cost Base: ${float(realized.cost_base):,.2f}")
+
+        if realized.is_gain:
+            gain_color = green
+            indicator = "▲"
+        else:
+            gain_color = red
+            indicator = "▼"
+
+        print(f"  {indicator} Realized: {gain_color(f'${float(realized.gain_loss):+,.2f}')}")
+
+        if realized.cgt_discount_eligible:
+            print(f"  CGT Discount: 50% (held >{realized.holding_period_days} days)")
+            print(f"  Taxable Gain: ${float(realized.discounted_gain):,.2f}")
+        return
+
+    # Add a dividend
+    if args.dividend:
+        if not all([args.code, args.amount]):
+            print("Error: --dividend requires --code and --amount")
+            sys.exit(1)
+
+        tx_date = date.fromisoformat(args.date) if args.date else date.today()
+        franking = Decimal(str(args.franking)) if args.franking else None
+
+        tx_id = tx_log.record_dividend(
+            code=args.code,
+            date=tx_date,
+            amount=Decimal(str(args.amount)),
+            franking_credits=franking,
+            notes=args.notes or "",
+        )
+        print(f"\n{green('✓')} Recorded DIVIDEND #{tx_id}")
+        print(f"  {args.code}: ${args.amount:,.2f}")
+        if franking:
+            print(f"  Franking Credits: ${float(franking):,.2f}")
+        return
+
+    # Show summary
+    if args.summary:
+        code = args.code.upper() if args.code else None
+        summary = tx_log.get_summary(code=code)
+        print(format_transaction_summary(summary))
+        return
+
+    # Show realized gains (for tax)
+    if args.gains:
+        start = date.fromisoformat(args.start) if args.start else None
+        end = date.fromisoformat(args.end) if args.end else None
+        fy = args.fy if hasattr(args, 'fy') and args.fy else None
+
+        gains = tx_log.get_realized_gains(start_date=start, end_date=end)
+        print(format_realized_gains_report(gains, financial_year=fy))
+        return
+
+    # Export transactions
+    if args.export:
+        output_path = Path(args.export)
+        code = args.code.upper() if args.code else None
+        tx_log.export_to_csv(output_path, code=code)
+        print(f"\n{green('✓')} Exported transactions to: {output_path}")
+        return
+
+    # Import transactions
+    if args.import_csv:
+        csv_path = Path(args.import_csv)
+        if not csv_path.exists():
+            print(f"Error: File not found: {csv_path}")
+            sys.exit(1)
+
+        count = tx_log.import_from_csv(csv_path)
+        print(f"\n{green('✓')} Imported {count} transactions from: {csv_path}")
+        return
+
+    # Default: show transaction history
+    code = args.code.upper() if args.code else None
+    tx_type = None
+    if args.type:
+        tx_type = TransactionType(args.type.lower())
+
+    start = date.fromisoformat(args.start) if args.start else None
+    end = date.fromisoformat(args.end) if args.end else None
+
+    transactions = tx_log.get_transactions(
+        code=code,
+        transaction_type=tx_type,
+        start_date=start,
+        end_date=end,
+        limit=args.limit or 50,
+    )
+
+    print(format_transaction_history(transactions))
+
+    if not transactions:
+        print("\n  No transactions recorded yet.")
+        print("\n  Examples:")
+        print("    transactions --buy --code CBA --quantity 100 --price 115.50 --fees 19.95")
+        print("    transactions --sell --code CBA --quantity 50 --price 120.00")
+        print("    transactions --dividend --code VAS --amount 450.00 --franking 192.86")
+        print("    transactions --summary")
+        print("    transactions --gains --fy 2024-25")
+
+
+def cmd_goals(args):
+    """Manage and view portfolio goals."""
+    db_path = PORTFOLIO_DATA_DIR / "goals.db"
+    tracker = GoalTracker(db_path)
+
+    portfolio_db = PortfolioDatabase()
+    portfolio_db.initialize()
+    portfolio = portfolio_db.get_latest_portfolio()
+
+    # Add a new goal
+    if args.add:
+        if not args.name or not args.type or not args.target:
+            print("Error: --add requires --name, --type, and --target")
+            sys.exit(1)
+
+        try:
+            goal_type = GoalType(args.type)
+        except ValueError:
+            print(f"Error: Unknown goal type '{args.type}'")
+            print("Valid types: portfolio_value, dividend_income, monthly_income, "
+                  "holding_value, sector_allocation, savings_milestone, shares_owned, yield_target, custom")
+            sys.exit(1)
+
+        target_date = date.fromisoformat(args.date) if args.date else None
+        start_value = Decimal("0")
+
+        # Get current value if possible
+        if portfolio:
+            if goal_type == GoalType.PORTFOLIO_VALUE:
+                start_value = portfolio.total_market_value
+            elif goal_type == GoalType.HOLDING_VALUE and args.code:
+                holding = portfolio.get_holding(args.code)
+                if holding:
+                    start_value = holding.market_value
+            elif goal_type == GoalType.SHARES_OWNED and args.code:
+                holding = portfolio.get_holding(args.code)
+                if holding:
+                    start_value = Decimal(str(holding.quantity))
+
+        goal = tracker.create_goal(
+            name=args.name,
+            goal_type=goal_type,
+            target_value=Decimal(str(args.target)),
+            start_value=start_value,
+            target_date=target_date,
+            code=args.code,
+            sector=args.sector,
+            notes=args.notes or "",
+        )
+
+        print(f"\n{green('✓')} Created goal #{goal.id}: {goal.name}")
+        print(f"  Type: {goal.goal_type.value.replace('_', ' ').title()}")
+        print(f"  Target: ${float(goal.target_value):,.0f}")
+        if start_value > 0:
+            print(f"  Starting from: ${float(start_value):,.0f}")
+        if target_date:
+            print(f"  Target date: {target_date}")
+        return
+
+    # Delete a goal
+    if args.delete:
+        if tracker.delete_goal(args.delete):
+            print(f"{green('✓')} Deleted goal #{args.delete}")
+        else:
+            print(f"Goal #{args.delete} not found")
+        return
+
+    # Pause a goal
+    if args.pause:
+        if tracker.pause_goal(args.pause):
+            print(f"{green('✓')} Paused goal #{args.pause}")
+        else:
+            print(f"Goal #{args.pause} not found or not active")
+        return
+
+    # Resume a goal
+    if args.resume:
+        if tracker.resume_goal(args.resume):
+            print(f"{green('✓')} Resumed goal #{args.resume}")
+        else:
+            print(f"Goal #{args.resume} not found or not paused")
+        return
+
+    # Update goals from portfolio
+    if args.update:
+        if not portfolio:
+            print("No portfolio data found. Import a CSV first.")
+            sys.exit(1)
+
+        updated = tracker.update_goals_from_portfolio(portfolio)
+        print(f"\n{green('✓')} Updated {len(updated)} goals from portfolio")
+
+        for goal in updated:
+            status_icon = "✅" if goal.is_complete else "📊"
+            print(f"  {status_icon} {goal.name}: {goal.progress_percent:.1f}%")
+
+        return
+
+    # Show detailed view of specific goal
+    if args.view:
+        goal = tracker.get_goal(args.view)
+        if not goal:
+            print(f"Goal #{args.view} not found")
+            return
+
+        history = tracker.get_progress_history(args.view)
+        print(format_goal_detail(goal, history))
+
+        # Show projection if requested
+        if args.project:
+            contribution = Decimal(str(args.contribution)) if args.contribution else Decimal("0")
+            projection = calculate_goal_projection(goal, monthly_contribution=contribution)
+
+            if projection["already_complete"]:
+                print("  This goal is already complete!")
+            else:
+                print("-" * 60)
+                print("PROJECTION")
+                print("-" * 60)
+                print(f"  Estimated time to goal: {projection['months_to_goal']} months "
+                      f"({projection['years_to_goal']:.1f} years)")
+                print(f"  Projected date: {projection['projected_date']}")
+                print(f"  Assumptions:")
+                print(f"    - Monthly contribution: ${float(contribution):,.0f}")
+                print(f"    - Annual return: {projection['assumptions']['annual_return']}")
+        return
+
+    # Default: show goals dashboard
+    status_filter = None
+    if args.completed:
+        status_filter = GoalStatus.COMPLETED
+    elif args.active:
+        status_filter = GoalStatus.ACTIVE
+
+    goals = tracker.get_goals(status=status_filter)
+    print(format_goals_dashboard(goals, portfolio))
+
+
 def main():
     """Main entry point."""
     ensure_directories()
@@ -1713,6 +2021,56 @@ Examples:
     )
     profile_parser.add_argument("--json", action="store_true", help="Output as JSON")
 
+    # Transaction log command
+    tx_parser = subparsers.add_parser("transactions", aliases=["tx"], help="Manage transaction history")
+    tx_parser.add_argument("--buy", action="store_true", help="Record a buy transaction")
+    tx_parser.add_argument("--sell", action="store_true", help="Record a sell transaction")
+    tx_parser.add_argument("--dividend", action="store_true", help="Record a dividend payment")
+    tx_parser.add_argument("--code", "-c", help="Stock code (e.g., CBA, VAS)")
+    tx_parser.add_argument("--quantity", "-q", type=int, help="Number of shares")
+    tx_parser.add_argument("--price", "-p", type=float, help="Price per share")
+    tx_parser.add_argument("--amount", type=float, help="Dividend amount received")
+    tx_parser.add_argument("--fees", type=float, default=0, help="Brokerage/fees (default: 0)")
+    tx_parser.add_argument("--date", "-d", help="Transaction date (YYYY-MM-DD, default: today)")
+    tx_parser.add_argument("--notes", "-n", help="Optional notes")
+    tx_parser.add_argument("--franking", type=float, help="Franking credits (for dividends)")
+    tx_parser.add_argument("--lifo", action="store_true", help="Use LIFO cost base (default: FIFO)")
+    tx_parser.add_argument("--average", action="store_true", help="Use average cost base")
+    tx_parser.add_argument("--summary", "-s", action="store_true", help="Show transaction summary")
+    tx_parser.add_argument("--gains", "-g", action="store_true", help="Show realized capital gains")
+    tx_parser.add_argument("--type", "-t", choices=["buy", "sell", "dividend", "drp"], help="Filter by transaction type")
+    tx_parser.add_argument("--start", help="Start date for filtering (YYYY-MM-DD)")
+    tx_parser.add_argument("--end", help="End date for filtering (YYYY-MM-DD)")
+    tx_parser.add_argument("--fy", help="Financial year for gains report (e.g., 2024-25)")
+    tx_parser.add_argument("--limit", "-l", type=int, default=50, help="Max transactions to show")
+    tx_parser.add_argument("--export", "-e", metavar="FILE", help="Export transactions to CSV")
+    tx_parser.add_argument("--import-csv", "-i", metavar="FILE", help="Import transactions from CSV")
+
+    # Goals command
+    goals_parser = subparsers.add_parser("goals", help="Manage portfolio goals")
+    goals_parser.add_argument("--add", "-a", action="store_true", help="Add a new goal")
+    goals_parser.add_argument("--name", "-n", help="Goal name")
+    goals_parser.add_argument(
+        "--type", "-t",
+        choices=["portfolio_value", "dividend_income", "monthly_income", "holding_value",
+                 "sector_allocation", "savings_milestone", "shares_owned", "yield_target", "custom"],
+        help="Type of goal"
+    )
+    goals_parser.add_argument("--target", type=float, help="Target value")
+    goals_parser.add_argument("--code", "-c", help="Stock code (for holding-specific goals)")
+    goals_parser.add_argument("--sector", "-s", help="Sector (for allocation goals)")
+    goals_parser.add_argument("--date", "-d", help="Target date (YYYY-MM-DD)")
+    goals_parser.add_argument("--notes", help="Optional notes")
+    goals_parser.add_argument("--delete", type=int, metavar="ID", help="Delete goal by ID")
+    goals_parser.add_argument("--pause", type=int, metavar="ID", help="Pause goal by ID")
+    goals_parser.add_argument("--resume", type=int, metavar="ID", help="Resume paused goal")
+    goals_parser.add_argument("--view", "-v", type=int, metavar="ID", help="View goal details")
+    goals_parser.add_argument("--update", "-u", action="store_true", help="Update goals from current portfolio")
+    goals_parser.add_argument("--project", "-p", action="store_true", help="Show goal projection (with --view)")
+    goals_parser.add_argument("--contribution", type=float, help="Monthly contribution for projection")
+    goals_parser.add_argument("--active", action="store_true", help="Show only active goals")
+    goals_parser.add_argument("--completed", action="store_true", help="Show only completed goals")
+
     # Resolve command aliases before parsing
     if len(sys.argv) > 1 and sys.argv[1] in COMMAND_ALIASES:
         sys.argv[1] = resolve_alias(sys.argv[1])
@@ -1772,6 +2130,10 @@ Examples:
         cmd_cashflow(args)
     elif args.command == "profile":
         cmd_profile(args)
+    elif args.command in ("transactions", "tx"):
+        cmd_transactions(args)
+    elif args.command == "goals":
+        cmd_goals(args)
     elif args.command is None:
         # No command - show status if data exists, otherwise welcome
         db = PortfolioDatabase()

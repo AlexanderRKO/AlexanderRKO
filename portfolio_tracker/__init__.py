@@ -139,6 +139,28 @@ from .portfolio_profile import (
     format_portfolio_profile,
     get_profile_comparison,
 )
+from .transaction_log import (
+    Transaction,
+    TransactionType,
+    CostMethod,
+    RealizedGain,
+    TransactionSummary,
+    TransactionLog,
+    format_transaction_history,
+    format_transaction_summary,
+    format_realized_gains_report,
+)
+from .goal_tracker import (
+    Goal,
+    GoalType,
+    GoalStatus,
+    GoalProgress,
+    GoalMilestone,
+    GoalTracker,
+    format_goals_dashboard,
+    format_goal_detail,
+    calculate_goal_projection,
+)
 
 __all__ = [
     "Holding",
@@ -256,4 +278,22 @@ __all__ = [
     "analyze_portfolio_profile",
     "format_portfolio_profile",
     "get_profile_comparison",
+    "Transaction",
+    "TransactionType",
+    "CostMethod",
+    "RealizedGain",
+    "TransactionSummary",
+    "TransactionLog",
+    "format_transaction_history",
+    "format_transaction_summary",
+    "format_realized_gains_report",
+    "Goal",
+    "GoalType",
+    "GoalStatus",
+    "GoalProgress",
+    "GoalMilestone",
+    "GoalTracker",
+    "format_goals_dashboard",
+    "format_goal_detail",
+    "calculate_goal_projection",
 ]
