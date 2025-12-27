@@ -555,6 +555,145 @@ def create_plotly_dashboard(
 
 
 # =============================================================================
+# Markdown Export
+# =============================================================================
+
+def export_to_markdown(
+    portfolio: Portfolio,
+    output_path: Optional[Path] = None,
+    include_charts: bool = True,
+) -> str:
+    """
+    Export portfolio to a formatted Markdown document.
+
+    Great for GitHub, Notion, Obsidian, documentation, etc.
+    """
+    from datetime import datetime
+
+    lines = []
+
+    # Header
+    lines.append(f"# Portfolio Report")
+    lines.append(f"")
+    lines.append(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    lines.append(f"**Snapshot Date:** {portfolio.snapshot_date}")
+    lines.append(f"")
+
+    # Summary Box
+    lines.append(f"## Summary")
+    lines.append(f"")
+    lines.append(f"| Metric | Value |")
+    lines.append(f"|--------|-------|")
+    lines.append(f"| Total Value | ${float(portfolio.total_market_value):,.2f} |")
+    lines.append(f"| Cost Base | ${float(portfolio.total_cost_base):,.2f} |")
+    lines.append(f"| Profit/Loss | ${float(portfolio.total_profit_loss):+,.2f} ({float(portfolio.total_profit_loss_percent):+.1f}%) |")
+    lines.append(f"| Holdings | {portfolio.holding_count} |")
+    lines.append(f"")
+
+    # Performance Stats
+    profitable = [h for h in portfolio.holdings if h.profit_loss >= 0]
+    losing = [h for h in portfolio.holdings if h.profit_loss < 0]
+    lines.append(f"### Performance")
+    lines.append(f"")
+    lines.append(f"- **Winners:** {len(profitable)} ({len(profitable)/portfolio.holding_count*100:.0f}%)")
+    lines.append(f"- **Losers:** {len(losing)} ({len(losing)/portfolio.holding_count*100:.0f}%)")
+    lines.append(f"")
+
+    # Sector Allocation
+    sectors = get_sector_summary(portfolio)
+    lines.append(f"## Sector Allocation")
+    lines.append(f"")
+    lines.append(f"| Sector | Value | Weight | Return |")
+    lines.append(f"|--------|------:|-------:|-------:|")
+    for name, data in sorted(sectors.items(), key=lambda x: x[1]["market_value"], reverse=True):
+        lines.append(
+            f"| {name} | ${data['market_value']:,.0f} | {data['weight']:.1f}% | {data['return_percent']:+.1f}% |"
+        )
+    lines.append(f"")
+
+    # ASCII Sector Chart (if enabled)
+    if include_charts:
+        lines.append(f"### Sector Distribution")
+        lines.append(f"")
+        lines.append(f"```")
+        max_name_len = max(len(name) for name in sectors.keys())
+        max_value = max(data["weight"] for data in sectors.values())
+        for name, data in sorted(sectors.items(), key=lambda x: x[1]["weight"], reverse=True):
+            bar_len = int(data["weight"] / max_value * 30) if max_value > 0 else 0
+            bar = "█" * bar_len
+            lines.append(f"{name:<{max_name_len}} │{bar} {data['weight']:.1f}%")
+        lines.append(f"```")
+        lines.append(f"")
+
+    # Top Holdings
+    lines.append(f"## Top 10 Holdings")
+    lines.append(f"")
+    lines.append(f"| Code | Name | Value | Weight | Return |")
+    lines.append(f"|------|------|------:|-------:|-------:|")
+    top_holdings = sorted(portfolio.holdings, key=lambda h: h.market_value, reverse=True)[:10]
+    for h in top_holdings:
+        name = h.name[:25] + "..." if len(h.name) > 25 else h.name
+        pl_emoji = "🟢" if h.profit_loss >= 0 else "🔴"
+        lines.append(
+            f"| {h.code} | {name} | ${float(h.market_value):,.0f} | {float(h.portfolio_weight):.1f}% | {pl_emoji} {float(h.profit_loss_percent):+.1f}% |"
+        )
+    lines.append(f"")
+
+    # Best & Worst Performers
+    lines.append(f"## Performance Leaders")
+    lines.append(f"")
+    lines.append(f"### 🏆 Best Performers")
+    lines.append(f"")
+    lines.append(f"| Code | Return | P/L |")
+    lines.append(f"|------|-------:|----:|")
+    best = sorted(portfolio.holdings, key=lambda h: h.profit_loss_percent, reverse=True)[:5]
+    for h in best:
+        lines.append(f"| {h.code} | {float(h.profit_loss_percent):+.1f}% | ${float(h.profit_loss):+,.0f} |")
+    lines.append(f"")
+
+    lines.append(f"### 📉 Worst Performers")
+    lines.append(f"")
+    lines.append(f"| Code | Return | P/L |")
+    lines.append(f"|------|-------:|----:|")
+    worst = sorted(portfolio.holdings, key=lambda h: h.profit_loss_percent)[:5]
+    for h in worst:
+        lines.append(f"| {h.code} | {float(h.profit_loss_percent):+.1f}% | ${float(h.profit_loss):+,.0f} |")
+    lines.append(f"")
+
+    # All Holdings Table
+    lines.append(f"## All Holdings")
+    lines.append(f"")
+    lines.append(f"<details>")
+    lines.append(f"<summary>Click to expand ({portfolio.holding_count} holdings)</summary>")
+    lines.append(f"")
+    lines.append(f"| Code | Name | Qty | Avg Cost | Price | Value | P/L % |")
+    lines.append(f"|------|------|----:|--------:|------:|------:|------:|")
+    for h in sorted(portfolio.holdings, key=lambda x: x.market_value, reverse=True):
+        name = h.name[:20] + "..." if len(h.name) > 20 else h.name
+        lines.append(
+            f"| {h.code} | {name} | {h.quantity:,} | ${float(h.avg_cost):.2f} | "
+            f"${float(h.current_price):.2f} | ${float(h.market_value):,.0f} | {float(h.profit_loss_percent):+.1f}% |"
+        )
+    lines.append(f"")
+    lines.append(f"</details>")
+    lines.append(f"")
+
+    # Footer
+    lines.append(f"---")
+    lines.append(f"*Generated by Portfolio Tracker*")
+
+    result = "\n".join(lines)
+
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w") as f:
+            f.write(result)
+        logger.info(f"Saved Markdown report to {output_path}")
+
+    return result
+
+
+# =============================================================================
 # Claude Artifacts Export (React/Recharts)
 # =============================================================================
 

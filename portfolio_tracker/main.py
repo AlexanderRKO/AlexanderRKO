@@ -63,6 +63,7 @@ from .viz_export import (
     create_plotly_sankey, create_plotly_treemap, create_plotly_sunburst,
     create_plotly_dashboard, export_visualizations,
     export_artifact_code, export_artifact_json, export_artifact_data,
+    export_to_markdown,
     check_plotly, PLOTLY_AVAILABLE
 )
 
@@ -1322,6 +1323,14 @@ def cmd_viz(args):
         print(f"\n  {dim('Copy the .jsx file contents into a Claude Artifact')}")
         print(f"  {dim('Or use the JSON data with your own React component')}")
 
+    elif viz_format == "markdown":
+        # Markdown report
+        md_path = output_dir / f"portfolio_report_{portfolio.snapshot_date}.md"
+        export_to_markdown(portfolio, md_path)
+        print(f"{green('✓')} Markdown Report: {md_path}")
+
+        print(f"\n  {dim('Works with GitHub, Notion, Obsidian, and any Markdown renderer')}")
+
     elif viz_format == "all":
         # Export all formats
         print("Exporting all visualization formats...\n")
@@ -1353,6 +1362,11 @@ def cmd_viz(args):
         export_artifact_json(portfolio, json_path)
         print(f"{green('✓')} Artifact Data: {json_path.name}")
 
+        # Markdown
+        md_path = output_dir / f"portfolio_report_{portfolio.snapshot_date}.md"
+        export_to_markdown(portfolio, md_path)
+        print(f"{green('✓')} Markdown Report: {md_path.name}")
+
         # Plotly (if available)
         if PLOTLY_AVAILABLE:
             sankey_html = output_dir / f"plotly_sankey_{portfolio.snapshot_date}.html"
@@ -1378,7 +1392,7 @@ def cmd_viz(args):
 
     else:
         print(f"Unknown format: {viz_format}")
-        print("Valid formats: sankey, flourish, plotly, artifact, all")
+        print("Valid formats: sankey, flourish, plotly, artifact, markdown, all")
         sys.exit(1)
 
     # Show usage tips
@@ -1386,7 +1400,8 @@ def cmd_viz(args):
     print("  • SankeyMATIC: Copy text → paste at sankeymatic.com/build/")
     print("  • Flourish: Upload CSV → create animated charts")
     print("  • Plotly: Open HTML in browser for interactive charts")
-    print("  • Claude Artifact: Copy .jsx → paste in Claude's artifact editor")
+    print("  • Artifact: Copy .jsx → paste in Claude's artifact editor")
+    print("  • Markdown: View in GitHub, Notion, Obsidian, or any MD renderer")
 
 
 def main():
@@ -1557,9 +1572,9 @@ Examples:
     viz_parser = subparsers.add_parser("viz", help="Export portfolio for external visualization tools")
     viz_parser.add_argument(
         "--format", "-f",
-        choices=["sankey", "flourish", "plotly", "artifact", "all"],
+        choices=["sankey", "flourish", "plotly", "artifact", "markdown", "all"],
         default="all",
-        help="Export format: sankey (SankeyMATIC), flourish (CSV), plotly (HTML), artifact (Claude), all"
+        help="Export format: sankey, flourish (CSV), plotly (HTML), artifact (Claude), markdown, all"
     )
     viz_parser.add_argument("--output", "-o", help="Output directory")
 
