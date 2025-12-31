@@ -92,6 +92,15 @@ from .investor_profile import (
     format_profile_summary, compare_portfolio_to_profile,
 )
 
+# Xero OAuth 2.0 integration
+try:
+    from .xero_commands import cmd_xero, add_xero_subparser
+    XERO_COMMANDS_AVAILABLE = True
+except ImportError:
+    XERO_COMMANDS_AVAILABLE = False
+    cmd_xero = None
+    add_xero_subparser = None
+
 # Configure data directory
 DATA_DIR = Path(__file__).parent.parent / "data"
 PORTFOLIO_DATA_DIR = DATA_DIR / "portfolio"
@@ -2221,6 +2230,10 @@ Examples:
     investor_parser.add_argument("--delete", "-d", type=int, metavar="ID", help="Delete a profile")
     investor_parser.add_argument("--compare", "-c", action="store_true", help="Compare portfolio to profile allocation")
 
+    # Xero OAuth 2.0 integration command
+    if XERO_COMMANDS_AVAILABLE and add_xero_subparser:
+        add_xero_subparser(subparsers)
+
     # Resolve command aliases before parsing
     if len(sys.argv) > 1 and sys.argv[1] in COMMAND_ALIASES:
         sys.argv[1] = resolve_alias(sys.argv[1])
@@ -2286,6 +2299,12 @@ Examples:
         cmd_goals(args)
     elif args.command == "investor":
         cmd_investor(args)
+    elif args.command == "xero":
+        if XERO_COMMANDS_AVAILABLE and cmd_xero:
+            cmd_xero(args)
+        else:
+            print("Xero integration not available.")
+            print("Make sure required packages are installed.")
     elif args.command is None:
         # No command - show status if data exists, otherwise welcome
         db = PortfolioDatabase()

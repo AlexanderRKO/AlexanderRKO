@@ -15,6 +15,13 @@ schedule>=1.2.0
 # selenium>=4.15.0
 # webdriver-manager>=4.0.0
 
+# Web dashboard (optional)
+flask>=3.0.0
+
+# Xero OAuth 2.0 Integration
+# Note: cryptography is optional but recommended for token encryption
+cryptography>=41.0.0
+
 # Development
 pytest>=7.4.0
 pytest-cov>=4.1.0
