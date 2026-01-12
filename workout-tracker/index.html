@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Workout Tracker - 68kg to 75kg</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Workout Tracker</h1>
+            <div class="goal-banner">
+                <span class="current-weight" id="currentWeight">68</span>kg
+                <span class="arrow">→</span>
+                <span class="goal-weight">75</span>kg
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="workout">Workout</button>
+            <button class="nav-tab" data-tab="progress">Progress</button>
+            <button class="nav-tab" data-tab="history">History</button>
+            <button class="nav-tab" data-tab="settings">Settings</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Workout Tab -->
+            <section id="workout-tab" class="tab-content active">
+                <!-- Workout Selection -->
+                <div class="workout-selection" id="workoutSelection">
+                    <h2>Select Your Workout</h2>
+                    <div class="workout-cards">
+                        <button class="workout-card" data-workout="A">
+                            <div class="workout-letter">A</div>
+                            <div class="workout-name">Push Focus</div>
+                            <div class="workout-targets">Chest, Shoulders, Triceps, Quads</div>
+                        </button>
+                        <button class="workout-card" data-workout="B">
+                            <div class="workout-letter">B</div>
+                            <div class="workout-name">Pull Focus</div>
+                            <div class="workout-targets">Back, Biceps, Hamstrings, Glutes</div>
+                        </button>
+                        <button class="workout-card" data-workout="C">
+                            <div class="workout-letter">C</div>
+                            <div class="workout-name">Full Body Power</div>
+                            <div class="workout-targets">All Major Muscle Groups</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Workout -->
+                <div class="active-workout hidden" id="activeWorkout">
+                    <div class="workout-header">
+                        <button class="back-btn" id="backToSelection">← Back</button>
+                        <h2 id="activeWorkoutTitle">Workout A</h2>
+                        <div class="workout-timer" id="workoutTimer">00:00</div>
+                    </div>
+
+                    <!-- Rest Timer Modal -->
+                    <div class="rest-timer-overlay hidden" id="restTimerOverlay">
+                        <div class="rest-timer-modal">
+                            <h3>REST</h3>
+                            <div class="rest-timer-display" id="restTimerDisplay">90</div>
+                            <div class="rest-timer-label">seconds</div>
+                            <div class="rest-timer-buttons">
+                                <button class="rest-btn skip-btn" id="skipRest">Skip</button>
+                                <button class="rest-btn add-btn" id="addTime">+30s</button>
+                            </div>
+                            <p class="next-exercise-preview" id="nextExercisePreview">Next: Cable Chest Fly</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise List -->
+                    <div class="exercise-list" id="exerciseList">
+                        <!-- Exercises will be dynamically inserted -->
+                    </div>
+
+                    <button class="finish-workout-btn hidden" id="finishWorkout">Complete Workout</button>
+                </div>
+            </section>
+
+            <!-- Progress Tab -->
+            <section id="progress-tab" class="tab-content">
+                <div class="progress-section">
+                    <h2>Weight Progress</h2>
+                    <div class="weight-input-section">
+                        <input type="number" id="weightInput" placeholder="Enter weight" step="0.1" min="40" max="150">
+                        <button id="logWeight">Log Weight</button>
+                    </div>
+                    <div class="weight-chart-container">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                    <div class="weight-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="startingWeight">68.0</div>
+                            <div class="stat-label">Starting (kg)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="latestWeight">68.0</div>
+                            <div class="stat-label">Current (kg)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="weightGained">0.0</div>
+                            <div class="stat-label">Gained (kg)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="weightToGo">7.0</div>
+                            <div class="stat-label">To Goal (kg)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-section">
+                    <h2>Strength Progress</h2>
+                    <div class="exercise-select-container">
+                        <select id="exerciseSelect">
+                            <option value="">Select an exercise</option>
+                        </select>
+                    </div>
+                    <div class="strength-chart-container">
+                        <canvas id="strengthChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="progress-section">
+                    <h2>Workout Consistency</h2>
+                    <div class="consistency-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalWorkouts">0</div>
+                            <div class="stat-label">Total Workouts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="thisWeek">0</div>
+                            <div class="stat-label">This Week</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="currentStreak">0</div>
+                            <div class="stat-label">Week Streak</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Tab -->
+            <section id="history-tab" class="tab-content">
+                <h2>Workout History</h2>
+                <div class="history-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="A">Workout A</button>
+                    <button class="filter-btn" data-filter="B">Workout B</button>
+                    <button class="filter-btn" data-filter="C">Workout C</button>
+                </div>
+                <div class="history-list" id="historyList">
+                    <!-- History items will be dynamically inserted -->
+                </div>
+            </section>
+
+            <!-- Settings Tab -->
+            <section id="settings-tab" class="tab-content">
+                <h2>Settings</h2>
+
+                <div class="settings-section">
+                    <h3>Rest Timer Defaults</h3>
+                    <div class="setting-item">
+                        <label>Compound Exercises (seconds)</label>
+                        <input type="number" id="compoundRest" value="90" min="30" max="300">
+                    </div>
+                    <div class="setting-item">
+                        <label>Isolation Exercises (seconds)</label>
+                        <input type="number" id="isolationRest" value="60" min="30" max="300">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Sound</h3>
+                    <div class="setting-item">
+                        <label>Timer Alert Sound</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="soundEnabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>Vibration</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="vibrationEnabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Goals</h3>
+                    <div class="setting-item">
+                        <label>Starting Weight (kg)</label>
+                        <input type="number" id="settingStartWeight" value="68" step="0.1">
+                    </div>
+                    <div class="setting-item">
+                        <label>Goal Weight (kg)</label>
+                        <input type="number" id="settingGoalWeight" value="75" step="0.1">
+                    </div>
+                    <button class="save-settings-btn" id="saveGoals">Save Goals</button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Data Management</h3>
+                    <div class="data-buttons">
+                        <button class="data-btn export-btn" id="exportData">Export Data</button>
+                        <button class="data-btn import-btn" id="importData">Import Data</button>
+                        <button class="data-btn danger-btn" id="clearData">Clear All Data</button>
+                    </div>
+                    <input type="file" id="importFile" accept=".json" class="hidden">
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="workouts.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
