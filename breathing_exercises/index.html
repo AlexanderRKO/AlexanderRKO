@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0f766e" />
+<title>Breathing Exercises</title>
+<style>
+  :root {
+    --bg: #f4faf9;
+    --surface: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --accent: #0f766e;
+    --accent-soft: #ccfbf1;
+    --allegra: #db2777;
+    --allegra-soft: #fce7f3;
+    --alessia: #2563eb;
+    --alessia-soft: #dbeafe;
+    --done: #16a34a;
+    --warn: #f59e0b;
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.06);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body[data-child="allegra"] { --accent: var(--allegra); --accent-soft: var(--allegra-soft); }
+  body[data-child="alessia"] { --accent: var(--alessia); --accent-soft: var(--alessia-soft); }
+
+  .app { max-width: 640px; margin: 0 auto; padding: 16px 16px 96px; }
+
+  header.top {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 4px 16px;
+  }
+  header.top h1 {
+    margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em;
+    flex: 1;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent);
+    font-size: 12px; font-weight: 600;
+  }
+
+  .child-pick {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-top: 4px;
+  }
+  .child-card {
+    appearance: none; border: 0; cursor: pointer;
+    background: var(--surface); color: var(--ink);
+    padding: 24px 16px; border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    text-align: left;
+    display: flex; flex-direction: column; gap: 6px;
+    transition: transform .12s ease;
+  }
+  .child-card:active { transform: scale(0.98); }
+  .child-card .name { font-size: 22px; font-weight: 700; }
+  .child-card .meta { font-size: 13px; color: var(--muted); }
+  .child-card[data-c="allegra"] { border-top: 4px solid var(--allegra); }
+  .child-card[data-c="alessia"] { border-top: 4px solid var(--alessia); }
+  .child-card .session-dots { display: flex; gap: 6px; margin-top: 8px; }
+  .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--line);
+  }
+  .dot.on { background: var(--done); }
+
+  .intro p { color: var(--muted); margin: 8px 4px 16px; }
+
+  .session-bar {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 12px 14px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 12px;
+  }
+  .session-bar .label { font-size: 13px; color: var(--muted); flex: 1; }
+  .session-bar .count {
+    font-weight: 700; color: var(--accent);
+  }
+  .session-bar .dots { display: flex; gap: 6px; }
+
+  .ex-list { display: flex; flex-direction: column; gap: 10px; }
+  .ex-card {
+    background: var(--surface); border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px;
+    display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center;
+    cursor: pointer; border: 0; text-align: left; width: 100%;
+    color: var(--ink); font: inherit;
+  }
+  .ex-card .num {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    display: grid; place-items: center; font-weight: 700;
+  }
+  .ex-card.done .num { background: var(--done); color: white; }
+  .ex-card .body .name { font-weight: 600; font-size: 16px; }
+  .ex-card .body .freq { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .ex-card .chev { color: var(--muted); }
+  .ex-card.done .body .name { text-decoration: line-through; color: var(--muted); }
+
+  .footer-actions {
+    display: flex; gap: 10px; margin-top: 16px;
+  }
+  .btn {
+    appearance: none; border: 0; cursor: pointer;
+    border-radius: 12px; padding: 14px 16px;
+    font: inherit; font-weight: 600;
+    background: var(--surface); color: var(--ink);
+    box-shadow: var(--shadow);
+  }
+  .btn.primary { background: var(--accent); color: white; }
+  .btn.ghost { background: transparent; box-shadow: none; color: var(--muted); }
+  .btn.danger { color: #b91c1c; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.block { width: 100%; }
+
+  /* Active exercise view */
+  .active {
+    background: var(--surface); border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+  .active .ex-num {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--accent); font-weight: 700; font-size: 13px;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .active h2 {
+    margin: 6px 0 4px; font-size: 26px; line-height: 1.15; letter-spacing: -0.01em;
+  }
+  .active .freq {
+    color: var(--muted); font-size: 14px;
+    margin-bottom: 12px;
+  }
+
+  .timer-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--accent-soft);
+    border-radius: var(--radius); padding: 18px;
+    margin: 8px 0 14px;
+  }
+  .timer {
+    font-variant-numeric: tabular-nums;
+    font-size: 56px; font-weight: 700; color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  .timer.done { color: var(--done); }
+  .timer-controls { display: flex; gap: 8px; margin-top: 8px; }
+  .timer-controls .btn { padding: 10px 14px; }
+
+  .reps-wrap {
+    background: var(--accent-soft);
+    border-radius: var(--radius); padding: 16px;
+    text-align: center;
+    margin: 8px 0 14px;
+  }
+  .reps-label { color: var(--accent); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .reps-count { font-size: 42px; font-weight: 700; color: var(--accent); margin: 4px 0; }
+  .reps-actions { display: flex; gap: 8px; justify-content: center; }
+
+  .step-wrap {
+    background: var(--accent-soft);
+    border-radius: var(--radius); padding: 16px;
+    text-align: center;
+    margin: 0 0 12px;
+  }
+  .step-count { font-size: 36px; font-weight: 700; color: var(--accent); }
+  .step-label { font-size: 13px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+
+  .info-box {
+    background: var(--accent-soft);
+    border-radius: var(--radius); padding: 16px;
+    margin: 8px 0 14px;
+    color: var(--accent);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .instructions {
+    list-style: none; padding: 0; margin: 8px 0 0;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .instructions li {
+    display: grid; grid-template-columns: 28px 1fr; gap: 8px;
+    padding: 10px 12px;
+    background: #f8fafc; border-radius: 12px;
+    border: 1px solid var(--line);
+    align-items: start;
+    cursor: pointer;
+    user-select: none;
+  }
+  .instructions li .check {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid var(--line);
+    display: grid; place-items: center;
+    margin-top: 1px;
+  }
+  .instructions li.checked { background: #f0fdf4; border-color: #bbf7d0; }
+  .instructions li.checked .check {
+    background: var(--done); border-color: var(--done); color: white;
+  }
+  .instructions li.checked .check::after { content: "✓"; font-size: 14px; font-weight: 700; }
+  .instructions li.checked .text { color: var(--muted); }
+  .instructions li .text { font-size: 15px; line-height: 1.45; }
+
+  .nav-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: saturate(180%) blur(12px);
+    border-top: 1px solid var(--line);
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+  .nav-bar .row { display: flex; gap: 8px; max-width: 640px; margin: 0 auto; }
+  .nav-bar .btn { flex: 1; }
+
+  .progress-track {
+    height: 6px; background: var(--line); border-radius: 999px; overflow: hidden;
+    margin: 6px 0 14px;
+  }
+  .progress-track > div {
+    height: 100%; background: var(--accent);
+    transition: width .25s ease;
+  }
+
+  .complete-banner {
+    background: linear-gradient(135deg, #ecfccb, #d1fae5);
+    border: 1px solid #86efac;
+    color: #065f46;
+    padding: 16px; border-radius: var(--radius);
+    text-align: center; font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .header-link {
+    appearance: none; background: transparent; border: 0; cursor: pointer;
+    color: var(--muted); font: inherit; font-weight: 600; padding: 6px;
+  }
+  .header-link.accent { color: var(--accent); }
+
+  .small { font-size: 12px; color: var(--muted); }
+  .row-between { display: flex; align-items: center; justify-content: space-between; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <h1 id="pageTitle">Breathing Exercises</h1>
+      <button id="homeBtn" class="header-link" hidden>Home</button>
+    </header>
+    <main id="view"></main>
+  </div>
+
+  <nav class="nav-bar" id="navBar" hidden>
+    <div class="row">
+      <button class="btn" id="prevBtn">‹ Prev</button>
+      <button class="btn primary" id="doneBtn" style="flex:2">Mark done</button>
+      <button class="btn" id="nextBtn">Skip ›</button>
+    </div>
+  </nav>
+
+<script>
+"use strict";
+
+// ---------- Data ----------
+const BREATHING_STEPS_INSTR = [
+  "Insert your Myobrace",
+  "Keep your tongue resting against roof of your mouth",
+  "Bite your teeth into the appliance and close your lips",
+  "Breathe in and then breathe out shallowly through your nose",
+  "Pinch your nose, hold your breath and walk around",
+  "When you need to take a breath, stop walking and keep your lips closed and gently breathe through your nose",
+  "Sit down and continue breathing through your nose as long as you can and bring your breathing back to normal",
+  "Aim is NOT to hold your breath as long as possible — it is to keep lips closed when you breathe again",
+];
+
+const BELLY_BREATHING_INSTR = [
+  "Sit up straight with feet flat on the floor",
+  "Insert your Myobrace",
+  "Keep your tongue resting against roof of your mouth",
+  "Bite your teeth into the appliance and close your lips",
+  "Place one hand on your chest and one hand on your upper belly / ribs",
+  "Breathe slowly and gently through your nose, using your belly and not your shoulders",
+  "Feel movement in your upper belly and not your chest / shoulders",
+];
+
+const SUCTION_POP_INSTR = [
+  "With your mouth closed, suction your entire tongue up against the roof of your mouth",
+  "Open your mouth as wide as you can while holding the tongue firmly up on the palate",
+  "Smile and then release your tongue off the roof of your mouth to make a popping noise",
+  "Do not allow your tongue to hit the floor of your mouth",
+  "Remember to always breathe through your nose",
+];
+
+const MYOTALEA_INSTR = [
+  "Insert the Myotalea",
+  "Breathe through your nose",
+  "Press your lips together squeezing the lip tube",
+  "Release and press every second",
+];
+
+const MYOBRACE_INSTR = [
+  "Insert your Myobrace, ensure the tongue tag is facing up",
+  "Keep your tongue resting against the roof of your mouth",
+  "Close your mouth, keep your lips together and breathe through your nose",
+];
+
+const exercises = {
+  allegra: [
+    { name: "Breathing Steps with Myobrace", type: "reps", reps: 3, freq: "Count your steps · Repeat 3 times",
+      instructions: BREATHING_STEPS_INSTR, hasStepCounter: true },
+    { name: "Belly Breathing with Myobrace", type: "timer", duration: 180, freq: "Aim for 3 minutes",
+      instructions: BELLY_BREATHING_INSTR },
+    { name: "Suction Pop", type: "timer", duration: 30, freq: "30 seconds · thrice a day",
+      instructions: SUCTION_POP_INSTR },
+    { name: "Windscreen Wipers", type: "timer", duration: 30, freq: "30 seconds",
+      instructions: [
+        "Open your mouth as wide as you can",
+        "Use the tip of your tongue to touch the back-most upper right tooth, then move it to the same on the left side",
+        "Keep moving the tongue tip from left to right",
+        "Keep your lower jaw still — hold it still if needed",
+        "Practice in front of a mirror if possible",
+        "Always breathe through your nose",
+        "If a gag response is present, run the tongue tip up against the palate while moving side to side to help desensitise the area",
+      ] },
+    { name: "Myotalea Lip Press", type: "timer", duration: 90, freq: "1–2 minutes",
+      instructions: MYOTALEA_INSTR },
+    { name: "Cargo Hold", type: "timer", duration: 45, freq: "Hold for 30–60 seconds",
+      instructions: [
+        "Insert rolls underneath your upper and lower lips",
+        "Wrap your lips over the teeth to stretch the lips around the rolls",
+        "Always breathe through your nose",
+      ] },
+    { name: "Myobrace", type: "info", freq: "Overnight + 1 hour during the day + certain exercises",
+      instructions: MYOBRACE_INSTR },
+  ],
+  alessia: [
+    { name: "Suction Pop", type: "timer", duration: 30, freq: "30 seconds",
+      instructions: SUCTION_POP_INSTR },
+    { name: "Side to Side", type: "timer", duration: 45, freq: "Hold for 30–60 seconds",
+      instructions: [
+        "Open your mouth wide and put the tip of your tongue at the corner of your mouth",
+        "Move the tip of your tongue to the other side of your mouth",
+        "Continue to move your tongue from side to side",
+        "Always breathe through your nose",
+      ] },
+    { name: "Over and Under", type: "timer", duration: 30, freq: "30 seconds",
+      instructions: [
+        "Open your mouth and hold an icypole stick lengthwise across your mouth",
+        "Poke your tongue out and move it over, then under, the stick",
+        "Always breathe through your nose",
+      ] },
+    { name: "Breathing Steps with Myobrace", type: "reps", reps: 3, freq: "Count your steps · Repeat 3 times",
+      instructions: BREATHING_STEPS_INSTR, hasStepCounter: true },
+    { name: "Belly Breathing with Myobrace", type: "timer", duration: 180, freq: "Aim for 3 minutes",
+      instructions: BELLY_BREATHING_INSTR },
+    { name: "Myotalea Lip Press", type: "timer", duration: 30, freq: "30 seconds",
+      instructions: MYOTALEA_INSTR },
+    { name: "Myobrace", type: "info", freq: "Overnight + 1 hour during the day + certain exercises",
+      instructions: MYOBRACE_INSTR },
+  ],
+};
+
+const childMeta = {
+  allegra: { display: "Allegra", prescription: "BACD: Level 1 (Expert) – MGA Session 3" },
+  alessia: { display: "Alessia", prescription: "ABCD: Level 1 (Expert) – MGA Session 3" },
+};
+
+// ---------- State ----------
+const STORAGE_KEY = "breathing.v1";
+const todayKey = () => new Date().toISOString().slice(0, 10);
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const s = JSON.parse(raw);
+    if (s.date !== todayKey()) {
+      // new day — reset session/exercise progress, keep child preference
+      return { ...defaultState(), child: s.child || null };
+    }
+    return s;
+  } catch (e) { return defaultState(); }
+}
+function defaultState() {
+  return {
+    date: todayKey(),
+    child: null,
+    sessionsDone: { allegra: 0, alessia: 0 },
+    currentSession: { allegra: { idx: 0, doneIdx: [] }, alessia: { idx: 0, doneIdx: [] } },
+  };
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+let state = loadState();
+
+// ---------- Routing ----------
+const view = document.getElementById("view");
+const navBar = document.getElementById("navBar");
+const homeBtn = document.getElementById("homeBtn");
+const pageTitle = document.getElementById("pageTitle");
+
+let route = "home"; // home | list | active
+let activeCtx = null; // {child, exIdx, instrChecked:Set, repCount, stepCount, timer:{remaining, running, intervalId}}
+
+function go(r) {
+  route = r;
+  if (r === "home") { state.child = null; saveState(); }
+  render();
+}
+
+homeBtn.addEventListener("click", () => go("home"));
+
+function render() {
+  document.body.dataset.child = state.child || "";
+  homeBtn.hidden = route === "home";
+  navBar.hidden = route !== "active";
+  if (route === "home") renderHome();
+  else if (route === "list") renderList();
+  else if (route === "active") renderActive();
+}
+
+// ---------- Home ----------
+function renderHome() {
+  pageTitle.textContent = "Breathing Exercises";
+  const today = new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+  view.innerHTML = `
+    <div class="intro">
+      <p>${today} · 3 sessions per day</p>
+    </div>
+    <div class="child-pick">
+      ${childCardHTML("allegra")}
+      ${childCardHTML("alessia")}
+    </div>
+    <div class="footer-actions">
+      <button class="btn ghost" id="resetBtn">Reset today's progress</button>
+    </div>
+  `;
+  view.querySelectorAll(".child-card").forEach(el => {
+    el.addEventListener("click", () => pickChild(el.dataset.c));
+  });
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    if (confirm("Reset today's session progress for both kids?")) {
+      state = defaultState();
+      saveState(); render();
+    }
+  });
+}
+
+function childCardHTML(c) {
+  const m = childMeta[c];
+  const sessions = state.sessionsDone[c] || 0;
+  const dots = [0,1,2].map(i => `<div class="dot ${i < sessions ? "on" : ""}"></div>`).join("");
+  return `
+    <button class="child-card" data-c="${c}">
+      <span class="name">${m.display}</span>
+      <span class="meta">${m.prescription}</span>
+      <span class="session-dots" title="Sessions today">${dots}</span>
+      <span class="small">${sessions}/3 sessions today</span>
+    </button>
+  `;
+}
+
+function pickChild(c) {
+  state.child = c;
+  saveState();
+  go("list");
+}
+
+// ---------- List ----------
+function renderList() {
+  const c = state.child;
+  pageTitle.textContent = childMeta[c].display + "'s exercises";
+  const list = exercises[c];
+  const sess = state.currentSession[c];
+  const completed = new Set(sess.doneIdx);
+  const sessNo = (state.sessionsDone[c] || 0) + 1;
+  const dots = [0,1,2].map(i => `<div class="dot ${i < (state.sessionsDone[c]||0) ? "on" : ""}"></div>`).join("");
+
+  const allDone = list.every((_, i) => completed.has(i));
+
+  view.innerHTML = `
+    <div class="session-bar">
+      <div class="label">Session <span class="count">${Math.min(sessNo, 3)}</span> of 3 today</div>
+      <div class="dots">${dots}</div>
+    </div>
+
+    ${allDone ? `
+      <div class="complete-banner">
+        🎉 Session ${sessNo} complete! Great work, ${childMeta[c].display}.
+      </div>` : ""}
+
+    <div class="ex-list">
+      ${list.map((e, i) => `
+        <button class="ex-card ${completed.has(i) ? "done" : ""}" data-i="${i}">
+          <div class="num">${completed.has(i) ? "✓" : (i+1)}</div>
+          <div class="body">
+            <div class="name">${e.name}</div>
+            <div class="freq">${e.freq}</div>
+          </div>
+          <div class="chev">›</div>
+        </button>
+      `).join("")}
+    </div>
+
+    <div class="footer-actions">
+      ${allDone
+        ? `<button class="btn primary block" id="finishSess">Finish session ${sessNo}</button>`
+        : `<button class="btn primary block" id="startNext">${completed.size === 0 ? "Start session" : "Continue"}</button>`}
+    </div>
+  `;
+
+  view.querySelectorAll(".ex-card").forEach(el => {
+    el.addEventListener("click", () => openExercise(parseInt(el.dataset.i, 10)));
+  });
+  const startNext = document.getElementById("startNext");
+  if (startNext) {
+    startNext.addEventListener("click", () => {
+      const next = list.findIndex((_, i) => !completed.has(i));
+      openExercise(next === -1 ? 0 : next);
+    });
+  }
+  const finishBtn = document.getElementById("finishSess");
+  if (finishBtn) {
+    finishBtn.addEventListener("click", () => {
+      state.sessionsDone[c] = Math.min(3, (state.sessionsDone[c]||0) + 1);
+      state.currentSession[c] = { idx: 0, doneIdx: [] };
+      saveState();
+      render();
+    });
+  }
+}
+
+// ---------- Active exercise ----------
+function openExercise(i) {
+  const c = state.child;
+  state.currentSession[c].idx = i;
+  saveState();
+  activeCtx = {
+    child: c,
+    exIdx: i,
+    instrChecked: new Set(),
+    repCount: 0,
+    stepCount: 0,
+    timer: { remaining: exercises[c][i].duration || 0, running: false, intervalId: null },
+  };
+  go("active");
+}
+
+function renderActive() {
+  const { child: c, exIdx, instrChecked, repCount, stepCount, timer } = activeCtx;
+  const list = exercises[c];
+  const e = list[exIdx];
+  pageTitle.textContent = `${exIdx + 1}/${list.length} · ${childMeta[c].display}`;
+
+  let center = "";
+  if (e.type === "timer") {
+    center = `
+      <div class="timer-wrap">
+        <div class="timer ${timer.remaining <= 0 ? "done" : ""}" id="timerDisplay">${formatTime(timer.remaining)}</div>
+        <div class="timer-controls">
+          <button class="btn primary" id="timerToggle">${timer.running ? "Pause" : (timer.remaining <= 0 ? "Restart" : "Start")}</button>
+          <button class="btn" id="timerReset">Reset</button>
+          <button class="btn" id="timerAdd">+15s</button>
+        </div>
+      </div>`;
+  } else if (e.type === "reps") {
+    const stepsHTML = e.hasStepCounter ? `
+      <div class="step-wrap">
+        <button class="btn primary block" id="stepBtn">+1 step (tap each step you walk)</button>
+        <div class="step-count" id="stepCount">${stepCount}</div>
+        <div class="step-label">steps in this rep</div>
+        <button class="btn ghost" id="stepReset">reset steps</button>
+      </div>` : "";
+    center = `
+      ${stepsHTML}
+      <div class="reps-wrap">
+        <div class="reps-label">Repetition</div>
+        <div class="reps-count">${repCount} / ${e.reps}</div>
+        <div class="reps-actions">
+          <button class="btn" id="repMinus" ${repCount === 0 ? "disabled" : ""}>-</button>
+          <button class="btn primary" id="repPlus" ${repCount >= e.reps ? "disabled" : ""}>Finish rep ${Math.min(repCount+1, e.reps)}</button>
+        </div>
+      </div>`;
+  } else if (e.type === "info") {
+    center = `<div class="info-box">Wear instructions — no timer needed</div>`;
+  }
+
+  const totalDone = state.currentSession[c].doneIdx.length;
+  const progressPct = Math.round((totalDone / list.length) * 100);
+
+  view.innerHTML = `
+    <div class="active">
+      <div class="ex-num">Exercise ${exIdx + 1} of ${list.length}</div>
+      <h2>${e.name}</h2>
+      <div class="freq">${e.freq}</div>
+      <div class="progress-track"><div style="width:${progressPct}%"></div></div>
+      ${center}
+      <div class="row-between">
+        <strong>Steps</strong>
+        <span class="small">tap to check off</span>
+      </div>
+      <ul class="instructions" id="instrList">
+        ${e.instructions.map((t, k) => `
+          <li data-k="${k}" class="${instrChecked.has(k) ? "checked" : ""}">
+            <span class="check"></span>
+            <span class="text">${t}</span>
+          </li>
+        `).join("")}
+      </ul>
+    </div>
+  `;
+
+  // Wire up
+  view.querySelectorAll("#instrList li").forEach(li => {
+    li.addEventListener("click", () => {
+      const k = parseInt(li.dataset.k, 10);
+      if (instrChecked.has(k)) instrChecked.delete(k); else instrChecked.add(k);
+      li.classList.toggle("checked");
+    });
+  });
+
+  if (e.type === "timer") {
+    document.getElementById("timerToggle").addEventListener("click", toggleTimer);
+    document.getElementById("timerReset").addEventListener("click", resetTimer);
+    document.getElementById("timerAdd").addEventListener("click", () => {
+      activeCtx.timer.remaining += 15;
+      updateTimerDisplay();
+    });
+  }
+  if (e.type === "reps") {
+    document.getElementById("repPlus").addEventListener("click", () => {
+      activeCtx.repCount = Math.min(e.reps, activeCtx.repCount + 1);
+      activeCtx.stepCount = 0;
+      renderActive();
+    });
+    document.getElementById("repMinus").addEventListener("click", () => {
+      activeCtx.repCount = Math.max(0, activeCtx.repCount - 1);
+      renderActive();
+    });
+    if (e.hasStepCounter) {
+      document.getElementById("stepBtn").addEventListener("click", () => {
+        activeCtx.stepCount += 1;
+        document.getElementById("stepCount").textContent = activeCtx.stepCount;
+      });
+      document.getElementById("stepReset").addEventListener("click", () => {
+        activeCtx.stepCount = 0;
+        document.getElementById("stepCount").textContent = 0;
+      });
+    }
+  }
+
+  // Footer nav
+  document.getElementById("prevBtn").onclick = () => navExercise(-1);
+  document.getElementById("nextBtn").onclick = () => navExercise(+1);
+  document.getElementById("doneBtn").onclick = markDone;
+  document.getElementById("prevBtn").disabled = exIdx === 0;
+  document.getElementById("nextBtn").disabled = exIdx === list.length - 1;
+}
+
+function navExercise(delta) {
+  stopTimerInterval();
+  const c = state.child;
+  const list = exercises[c];
+  const next = Math.max(0, Math.min(list.length - 1, activeCtx.exIdx + delta));
+  openExercise(next);
+}
+
+function markDone() {
+  stopTimerInterval();
+  const c = state.child;
+  const list = exercises[c];
+  const sess = state.currentSession[c];
+  if (!sess.doneIdx.includes(activeCtx.exIdx)) sess.doneIdx.push(activeCtx.exIdx);
+  saveState();
+  // find next undone
+  const next = list.findIndex((_, i) => !sess.doneIdx.includes(i));
+  if (next === -1) {
+    go("list");
+  } else {
+    openExercise(next);
+  }
+}
+
+// ---------- Timer ----------
+function toggleTimer() {
+  const t = activeCtx.timer;
+  if (t.running) {
+    stopTimerInterval();
+    t.running = false;
+  } else {
+    if (t.remaining <= 0) {
+      const e = exercises[activeCtx.child][activeCtx.exIdx];
+      t.remaining = e.duration;
+    }
+    t.running = true;
+    t.intervalId = setInterval(() => {
+      activeCtx.timer.remaining -= 1;
+      if (activeCtx.timer.remaining <= 0) {
+        activeCtx.timer.remaining = 0;
+        stopTimerInterval();
+        activeCtx.timer.running = false;
+        beep();
+      }
+      updateTimerDisplay();
+    }, 1000);
+  }
+  updateTimerToggleLabel();
+}
+
+function stopTimerInterval() {
+  if (activeCtx && activeCtx.timer && activeCtx.timer.intervalId) {
+    clearInterval(activeCtx.timer.intervalId);
+    activeCtx.timer.intervalId = null;
+  }
+}
+
+function resetTimer() {
+  stopTimerInterval();
+  const e = exercises[activeCtx.child][activeCtx.exIdx];
+  activeCtx.timer.remaining = e.duration;
+  activeCtx.timer.running = false;
+  updateTimerDisplay();
+  updateTimerToggleLabel();
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById("timerDisplay");
+  if (!el) return;
+  el.textContent = formatTime(activeCtx.timer.remaining);
+  el.classList.toggle("done", activeCtx.timer.remaining <= 0);
+  if (activeCtx.timer.remaining <= 0) updateTimerToggleLabel();
+}
+
+function updateTimerToggleLabel() {
+  const btn = document.getElementById("timerToggle");
+  if (!btn) return;
+  btn.textContent = activeCtx.timer.running ? "Pause" : (activeCtx.timer.remaining <= 0 ? "Restart" : "Start");
+}
+
+function formatTime(s) {
+  s = Math.max(0, Math.floor(s));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
+}
+
+// Simple end-of-timer beep using WebAudio (no asset)
+let _audioCtx;
+function beep() {
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = _audioCtx.createOscillator();
+    const g = _audioCtx.createGain();
+    o.type = "sine"; o.frequency.value = 880;
+    g.gain.value = 0.001;
+    o.connect(g).connect(_audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.2, _audioCtx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, _audioCtx.currentTime + 0.6);
+    o.stop(_audioCtx.currentTime + 0.65);
+    if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+  } catch (_) { /* ignore */ }
+}
+
+// Stop interval if user navigates away mid-exercise
+window.addEventListener("beforeunload", stopTimerInterval);
+
+// First render
+render();
+</script>
+</body>
+</html>
