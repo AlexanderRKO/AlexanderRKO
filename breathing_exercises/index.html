@@ -100,6 +100,7 @@
     cursor: pointer; border: 0; text-align: left; width: 100%;
     color: var(--ink); font: inherit;
   }
+  .ex-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .ex-card .num {
     width: 36px; height: 36px; border-radius: 50%;
     background: var(--accent-soft); color: var(--accent);
@@ -108,8 +109,38 @@
   .ex-card.done .num { background: var(--done); color: white; }
   .ex-card .body .name { font-weight: 600; font-size: 16px; }
   .ex-card .body .freq { font-size: 13px; color: var(--muted); margin-top: 2px; }
-  .ex-card .chev { color: var(--muted); }
+  .ex-card .chev { color: var(--muted); align-self: center; }
   .ex-card.done .body .name { text-decoration: line-through; color: var(--muted); }
+
+  .inline-timer {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 10px;
+  }
+  .inline-timer .time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700; color: var(--accent);
+    font-size: 20px;
+    min-width: 56px;
+  }
+  .inline-timer .time.done { color: var(--done); }
+  .inline-timer button {
+    appearance: none; border: 0; cursor: pointer;
+    background: var(--accent-soft); color: var(--accent);
+    width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 14px; font-weight: 700;
+    line-height: 1;
+  }
+  .inline-timer button:active { transform: scale(0.94); }
+  .inline-timer button.reset { background: transparent; color: var(--muted); }
+  .inline-timer .running-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    animation: pulse 1s infinite ease-in-out;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%     { opacity: .35; transform: scale(.85); }
+  }
 
   .footer-actions {
     display: flex; gap: 10px; margin-top: 16px;
@@ -415,6 +446,7 @@ let route = "home"; // home | list | active
 let activeCtx = null; // {child, exIdx, instrChecked:Set, repCount, stepCount, timer:{remaining, running, intervalId}}
 
 function go(r) {
+  if (route === "list" && r !== "list") pauseAllInlineTimers();
   route = r;
   if (r === "home") { state.child = null; saveState(); }
   render();
@@ -452,6 +484,7 @@ function renderHome() {
   });
   document.getElementById("resetBtn").addEventListener("click", () => {
     if (confirm("Reset today's session progress for both kids?")) {
+      clearAllInlineTimers();
       state = defaultState();
       saveState(); render();
     }
@@ -502,16 +535,30 @@ function renderList() {
       </div>` : ""}
 
     <div class="ex-list">
-      ${list.map((e, i) => `
-        <button class="ex-card ${completed.has(i) ? "done" : ""}" data-i="${i}">
-          <div class="num">${completed.has(i) ? "✓" : (i+1)}</div>
-          <div class="body">
-            <div class="name">${e.name}</div>
-            <div class="freq">${e.freq}</div>
+      ${list.map((e, i) => {
+        const isDone = completed.has(i);
+        const showTimer = e.type === "timer" && !isDone;
+        const t = showTimer ? getInlineTimer(c, i) : null;
+        const tk = `${c}:${i}`;
+        const timerHTML = showTimer ? `
+          <div class="inline-timer" data-stop="1">
+            <span class="time ${t.remaining <= 0 ? "done" : ""}" data-timer="${tk}">${formatTime(t.remaining)}</span>
+            <button class="toggle" data-timer-toggle="${tk}" aria-label="${t.running ? "Pause" : "Start"}">${t.running ? "⏸" : "▶"}</button>
+            <button class="reset" data-timer-reset="${tk}" aria-label="Reset">⟲</button>
+            ${t.running ? `<span class="running-dot" aria-hidden="true"></span>` : ""}
+          </div>` : "";
+        return `
+          <div class="ex-card ${isDone ? "done" : ""}" role="button" tabindex="0" data-i="${i}">
+            <div class="num">${isDone ? "✓" : (i+1)}</div>
+            <div class="body">
+              <div class="name">${e.name}</div>
+              <div class="freq">${e.freq}</div>
+              ${timerHTML}
+            </div>
+            <div class="chev">›</div>
           </div>
-          <div class="chev">›</div>
-        </button>
-      `).join("")}
+        `;
+      }).join("")}
     </div>
 
     <div class="footer-actions">
@@ -522,7 +569,26 @@ function renderList() {
   `;
 
   view.querySelectorAll(".ex-card").forEach(el => {
-    el.addEventListener("click", () => openExercise(parseInt(el.dataset.i, 10)));
+    const open = (ev) => {
+      if (ev.target.closest("[data-stop]")) return;
+      openExercise(parseInt(el.dataset.i, 10));
+    };
+    el.addEventListener("click", open);
+    el.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(ev); }
+    });
+  });
+  view.querySelectorAll("[data-timer-toggle]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const [child, idx] = btn.dataset.timerToggle.split(":");
+      toggleInlineTimer(child, parseInt(idx, 10));
+    });
+  });
+  view.querySelectorAll("[data-timer-reset]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const [child, idx] = btn.dataset.timerReset.split(":");
+      resetInlineTimer(child, parseInt(idx, 10));
+    });
   });
   const startNext = document.getElementById("startNext");
   if (startNext) {
@@ -536,6 +602,10 @@ function renderList() {
     finishBtn.addEventListener("click", () => {
       state.sessionsDone[c] = Math.min(3, (state.sessionsDone[c]||0) + 1);
       state.currentSession[c] = { idx: 0, doneIdx: [] };
+      // Reset inline timers for this child so the next session starts fresh
+      for (const k of Object.keys(inlineTimers)) {
+        if (k.startsWith(c + ":")) delete inlineTimers[k];
+      }
       saveState();
       render();
     });
@@ -693,6 +763,71 @@ function markDone() {
   }
 }
 
+// ---------- Inline list timers (per-exercise countdowns on the schedule) ----------
+const inlineTimers = {}; // key: `${child}:${idx}` -> { remaining, running, intervalId }
+
+function getInlineTimer(child, idx) {
+  const k = `${child}:${idx}`;
+  if (!inlineTimers[k]) {
+    inlineTimers[k] = { remaining: exercises[child][idx].duration || 0, running: false, intervalId: null };
+  }
+  return inlineTimers[k];
+}
+
+function tickInline(child, idx) {
+  const t = inlineTimers[`${child}:${idx}`];
+  if (!t) return;
+  t.remaining -= 1;
+  if (t.remaining <= 0) {
+    t.remaining = 0;
+    clearInterval(t.intervalId); t.intervalId = null; t.running = false;
+    beep();
+    const sess = state.currentSession[child];
+    if (!sess.doneIdx.includes(idx)) {
+      sess.doneIdx.push(idx);
+      saveState();
+    }
+    if (route === "list") render();
+    return;
+  }
+  const el = document.querySelector(`[data-timer="${child}:${idx}"]`);
+  if (el) el.textContent = formatTime(t.remaining);
+}
+
+function toggleInlineTimer(child, idx) {
+  const t = getInlineTimer(child, idx);
+  if (t.running) {
+    clearInterval(t.intervalId); t.intervalId = null; t.running = false;
+  } else {
+    if (t.remaining <= 0) t.remaining = exercises[child][idx].duration || 0;
+    try { _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+    t.running = true;
+    t.intervalId = setInterval(() => tickInline(child, idx), 1000);
+  }
+  if (route === "list") render();
+}
+
+function resetInlineTimer(child, idx) {
+  const t = getInlineTimer(child, idx);
+  if (t.intervalId) { clearInterval(t.intervalId); t.intervalId = null; }
+  t.running = false;
+  t.remaining = exercises[child][idx].duration || 0;
+  if (route === "list") render();
+}
+
+function pauseAllInlineTimers() {
+  for (const k in inlineTimers) {
+    const t = inlineTimers[k];
+    if (t.intervalId) { clearInterval(t.intervalId); t.intervalId = null; }
+    t.running = false;
+  }
+}
+
+function clearAllInlineTimers() {
+  pauseAllInlineTimers();
+  for (const k in inlineTimers) delete inlineTimers[k];
+}
+
 // ---------- Timer ----------
 function toggleTimer() {
   const t = activeCtx.timer;
@@ -774,8 +909,8 @@ function beep() {
   } catch (_) { /* ignore */ }
 }
 
-// Stop interval if user navigates away mid-exercise
-window.addEventListener("beforeunload", stopTimerInterval);
+// Stop intervals if user navigates away mid-exercise
+window.addEventListener("beforeunload", () => { stopTimerInterval(); pauseAllInlineTimers(); });
 
 // First render
 render();
