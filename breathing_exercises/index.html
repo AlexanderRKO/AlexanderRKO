@@ -70,12 +70,36 @@
   .child-card .meta { font-size: 13px; color: var(--muted); }
   .child-card[data-c="allegra"] { border-top: 4px solid var(--allegra); }
   .child-card[data-c="alessia"] { border-top: 4px solid var(--alessia); }
+  .child-card[data-c="both"] {
+    grid-column: 1 / -1;
+    position: relative;
+    border-top: 4px solid transparent;
+    background:
+      linear-gradient(to right, var(--allegra) 0 50%, var(--alessia) 50% 100%) top/100% 4px no-repeat,
+      var(--surface);
+  }
+  .child-card[data-c="both"] .name {
+    background: linear-gradient(90deg, var(--allegra), var(--alessia));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
   .child-card .session-dots { display: flex; gap: 6px; margin-top: 8px; }
   .dot {
     width: 12px; height: 12px; border-radius: 50%;
     background: var(--line);
   }
   .dot.on { background: var(--done); }
+  .dot.on.allegra { background: var(--allegra); }
+  .dot.on.alessia { background: var(--alessia); }
+
+  .dual-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .dual-row { display: flex; align-items: center; gap: 8px; }
+  .dual-label {
+    font-size: 12px; font-weight: 700;
+    padding: 2px 8px; border-radius: 999px;
+    text-transform: uppercase; letter-spacing: .03em;
+  }
+  .dual-label.allegra { background: var(--allegra-soft); color: var(--allegra); }
+  .dual-label.alessia { background: var(--alessia-soft); color: var(--alessia); }
 
   .intro p { color: var(--muted); margin: 8px 4px 16px; }
 
@@ -95,12 +119,34 @@
   .ex-card {
     background: var(--surface); border-radius: var(--radius);
     box-shadow: var(--shadow);
-    padding: 14px;
+    padding: 14px 14px 14px 14px;
     display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center;
     cursor: pointer; border: 0; text-align: left; width: 100%;
     color: var(--ink); font: inherit;
+    position: relative;
+  }
+  .ex-card[data-kids] { padding-left: 18px; }
+  .ex-card .stripe {
+    position: absolute; top: 0; left: 0; bottom: 0; width: 6px;
+    border-top-left-radius: var(--radius);
+    border-bottom-left-radius: var(--radius);
+  }
+  .ex-card[data-kids="allegra"] .stripe { background: var(--allegra); }
+  .ex-card[data-kids="alessia"] .stripe { background: var(--alessia); }
+  .ex-card[data-kids="both"] .stripe {
+    background: linear-gradient(to bottom, var(--allegra) 0 50%, var(--alessia) 50% 100%);
   }
   .ex-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .kid-pills { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .kid-pill {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .03em;
+  }
+  .kid-pill.allegra { background: var(--allegra-soft); color: var(--allegra); }
+  .kid-pill.alessia { background: var(--alessia-soft); color: var(--alessia); }
   .ex-card .num {
     width: 36px; height: 36px; border-radius: 50%;
     background: var(--accent-soft); color: var(--accent);
@@ -404,9 +450,43 @@ const exercises = {
   ],
 };
 
+// Combined "both girls" schedule. Each row links back to each girl's solo index
+// so completion in either view stays in sync. For shared rows with mismatched
+// durations, we pick the longer of the two (Allegra wins on Myotalea Lip Press).
+exercises.both = [
+  { name: "Suction Pop", type: "timer", duration: 30, freq: "30 seconds",
+    instructions: SUCTION_POP_INSTR,
+    kids: ["allegra", "alessia"], links: { allegra: 2, alessia: 0 } },
+  { name: "Side to Side", type: "timer", duration: 45, freq: "Hold for 30–60 seconds",
+    instructions: exercises.alessia[1].instructions,
+    kids: ["alessia"], links: { alessia: 1 } },
+  { name: "Over and Under", type: "timer", duration: 30, freq: "30 seconds",
+    instructions: exercises.alessia[2].instructions,
+    kids: ["alessia"], links: { alessia: 2 } },
+  { name: "Windscreen Wipers", type: "timer", duration: 30, freq: "30 seconds",
+    instructions: exercises.allegra[3].instructions,
+    kids: ["allegra"], links: { allegra: 3 } },
+  { name: "Breathing Steps with Myobrace", type: "reps", reps: 3, freq: "Count your steps · Repeat 3 times",
+    instructions: BREATHING_STEPS_INSTR, hasStepCounter: true,
+    kids: ["allegra", "alessia"], links: { allegra: 0, alessia: 3 } },
+  { name: "Belly Breathing with Myobrace", type: "timer", duration: 180, freq: "Aim for 3 minutes",
+    instructions: BELLY_BREATHING_INSTR,
+    kids: ["allegra", "alessia"], links: { allegra: 1, alessia: 4 } },
+  { name: "Myotalea Lip Press", type: "timer", duration: 90, freq: "Allegra: 1–2 min · Alessia stops at 30 s",
+    instructions: MYOTALEA_INSTR,
+    kids: ["allegra", "alessia"], links: { allegra: 4, alessia: 5 } },
+  { name: "Cargo Hold", type: "timer", duration: 45, freq: "Hold for 30–60 seconds",
+    instructions: exercises.allegra[5].instructions,
+    kids: ["allegra"], links: { allegra: 5 } },
+  { name: "Myobrace", type: "info", freq: "Overnight + 1 hour during the day + certain exercises",
+    instructions: MYOBRACE_INSTR,
+    kids: ["allegra", "alessia"], links: { allegra: 6, alessia: 6 } },
+];
+
 const childMeta = {
   allegra: { display: "Allegra", prescription: "BACD: Level 1 (Expert) – MGA Session 3" },
   alessia: { display: "Alessia", prescription: "ABCD: Level 1 (Expert) – MGA Session 3" },
+  both:    { display: "Both girls", prescription: "5 shared · 2 unique each" },
 };
 
 // ---------- State ----------
@@ -422,6 +502,9 @@ function loadState() {
       // new day — reset session/exercise progress, keep child preference
       return { ...defaultState(), child: s.child || null };
     }
+    // Forward-compat: ensure currentSession.both exists for older storage
+    s.currentSession = s.currentSession || {};
+    s.currentSession.both = s.currentSession.both || { idx: 0 };
     return s;
   } catch (e) { return defaultState(); }
 }
@@ -430,8 +513,41 @@ function defaultState() {
     date: todayKey(),
     child: null,
     sessionsDone: { allegra: 0, alessia: 0 },
-    currentSession: { allegra: { idx: 0, doneIdx: [] }, alessia: { idx: 0, doneIdx: [] } },
+    currentSession: {
+      allegra: { idx: 0, doneIdx: [] },
+      alessia: { idx: 0, doneIdx: [] },
+      both:    { idx: 0 }, // "doneIdx" is computed by walking links into per-kid state
+    },
   };
+}
+
+// In Both mode, a row is done when every linked kid has the corresponding solo
+// index ticked. Solo modes just read their own doneIdx.
+function computeCompleted(c) {
+  if (c !== "both") return new Set(state.currentSession[c].doneIdx);
+  const set = new Set();
+  exercises.both.forEach((row, i) => {
+    const allDone = Object.entries(row.links).every(([kid, idx]) =>
+      state.currentSession[kid].doneIdx.includes(idx));
+    if (allDone) set.add(i);
+  });
+  return set;
+}
+
+// Mark exercise[c][i] as done. In Both mode this fans out to each linked kid's
+// solo doneIdx so the two views stay in sync.
+function markRowDone(c, i) {
+  if (c === "both") {
+    const links = exercises.both[i].links;
+    for (const [kid, idx] of Object.entries(links)) {
+      const sess = state.currentSession[kid];
+      if (!sess.doneIdx.includes(idx)) sess.doneIdx.push(idx);
+    }
+  } else {
+    const sess = state.currentSession[c];
+    if (!sess.doneIdx.includes(i)) sess.doneIdx.push(i);
+  }
+  saveState();
 }
 function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 let state = loadState();
@@ -474,6 +590,7 @@ function renderHome() {
     <div class="child-pick">
       ${childCardHTML("allegra")}
       ${childCardHTML("alessia")}
+      ${childCardHTML("both")}
     </div>
     <div class="footer-actions">
       <button class="btn ghost" id="resetBtn">Reset today's progress</button>
@@ -493,6 +610,22 @@ function renderHome() {
 
 function childCardHTML(c) {
   const m = childMeta[c];
+  if (c === "both") {
+    const a = state.sessionsDone.allegra || 0;
+    const b = state.sessionsDone.alessia || 0;
+    const dotsRow = (n, kid) => [0,1,2].map(i =>
+      `<div class="dot ${i < n ? "on " + kid : ""}"></div>`).join("");
+    return `
+      <button class="child-card" data-c="both">
+        <span class="name">Both girls together</span>
+        <span class="meta">${m.prescription}</span>
+        <div class="dual-rows">
+          <div class="dual-row"><span class="dual-label allegra">Allegra</span><span class="session-dots">${dotsRow(a,"allegra")}</span></div>
+          <div class="dual-row"><span class="dual-label alessia">Alessia</span><span class="session-dots">${dotsRow(b,"alessia")}</span></div>
+        </div>
+      </button>
+    `;
+  }
   const sessions = state.sessionsDone[c] || 0;
   const dots = [0,1,2].map(i => `<div class="dot ${i < sessions ? "on" : ""}"></div>`).join("");
   return `
@@ -514,25 +647,41 @@ function pickChild(c) {
 // ---------- List ----------
 function renderList() {
   const c = state.child;
-  pageTitle.textContent = childMeta[c].display + "'s exercises";
+  pageTitle.textContent = c === "both" ? "Both girls together" : childMeta[c].display + "'s exercises";
   const list = exercises[c];
-  const sess = state.currentSession[c];
-  const completed = new Set(sess.doneIdx);
-  const sessNo = (state.sessionsDone[c] || 0) + 1;
-  const dots = [0,1,2].map(i => `<div class="dot ${i < (state.sessionsDone[c]||0) ? "on" : ""}"></div>`).join("");
-
+  const completed = computeCompleted(c);
   const allDone = list.every((_, i) => completed.has(i));
 
-  view.innerHTML = `
-    <div class="session-bar">
-      <div class="label">Session <span class="count">${Math.min(sessNo, 3)}</span> of 3 today</div>
-      <div class="dots">${dots}</div>
-    </div>
+  let sessionBar;
+  if (c === "both") {
+    const aN = state.sessionsDone.allegra || 0;
+    const bN = state.sessionsDone.alessia || 0;
+    const dotsRow = (n) => [0,1,2].map(i => `<div class="dot ${i < n ? "on" : ""}"></div>`).join("");
+    sessionBar = `
+      <div class="session-bar both">
+        <div class="dual-rows" style="flex:1">
+          <div class="dual-row"><span class="dual-label allegra">Allegra</span><span class="dots">${dotsRow(aN)}</span><span class="small">${aN}/3</span></div>
+          <div class="dual-row"><span class="dual-label alessia">Alessia</span><span class="dots">${dotsRow(bN)}</span><span class="small">${bN}/3</span></div>
+        </div>
+      </div>`;
+  } else {
+    const sessNo = (state.sessionsDone[c] || 0) + 1;
+    const dots = [0,1,2].map(i => `<div class="dot ${i < (state.sessionsDone[c]||0) ? "on" : ""}"></div>`).join("");
+    sessionBar = `
+      <div class="session-bar">
+        <div class="label">Session <span class="count">${Math.min(sessNo, 3)}</span> of 3 today</div>
+        <div class="dots">${dots}</div>
+      </div>`;
+  }
 
-    ${allDone ? `
-      <div class="complete-banner">
-        🎉 Session ${sessNo} complete! Great work, ${childMeta[c].display}.
-      </div>` : ""}
+  const completeBannerText = c === "both"
+    ? `🎉 Session complete for both girls! Tap "Finish session" below.`
+    : `🎉 Session ${(state.sessionsDone[c] || 0) + 1} complete! Great work, ${childMeta[c].display}.`;
+
+  view.innerHTML = `
+    ${sessionBar}
+
+    ${allDone ? `<div class="complete-banner">${completeBannerText}</div>` : ""}
 
     <div class="ex-list">
       ${list.map((e, i) => {
@@ -547,11 +696,22 @@ function renderList() {
             <button class="reset" data-timer-reset="${tk}" aria-label="Reset">⟲</button>
             ${t.running ? `<span class="running-dot" aria-hidden="true"></span>` : ""}
           </div>` : "";
+
+        let kidsTag = "", pillsHTML = "";
+        if (c === "both") {
+          const kids = e.kids || [];
+          kidsTag = kids.length === 2 ? "both" : kids[0];
+          pillsHTML = `<div class="kid-pills">${kids.map(k =>
+            `<span class="kid-pill ${k}">${childMeta[k].display}</span>`).join("")}</div>`;
+        }
+
         return `
-          <div class="ex-card ${isDone ? "done" : ""}" role="button" tabindex="0" data-i="${i}">
+          <div class="ex-card ${isDone ? "done" : ""}" role="button" tabindex="0" data-i="${i}" ${kidsTag ? `data-kids="${kidsTag}"` : ""}>
+            ${kidsTag ? `<div class="stripe"></div>` : ""}
             <div class="num">${isDone ? "✓" : (i+1)}</div>
             <div class="body">
               <div class="name">${e.name}</div>
+              ${pillsHTML}
               <div class="freq">${e.freq}</div>
               ${timerHTML}
             </div>
@@ -600,11 +760,19 @@ function renderList() {
   const finishBtn = document.getElementById("finishSess");
   if (finishBtn) {
     finishBtn.addEventListener("click", () => {
-      state.sessionsDone[c] = Math.min(3, (state.sessionsDone[c]||0) + 1);
-      state.currentSession[c] = { idx: 0, doneIdx: [] };
-      // Reset inline timers for this child so the next session starts fresh
-      for (const k of Object.keys(inlineTimers)) {
-        if (k.startsWith(c + ":")) delete inlineTimers[k];
+      const kidsToBump = c === "both" ? ["allegra", "alessia"] : [c];
+      for (const kid of kidsToBump) {
+        state.sessionsDone[kid] = Math.min(3, (state.sessionsDone[kid]||0) + 1);
+        state.currentSession[kid] = { idx: 0, doneIdx: [] };
+        for (const k of Object.keys(inlineTimers)) {
+          if (k.startsWith(kid + ":")) delete inlineTimers[k];
+        }
+      }
+      if (c === "both") {
+        state.currentSession.both = { idx: 0 };
+        for (const k of Object.keys(inlineTimers)) {
+          if (k.startsWith("both:")) delete inlineTimers[k];
+        }
       }
       saveState();
       render();
@@ -667,7 +835,7 @@ function renderActive() {
     center = `<div class="info-box">Wear instructions — no timer needed</div>`;
   }
 
-  const totalDone = state.currentSession[c].doneIdx.length;
+  const totalDone = computeCompleted(c).size;
   const progressPct = Math.round((totalDone / list.length) * 100);
 
   view.innerHTML = `
@@ -751,11 +919,10 @@ function markDone() {
   stopTimerInterval();
   const c = state.child;
   const list = exercises[c];
-  const sess = state.currentSession[c];
-  if (!sess.doneIdx.includes(activeCtx.exIdx)) sess.doneIdx.push(activeCtx.exIdx);
-  saveState();
+  markRowDone(c, activeCtx.exIdx);
   // find next undone
-  const next = list.findIndex((_, i) => !sess.doneIdx.includes(i));
+  const completed = computeCompleted(c);
+  const next = list.findIndex((_, i) => !completed.has(i));
   if (next === -1) {
     go("list");
   } else {
@@ -782,11 +949,7 @@ function tickInline(child, idx) {
     t.remaining = 0;
     clearInterval(t.intervalId); t.intervalId = null; t.running = false;
     beep();
-    const sess = state.currentSession[child];
-    if (!sess.doneIdx.includes(idx)) {
-      sess.doneIdx.push(idx);
-      saveState();
-    }
+    markRowDone(child, idx);
     if (route === "list") render();
     return;
   }
