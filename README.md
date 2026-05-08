@@ -1,276 +1,95 @@
-# NSW Auction Results Tracker
+# Managed Revenue & Cost Intelligence
 
-A Python framework for collecting, storing, and analyzing weekly auction results from realestate.com.au for NSW suburbs.
+Dashboard and ingest platform for **MAN2077 — Managed Platforms**, prepared
+by LMS Advisory.
 
-## Features
+A React dashboard tracking monthly billing economics — revenue, Zai supplier
+fees, Marshall White rebates, agency rev share, contribution margin — fed by
+a Python ingest pipeline that watches a drop-folder for new monthly reports
+and updates the dashboard's data file automatically.
 
-- **Postcode-Focused Collection**: Track up to 10 specific postcodes (API-friendly approach)
-- **SQLite Storage**: Persistent storage with full history tracking
-- **Weekly Scheduling**: Automated collection every Sunday (after 5am refresh)
-- **Data Analysis**: Clearance rates, price statistics, suburb comparisons
-- **Multiple Export Formats**: CSV, Excel, JSON
-- **Respectful Scraping**: Conservative rate limiting (5-10s delays) to avoid server overload
+All figures are **ex GST**.
 
-## Project Structure
+## Layout
 
 ```
-nsw_auction_tracker/
-├── __init__.py
-├── __main__.py
-├── config.py              # Configuration settings
-├── main.py                # CLI entry point
-├── models/
-│   ├── __init__.py
-│   └── auction.py         # Data models (AuctionResult, SuburbSummary)
-├── scrapers/
-│   ├── __init__.py
-│   ├── base.py            # Base scraper with rate limiting
-│   └── realestate_scraper.py  # Main scraper implementation
-├── storage/
-│   ├── __init__.py
-│   └── database.py        # SQLite storage layer
-├── aggregator/
-│   ├── __init__.py
-│   └── analysis.py        # Statistics and reporting
-└── scheduler/
-    ├── __init__.py
-    └── weekly_job.py      # Scheduling utilities
+dashboard/   # Vite + React + Recharts (the UI)
+ingest/      # Python folder-watcher + parsers (the data pipeline)
+inbox/       # Drop YYYY-MM folders here to register a new month
+tests/       # Parser smoke tests
+DASHBOARD_INSTRUCTIONS.md   # Schema, business rules, monthly workflow
 ```
 
-## Installation
+## Quick start
+
+### 1. Run the dashboard
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd AlexanderRKO
+cd dashboard
+npm install
+npm run dev               # localhost:5173
+# or
+npm run build && npm run preview
+```
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+The dashboard reads `dashboard/src/data.json`. That file is the single source
+of truth for all months and MW office breakdowns.
 
-# Install dependencies
+### 2. Set up the ingest pipeline
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Usage
+### 3. Add a new month
 
-### Quick Start (Recommended: Postcode-Based)
+Create a folder under `inbox/` named `YYYY-MM` and drop these in:
 
-```bash
-# 1. Configure your preferred postcodes in config.py
-#    OR pass them directly via command line
+| File | What it is |
+|---|---|
+| `*zai*invoice*.pdf` | Zai supplier tax invoice |
+| `*platform*revenue*.csv` | Revenue by line item from the Managed admin portal |
+| `*agency*performance*.csv` | Agency monthly performance export |
+| `*mw*charges*.csv` | Marshall White platform charges (Plan #4 filter) |
+| `manual.yml` | Hand-entered figures (MW rebate, agency rev share, notes) — copy from `inbox/_template/manual.yml` |
 
-# Collect data for specific postcodes (RECOMMENDED - API friendly)
-python -m nsw_auction_tracker collect --postcodes 2021,2026,2042
-
-# View statistics
-python -m nsw_auction_tracker stats
-
-# Analyze current week
-python -m nsw_auction_tracker analyze
-
-# Export to CSV
-python -m nsw_auction_tracker export --format csv
-```
-
-### Configure Preferred Postcodes
-
-Edit `nsw_auction_tracker/config.py` to set your preferred postcodes:
-
-```python
-PREFERRED_POSTCODES = [
-    "2021",  # Paddington
-    "2026",  # Bondi
-    "2042",  # Newtown
-    "2060",  # North Sydney
-    "2095",  # Manly
-    # Add up to 10 postcodes
-]
-```
-
-Then simply run:
-```bash
-python -m nsw_auction_tracker collect  # Uses your configured postcodes
-```
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `collect` | Run data collection |
-| `analyze` | Analyze collected data |
-| `export` | Export data to file |
-| `stats` | Show database statistics |
-| `suburbs` | List available suburb URLs |
-| `test` | Test scraping a single URL |
-| `setup` | Show scheduling options |
-
-### Collection Options
+Then either:
 
 ```bash
-# RECOMMENDED: Collect specific postcodes (API-friendly, max 10)
-python -m nsw_auction_tracker collect --postcodes 2021,2026,2042,2060,2095
+# One-shot ingest (run after dropping files in)
+python -m ingest ingest inbox/2026-04
 
-# Use postcodes from config.py
-python -m nsw_auction_tracker collect
-
-# Fallback: Limited collection by suburb count (if no postcodes)
-python -m nsw_auction_tracker collect --max-suburbs 10
-
-# Verbose output
-python -m nsw_auction_tracker -v collect
+# Or run the watcher — auto-picks up changes ~5 seconds after files stop arriving
+python -m ingest watch
 ```
 
-**Why limit to postcodes?**
-- Respects the website's servers (only 10 requests vs 1000+)
-- Faster collection (minutes instead of hours)
-- Focus on areas you actually care about
-- More reliable (less chance of being blocked)
+The pipeline parses what it can, lets `manual.yml` override anything, runs
+validation (`zaiNet ≈ sum(zaiLines)`) and writes the new month into
+`dashboard/src/data.json`. Rebuild the dashboard with
+`npm run build --prefix dashboard` to ship the updated site.
 
-### Analysis Options
+### 4. Backfill from existing reports
 
 ```bash
-# Analyze current week
-python -m nsw_auction_tracker analyze
-
-# Analyze specific week
-python -m nsw_auction_tracker analyze --week 2024-W49
-
-# Save analysis report
-python -m nsw_auction_tracker analyze --week 2024-W49 --save
+python -m ingest all
 ```
 
-### Export Options
+Walks every `YYYY-MM` folder under `inbox/` in chronological order.
 
-```bash
-# Export specific week to CSV
-python -m nsw_auction_tracker export --week 2024-W49 --format csv
+## Architecture notes
 
-# Export all data to Excel
-python -m nsw_auction_tracker export --format excel
+- **Single source of truth.** `dashboard/src/data.json` holds everything.
+  The dashboard reads it at build time. The ingest pipeline writes it.
+- **Parsers are best-effort.** PDF / CSV formats vary across exports. Each
+  parser extracts what it can; `manual.yml` fills the gaps. The user always
+  wins against an automated guess.
+- **Idempotent upserts.** Re-ingesting the same month replaces its entry
+  rather than duplicating. Safe to re-run after editing `manual.yml`.
+- **Public mode toggle.** The dashboard masks invoice numbers, account codes
+  and client identifiers by default — safe to screenshot and share. Flip
+  the toggle in the header for internal working view.
 
-# Export to specific location
-python -m nsw_auction_tracker export --output /path/to/output
-```
-
-## Scheduling Weekly Collection
-
-### Option 1: Cron Job (Linux/Mac)
-
-```bash
-# View cron command
-python -m nsw_auction_tracker setup
-
-# Add to crontab
-crontab -e
-# Add line: 0 6 * * 0 cd /path/to/project && python -m nsw_auction_tracker collect
-```
-
-### Option 2: GitHub Actions
-
-Create `.github/workflows/collect.yml`:
-
-```bash
-python -m nsw_auction_tracker setup --github-actions
-```
-
-### Option 3: Python Scheduler
-
-```python
-from nsw_auction_tracker.scheduler import WeeklyCollector
-
-collector = WeeklyCollector()
-collector.schedule_weekly(day="sunday", time="06:00")
-```
-
-## Data Model
-
-### AuctionResult
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `address` | str | Property address |
-| `suburb` | str | Suburb name |
-| `postcode` | str | Postcode |
-| `property_type` | enum | house, unit, apartment, etc. |
-| `bedrooms` | int | Number of bedrooms |
-| `auction_date` | date | Date of auction |
-| `outcome` | enum | sold_at_auction, passed_in, etc. |
-| `sold_price` | int | Sale price (if sold) |
-| `agent_name` | str | Agent name |
-| `agency_name` | str | Agency name |
-| `source_url` | str | Listing URL |
-| `collection_week` | str | Week identifier (2024-W49) |
-
-### Outcome Types
-
-- `sold_at_auction` - Sold under the hammer
-- `sold_before_auction` - Sold prior to auction
-- `sold_after_auction` - Sold after passing in
-- `passed_in` - Did not meet reserve
-- `passed_in_vendor_bid` - Passed in on vendor bid
-- `withdrawn` - Withdrawn from auction
-- `postponed` - Postponed to later date
-
-## Analysis Features
-
-```python
-from nsw_auction_tracker.aggregator import AuctionAnalyzer
-
-# Load results
-analyzer = AuctionAnalyzer(results)
-
-# Get statistics
-clearance_rate = analyzer.get_clearance_rate()  # e.g., 72.5%
-price_stats = analyzer.get_price_stats()        # median, avg, min, max
-
-# Group by suburb
-by_suburb = analyzer.group_by_suburb()
-
-# Top suburbs
-top_by_price = analyzer.get_top_suburbs_by_price(n=10)
-top_by_volume = analyzer.get_top_suburbs_by_volume(n=10)
-
-# Price distribution
-brackets = analyzer.get_price_brackets()
-```
-
-## Important Notes
-
-### Terms of Service
-
-This tool is for personal/research use. Please review realestate.com.au's terms of service before use:
-
-> "In accessing or using our Websites you agree that you will not use any automated device, software, process or means to access, retrieve, scrape, or index our Websites."
-
-### Rate Limiting
-
-The scraper includes built-in rate limiting (2-5 seconds between requests) to avoid overloading servers. Please respect these limits.
-
-### Anti-Bot Protection
-
-realestate.com.au has anti-scraping measures. If you encounter 403 errors:
-
-1. Increase delays between requests
-2. Try the Selenium-based scraper for JavaScript rendering
-3. Consider using a proxy service
-
-## Development
-
-```bash
-# Run tests
-pytest tests/ -v
-
-# Type checking
-mypy nsw_auction_tracker/
-
-# Code formatting
-black nsw_auction_tracker/
-
-# Linting
-flake8 nsw_auction_tracker/
-```
-
-## License
-
-This project is for educational and personal research purposes.
+See `DASHBOARD_INSTRUCTIONS.md` for the full schema, business rules, and
+monthly workflow checklist.

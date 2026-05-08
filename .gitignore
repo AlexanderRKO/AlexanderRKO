@@ -1,70 +1,44 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual environments
-venv/
-ENV/
-env/
 .venv/
+venv/
+
+# Node
+node_modules/
+dashboard/dist/
+dashboard/.vite/
+
+# Logs / caches
+*.log
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
 # IDE
 .idea/
 .vscode/
 *.swp
-*.swo
 *~
-
-# Data files (keep structure, ignore content)
-data/raw/*.json
-data/processed/*.csv
-data/processed/*.xlsx
-data/processed/*.json
-data/portfolio/*.csv
-data/portfolio/*.xlsx
-data/portfolio/*.pdf
-data/portfolio/tax_package_*/
-data/portfolio/visualizations/
-!data/portfolio/sample_commsec_export.csv
-data/*.db
-data/*.log
-!data/.gitkeep
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-!data/portfolio/.gitkeep
-
-# Logs
-*.log
-logs/
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-
-# mypy
-.mypy_cache/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Inbox: don't commit raw monthly source files (PDFs, CSVs, manual overrides)
+inbox/**/*.pdf
+inbox/**/*.csv
+inbox/**/*.xlsx
+inbox/**/manual.yml
+inbox/**/manual.yaml
+inbox/_archive/**
+!inbox/_template/manual.yml
+!inbox/_template/.gitkeep
+!inbox/.gitkeep
+!inbox/README.md

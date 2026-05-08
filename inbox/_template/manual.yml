@@ -1,0 +1,40 @@
+# Manual overrides for any field the parsers can't determine.
+# Anything you set here wins against the parsed values.
+#
+# Copy this file into a new YYYY-MM folder, drop the source files alongside,
+# and the ingest pipeline will produce a complete Month entry.
+
+# ── Zai supplier figures (usually parsed from the Zai PDF) ────────────────
+# invoiceNo: "4420"
+# dueDate:   "10 May 2026"
+# zaiNet:    51286.33
+# zaiGst:    5128.63
+# zaiTotal:  56414.96
+# vaActive:  15932           # Qty of active virtual accounts
+# vaSetup:   2010            # Qty of new virtual accounts opened
+
+# ── Revenue lines (usually parsed from Platform Revenue CSV) ──────────────
+# revenue:
+#   baseSub:     { billed: 41511.45, completed: 38781.45, debtors: 2730.00 }
+#   managedPlus: { billed: 15782.60, completed: 15242.60, debtors:  540.00 }
+#   transaction: { billed: 68559.31, completed: 64978.31, debtors: 3581.00 }
+#   tradie:      { billed: 26494.26, completed: 26477.96, debtors:   16.30 }
+# smsRevenue: 2250.00
+# implFees:   6609.09
+
+# ── Manually-entered figures (no automated source) ────────────────────────
+mwRebate:        0.00       # MW reimbursement invoice total ex GST (booked in Xero)
+agencyRevShare:  0.00       # Agency rev share for the month ex GST
+
+# Optional: data quality / reconciliation note shown on the dashboard
+# note: "MW Inv #796 ($11,077.95 ex GST) exceeds platform charges ($8,140.94 ex GST) by $2,937.01..."
+
+# ── MW office data ────────────────────────────────────────────────────────
+# The `_mw` block is moved into MW_OFFICES[short_id] in data.json.
+# Per-office rows are usually parsed from MW platform charges CSV.
+_mw:
+  dashboardTotal: 0.00      # Same as mwRebate above (Xero amount)
+  mwInvoiceNo:    ""        # e.g. "#796"
+  mwPaid:         0.00      # Amount actually paid ex GST
+  note:           ""        # Reconciliation context
+  # offices: [...]          # Parsed from MW charges CSV; only override if needed

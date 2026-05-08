@@ -1,23 +1,7 @@
-# Core dependencies
-requests>=2.31.0
-beautifulsoup4>=4.12.0
-lxml>=4.9.0
+# Ingest pipeline
+watchdog>=4.0       # Folder watcher (inbox/ -> data.json)
+pdfplumber>=0.11    # Zai tax invoice PDF parsing
+pyyaml>=6.0         # manual.yml override loader
 
-# Data handling
-pandas>=2.0.0
-openpyxl>=3.1.0
-
-# Scheduling (optional - pick one)
-schedule>=1.2.0
-# apscheduler>=3.10.0
-
-# Browser automation (optional - for JS-rendered pages)
-# selenium>=4.15.0
-# webdriver-manager>=4.0.0
-
-# Development
-pytest>=7.4.0
-pytest-cov>=4.1.0
-black>=23.0.0
-flake8>=6.1.0
-mypy>=1.7.0
+# Tests
+pytest>=8.0

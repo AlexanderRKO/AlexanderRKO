@@ -1,0 +1,342 @@
+{
+  "client": {
+    "account": "MAN2077",
+    "name": "Managed Platforms",
+    "advisor": "LMS Advisory",
+    "abn": "65 302 567 149"
+  },
+  "months": [
+    {
+      "month": "Jul-25", "label": "July 2025", "short": "Jul",
+      "invoiceNo": "3339", "smsRevenue": 1500.00, "implFees": 2254.55, "dueDate": "11 Aug 2025",
+      "mwRebate": 6821.35, "agencyRevShare": 3162.11,
+      "note": "VA Active fees understated — Zai counting error corrected from October 2025. Use Oct-25 onwards as clean baseline for Zai cost comparisons.",
+      "agencies": 254, "activeAgencies": 248, "inactiveAgencies": 6,
+      "totalLeases": 16109, "totalProperties": 18192,
+      "vaActive": 4887, "vaSetup": 1963,
+      "zaiNet": 43699.27, "zaiGst": 4369.93, "zaiTotal": 48069.20,
+      "revenue": {
+        "baseSub":     { "billed": 36858.77, "completed": 34637.27, "debtors": 2221.50 },
+        "managedPlus": { "billed": 15353.00, "completed": 14985.20, "debtors":  367.80 },
+        "transaction": { "billed": 60085.66, "completed": 56734.07, "debtors": 3351.59 },
+        "tradie":      { "billed": 32889.37, "completed": 32889.37, "debtors":    0.00 }
+      },
+      "zaiLines": {
+        "payinBpay": 9966.00, "payinRealtime": 5905.02,
+        "payoutBpay": 816.40, "payoutDirect": 200.46, "payoutEntry": 1592.20, "payoutRealtime": 11124.75,
+        "cardVisa": 5632.15, "cardMaster": 5159.68, "cardDebit": 659.70, "cardAmex": 0.41,
+        "vaActive": 1710.45, "vaSetup": 687.05,
+        "chargebacks": 0.00, "disputes": 105.00, "manualMatch": 140.00
+      }
+    },
+    {
+      "month": "Aug-25", "label": "August 2025", "short": "Aug",
+      "invoiceNo": "3445", "smsRevenue": 50.00, "implFees": 3536.36, "dueDate": "11 Sep 2025",
+      "mwRebate": 6225.77, "agencyRevShare": 3214.01,
+      "note": "VA Active fees understated — Zai counting error corrected from October 2025. Use Oct-25 onwards as clean baseline for Zai cost comparisons.",
+      "agencies": 259, "activeAgencies": 253, "inactiveAgencies": 6,
+      "totalLeases": 16734, "totalProperties": 18739,
+      "vaActive": 6525, "vaSetup": 1700,
+      "zaiNet": 45022.87, "zaiGst": 4502.29, "zaiTotal": 49525.16,
+      "revenue": {
+        "baseSub":     { "billed": 37254.50, "completed": 34718.00, "debtors": 2536.50 },
+        "managedPlus": { "billed": 15463.40, "completed": 14967.20, "debtors":  496.20 },
+        "transaction": { "billed": 64127.08, "completed": 56906.13, "debtors": 7220.95 },
+        "tradie":      { "billed": 31602.66, "completed": 31602.66, "debtors":    0.00 }
+      },
+      "zaiLines": {
+        "payinBpay": 8969.25, "payinRealtime": 5778.30,
+        "payoutBpay": 1328.20, "payoutDirect": 197.82, "payoutEntry": 1544.80, "payoutRealtime": 10701.15,
+        "cardVisa": 5041.65, "cardMaster": 5481.37, "cardDebit": 592.35, "cardAmex": 2159.23,
+        "vaActive": 2283.75, "vaSetup": 595.00,
+        "chargebacks": 70.00, "disputes": 175.00, "manualMatch": 105.00
+      }
+    },
+    {
+      "month": "Sep-25", "label": "September 2025", "short": "Sep",
+      "invoiceNo": "3541", "smsRevenue": 350.00, "implFees": 5600.00, "dueDate": "11 Oct 2025",
+      "mwRebate": 4767.16, "agencyRevShare": 3810.69,
+      "note": "VA Active fees understated — Zai counting error corrected from October 2025. Use Oct-25 onwards as clean baseline for Zai cost comparisons.",
+      "agencies": 263, "activeAgencies": 256, "inactiveAgencies": 7,
+      "totalLeases": 17467, "totalProperties": 19367,
+      "vaActive": 7976, "vaSetup": 2068,
+      "zaiNet": 43079.14, "zaiGst": 4307.91, "zaiTotal": 47387.05,
+      "revenue": {
+        "baseSub":     { "billed": 37547.82, "completed": 35012.82, "debtors": 2535.00 },
+        "managedPlus": { "billed": 15267.80, "completed": 14891.00, "debtors":  376.80 },
+        "transaction": { "billed": 57811.59, "completed": 54444.68, "debtors": 3366.91 },
+        "tradie":      { "billed": 32831.99, "completed": 32789.75, "debtors":   42.24 }
+      },
+      "zaiLines": {
+        "payinBpay": 8950.50, "payinRealtime": 5810.86,
+        "payoutBpay": 932.60, "payoutDirect": 198.36, "payoutEntry": 1582.60, "payoutRealtime": 10597.05,
+        "cardVisa": 5416.49, "cardMaster": 5417.93, "cardDebit": 622.35, "cardAmex": 0.00,
+        "vaActive": 2791.60, "vaSetup": 723.80,
+        "chargebacks": 35.00, "disputes": 0.00, "manualMatch": 0.00
+      }
+    },
+    {
+      "month": "Oct-25", "label": "October 2025", "short": "Oct",
+      "invoiceNo": "3643", "smsRevenue": 1200.00, "implFees": 8300.91, "dueDate": "11 Nov 2025",
+      "mwRebate": 6126.42, "agencyRevShare": 3752.78,
+      "agencies": 273, "activeAgencies": 263, "inactiveAgencies": 10,
+      "totalLeases": 18549, "totalProperties": 20423,
+      "vaActive": 13133, "vaSetup": 2677,
+      "zaiNet": 46520.93, "zaiGst": 4652.09, "zaiTotal": 51173.02,
+      "revenue": {
+        "baseSub":     { "billed": 37320.95, "completed": 35234.45, "debtors": 2086.50 },
+        "managedPlus": { "billed": 15429.80, "completed": 15112.40, "debtors":  317.40 },
+        "transaction": { "billed": 60971.41, "completed": 57915.55, "debtors": 3055.86 },
+        "tradie":      { "billed": 27449.72, "completed": 27449.72, "debtors":    0.00 }
+      },
+      "zaiLines": {
+        "payinBpay": 9071.25, "payinRealtime": 6394.96,
+        "payoutBpay": 953.00, "payoutDirect": 198.12, "payoutEntry": 1781.00, "payoutRealtime": 11321.25,
+        "cardVisa": 4990.07, "cardMaster": 4959.38, "cardDebit": 653.40, "cardAmex": 0.00,
+        "vaActive": 4596.55, "vaSetup": 936.95,
+        "chargebacks": 70.00, "disputes": 105.00, "manualMatch": 490.00
+      }
+    },
+    {
+      "month": "Nov-25", "label": "November 2025", "short": "Nov",
+      "invoiceNo": "3738", "smsRevenue": 400.00, "implFees": 5340.00, "dueDate": "11 Dec 2025",
+      "mwRebate": 6860.76, "agencyRevShare": 3517.89,
+      "agencies": 277, "activeAgencies": 270, "inactiveAgencies": 7,
+      "totalLeases": 19571, "totalProperties": 21408,
+      "vaActive": 13450, "vaSetup": 2270,
+      "zaiNet": 45233.62, "zaiGst": 4523.36, "zaiTotal": 49756.98,
+      "revenue": {
+        "baseSub":     { "billed": 37936.41, "completed": 36287.91, "debtors": 1648.50 },
+        "managedPlus": { "billed": 15531.80, "completed": 15333.80, "debtors":  198.00 },
+        "transaction": { "billed": 57320.87, "completed": 54510.00, "debtors": 2810.87 },
+        "tradie":      { "billed": 25719.04, "completed": 25702.84, "debtors":   16.20 }
+      },
+      "zaiLines": {
+        "payinBpay": 8091.00, "payinRealtime": 6138.00,
+        "payoutBpay": 1334.80, "payoutDirect": 183.30, "payoutEntry": 1597.80, "payoutRealtime": 10626.00,
+        "cardVisa": 5415.09, "cardMaster": 5233.23, "cardDebit": 587.40, "cardAmex": 0.00,
+        "vaActive": 4707.50, "vaSetup": 794.50,
+        "chargebacks": 35.00, "disputes": 70.00, "manualMatch": 420.00
+      }
+    },
+    {
+      "month": "Dec-25", "label": "December 2025", "short": "Dec",
+      "invoiceNo": "3836", "smsRevenue": 1350.00, "implFees": 6910.91, "dueDate": "11 Jan 2026",
+      "mwRebate": 4144.98, "agencyRevShare": 2903.59,
+      "agencies": 285, "activeAgencies": 274, "inactiveAgencies": 11,
+      "totalLeases": 20752, "totalProperties": 22653,
+      "vaActive": 13759, "vaSetup": 2718,
+      "zaiNet": 48954.95, "zaiGst": 4895.50, "zaiTotal": 53850.45,
+      "revenue": {
+        "baseSub":     { "billed": 39197.00, "completed": 37437.50, "debtors": 1759.50 },
+        "managedPlus": { "billed": 15331.60, "completed": 14591.60, "debtors":  740.00 },
+        "transaction": { "billed": 62640.36, "completed": 59398.35, "debtors": 3242.01 },
+        "tradie":      { "billed": 26524.21, "completed": 26524.21, "debtors":    0.00 }
+      },
+      "zaiLines": {
+        "payinBpay": 8928.75, "payinRealtime": 6611.88,
+        "payoutBpay": 902.40, "payoutDirect": 197.64, "payoutEntry": 1821.80, "payoutRealtime": 11189.25,
+        "cardVisa": 6299.18, "cardMaster": 6344.65, "cardDebit": 612.45, "cardAmex": 0.00,
+        "vaActive": 4815.65, "vaSetup": 951.30,
+        "chargebacks": 0.00, "disputes": 0.00, "manualMatch": 280.00
+      }
+    },
+    {
+      "month": "Jan-26", "label": "January 2026", "short": "Jan",
+      "invoiceNo": "3928", "smsRevenue": 850.00, "implFees": 1618.18, "dueDate": "11 Feb 2026",
+      "mwRebate": 5519.60, "agencyRevShare": 2648.24,
+      "agencies": 288, "activeAgencies": 279, "inactiveAgencies": 9,
+      "totalLeases": 21292, "totalProperties": 23236,
+      "vaActive": 14203, "vaSetup": 1893,
+      "zaiNet": 48347.96, "zaiGst": 4834.80, "zaiTotal": 53182.76,
+      "revenue": {
+        "baseSub":     { "billed": 39512.64, "completed": 37778.64, "debtors": 1734.00 },
+        "managedPlus": { "billed": 15395.80, "completed": 14775.80, "debtors":  620.00 },
+        "transaction": { "billed": 63263.37, "completed": 61081.34, "debtors": 2182.04 },
+        "tradie":      { "billed": 22457.49, "completed": 22409.37, "debtors":   48.12 }
+      },
+      "zaiLines": {
+        "payinBpay": 8305.50, "payinRealtime": 6666.44,
+        "payoutBpay": 937.40, "payoutDirect": 196.38, "payoutEntry": 1832.00, "payoutRealtime": 11460.30,
+        "cardVisa": 5583.62, "cardMaster": 6539.97, "cardDebit": 597.75, "cardAmex": 0.00,
+        "vaActive": 4971.05, "vaSetup": 662.55,
+        "chargebacks": 245.00, "disputes": 70.00, "manualMatch": 280.00
+      }
+    },
+    {
+      "month": "Feb-26", "label": "February 2026", "short": "Feb",
+      "invoiceNo": "4218", "smsRevenue": 550.00, "implFees": 3500.00, "dueDate": "10 Mar 2026",
+      "mwRebate": 8906.00, "agencyRevShare": 2097.44,
+      "agencies": 293, "activeAgencies": 284, "inactiveAgencies": 9,
+      "totalLeases": 21621, "totalProperties": 23976,
+      "vaActive": 15192, "vaSetup": 2124,
+      "zaiNet": 48046.30, "zaiGst": 4804.63, "zaiTotal": 52850.93,
+      "revenue": {
+        "baseSub":     { "billed": 40596.50, "completed": 37680.50, "debtors": 2916.00 },
+        "managedPlus": { "billed": 16131.20, "completed": 15064.20, "debtors": 1067.00 },
+        "transaction": { "billed": 63080.15, "completed": 59444.47, "debtors": 3635.67 },
+        "tradie":      { "billed": 25899.18, "completed": 25884.66, "debtors":   14.52 }
+      },
+      "zaiLines": {
+        "payinBpay": 7779.75, "payinRealtime": 6733.76,
+        "payoutBpay": 1362.40, "payoutDirect": 193.32, "payoutEntry": 1876.00, "payoutRealtime": 11031.90,
+        "cardVisa": 6053.84, "cardMaster": 6010.43, "cardDebit": 594.30, "cardAmex": 0.00,
+        "vaActive": 5317.20, "vaSetup": 743.40,
+        "chargebacks": 175.00, "disputes": 35.00, "manualMatch": 140.00
+      }
+    },
+    {
+      "month": "Mar-26", "label": "March 2026", "short": "Mar",
+      "invoiceNo": "4320", "smsRevenue": 1500.00, "implFees": 9700.00, "dueDate": "13 Apr 2026",
+      "mwRebate": 7225.45, "agencyRevShare": 2434.39,
+      "agencies": 293, "activeAgencies": 274, "inactiveAgencies": 19,
+      "totalLeases": 21955, "totalProperties": 24771,
+      "note": "Agency/PUM counts sourced from live platform query — not a locked snapshot. Figures may shift as agents archive properties or close leases after month end. Report re-pulled 10 Apr 2026; revised vs first pull (agencies 294→293, leases 21,575→21,955, PUM 24,756→24,771).",
+      "vaActive": 15611, "vaSetup": 3056,
+      "zaiNet": 51620.36, "zaiGst": 5162.04, "zaiTotal": 56782.40,
+      "revenue": {
+        "baseSub":     { "billed": 41749.86, "completed": 12658.32, "debtors": 29091.55 },
+        "managedPlus": { "billed": 16565.60, "completed":  4359.60, "debtors": 12206.00 },
+        "transaction": { "billed": 67506.30, "completed": 64400.48, "debtors":  3105.82 },
+        "tradie":      { "billed": 27618.31, "completed": 27618.31, "debtors":     0.00 }
+      },
+      "zaiLines": {
+        "payinBpay": 8463.75, "payinRealtime": 7540.06,
+        "payoutBpay": 1044.60, "payoutDirect": 221.52, "payoutEntry": 2033.60, "payoutRealtime": 12387.00,
+        "cardVisa": 5967.08, "cardMaster": 6297.30, "cardDebit": 642.00, "cardAmex": 0.00,
+        "vaActive": 5463.85, "vaSetup": 1069.60,
+        "chargebacks": 140.00, "disputes": 70.00, "manualMatch": 280.00
+      }
+    },
+    {
+      "month": "Apr-26", "label": "April 2026", "short": "Apr",
+      "invoiceNo": "4420", "smsRevenue": 2250.00, "implFees": 6609.09, "dueDate": "10 May 2026",
+      "mwRebate": 11077.95, "agencyRevShare": 2270.03,
+      "note": "Agency Rev Share pending — not yet received. MW Inv #796 ($11,077.95 ex GST) exceeds platform charges ($8,140.94 ex GST) by $2,937.01 — likely includes Mar-26 catch-up ($1,411.25) plus ~$1,526 unexplained. Investigate with MW before paying in full.",
+      "agencies": 293, "activeAgencies": 276, "inactiveAgencies": 17,
+      "totalLeases": 22278, "totalProperties": 24953,
+      "vaActive": 15932, "vaSetup": 2010,
+      "zaiNet": 51286.33, "zaiGst": 5128.63, "zaiTotal": 56414.96,
+      "revenue": {
+        "baseSub":     { "billed": 41511.45, "completed": 38781.45, "debtors": 2730.00 },
+        "managedPlus": { "billed": 15782.60, "completed": 15242.60, "debtors":  540.00 },
+        "transaction": { "billed": 68559.31, "completed": 64978.31, "debtors": 3581.00 },
+        "tradie":      { "billed": 26494.26, "completed": 26477.96, "debtors":   16.30 }
+      },
+      "zaiLines": {
+        "payinBpay": 7977.75, "payinRealtime": 7713.86,
+        "payoutBpay": 948.20, "payoutDirect": 197.52, "payoutEntry": 2061.40, "payoutRealtime": 12312.15,
+        "cardVisa": 5657.52, "cardMaster": 6638.48, "cardDebit": 624.75, "cardAmex": 0.00,
+        "vaActive": 5576.20, "vaSetup": 703.50,
+        "chargebacks": 0.00, "disputes": 385.00, "manualMatch": 490.00
+      }
+    }
+  ],
+  "mwOffices": {
+    "Nov-25": {
+      "invoicedTotal": 6860.76,
+      "dashboardTotal": 6860.76,
+      "mwInvoiceNo": "#780",
+      "mwPaid": 6860.76,
+      "note": "Clean single invoice — MW Inv #780 (30 Nov 2025, $6,860.76 ex / $7,546.84 inc GST). Platform and reimbursement match exactly.",
+      "offices": []
+    },
+    "Dec-25": {
+      "invoicedTotal": 9295.95,
+      "dashboardTotal": 4144.98,
+      "mwInvoiceNo": "#786 + #790",
+      "mwPaid": 8289.96,
+      "note": "Platform charged MW $9,295.95 ex GST across 9 offices. MW Inv #786 (31 Dec 2025) paid $4,144.98 ex — 4 offices excluded (Hawthorn, Mornington Peninsula, Brighton, Albert Park). MW Inv #790 top-up paid a further $4,144.98 ex. Total received for Dec period: $8,289.96. Still short $1,005.99 vs platform total.",
+      "offices": [
+        { "office": "Armadale",             "invoiceNo": "INV-476691329",  "properties": 988, "jobFeesExGst": 2752.65 },
+        { "office": "Hawthorn",             "invoiceNo": "INV-3245781588", "properties": 810, "jobFeesExGst": 2322.57 },
+        { "office": "Mornington Peninsula", "invoiceNo": "INV-8678742805", "properties": 162, "jobFeesExGst": 1102.78 },
+        { "office": "Brighton",             "invoiceNo": "INV-259050178",  "properties": 280, "jobFeesExGst":  820.80 },
+        { "office": "Albert Park",          "invoiceNo": "INV-6570831525", "properties": 376, "jobFeesExGst":  771.24 },
+        { "office": "Manningham",           "invoiceNo": "INV-9735766836", "properties": 305, "jobFeesExGst":  759.07 },
+        { "office": "Projects",             "invoiceNo": "INV-8424129986", "properties": 257, "jobFeesExGst":  526.58 },
+        { "office": "Sanhurst",             "invoiceNo": "INV-532193308",  "properties":  28, "jobFeesExGst":  124.50 },
+        { "office": "Sorrento",             "invoiceNo": "INV-5943725016", "properties":   9, "jobFeesExGst":  115.75 }
+      ]
+    },
+    "Jan-26": {
+      "invoicedTotal": 6669.19,
+      "dashboardTotal": 9664.58,
+      "mwInvoiceNo": "#788",
+      "mwPaid": 9664.58,
+      "note": "MW Inv #788 (corrected, 31 Jan 2026) = $9,664.58 ex GST. Platform invoiced $6,669.19 across 10 offices — Manningham ($661.11) confirmed excluded from #788. #788 also includes the Dec-25 catch-up component for the 4 excluded Dec offices. Dashboard carries $9,664.58 (Xero restated).",
+      "offices": [
+        { "office": "Armadale",             "invoiceNo": "INV-3198156471", "properties": 988, "jobFeesExGst": 1868.58 },
+        { "office": "Hawthorn",             "invoiceNo": "INV-7387477962", "properties": 799, "jobFeesExGst": 1740.62 },
+        { "office": "Mornington Peninsula", "invoiceNo": "INV-4476750682", "properties": 163, "jobFeesExGst":  701.15 },
+        { "office": "Brighton",             "invoiceNo": "INV-7509043133", "properties": 274, "jobFeesExGst":  642.55 },
+        { "office": "Manningham",           "invoiceNo": "INV-281780570",  "properties": 304, "jobFeesExGst":  661.11, "excluded": true },
+        { "office": "Albert Park",          "invoiceNo": "INV-4498992608", "properties": 369, "jobFeesExGst":  492.32 },
+        { "office": "Projects",             "invoiceNo": "INV-9804384698", "properties": 257, "jobFeesExGst":  420.97 },
+        { "office": "Sanhurst",             "invoiceNo": "INV-1984568571", "properties":  29, "jobFeesExGst":  113.37 },
+        { "office": "Sorrento",             "invoiceNo": "INV-3339345019", "properties":   9, "jobFeesExGst":    8.06 },
+        { "office": "Sandringham 2023",     "invoiceNo": "INV-8010908365", "properties":  21, "jobFeesExGst":   20.45 }
+      ]
+    },
+    "Feb-26": {
+      "invoicedTotal": 8678.50,
+      "dashboardTotal": 8906.00,
+      "mwInvoiceNo": "#791",
+      "mwPaid": 8906.00,
+      "note": "Managed charges each MW office individually via platform invoices. MW consolidates and reimburses via a single invoice to Managed. 9 platform invoices on hand total $8,678.50 ex GST. MW's Inv #791 claims $8,906.00 — if no 10th platform invoice exists, MW has overcharged by $227.50. Locate the missing office platform invoice to confirm before paying Inv #791 in full.",
+      "offices": [
+        { "office": "Hawthorn",             "invoiceNo": "INV-5574692758", "properties": 790, "jobFeesExGst": 2026.65 },
+        { "office": "Armadale",             "invoiceNo": "INV-7396189771", "properties": 961, "jobFeesExGst": 2082.71 },
+        { "office": "Manningham",           "invoiceNo": "INV-7051436105", "properties": 296, "jobFeesExGst": 1893.82 },
+        { "office": "Mornington Peninsula", "invoiceNo": "INV-4017164047", "properties": 174, "jobFeesExGst": 1118.49 },
+        { "office": "Albert Park",          "invoiceNo": "INV-622312711",  "properties": 376, "jobFeesExGst":  329.28 },
+        { "office": "Brighton",             "invoiceNo": "INV-7023594324", "properties": 275, "jobFeesExGst":  777.95 },
+        { "office": "Projects",             "invoiceNo": "INV-901744072",  "properties": 258, "jobFeesExGst":  388.22 },
+        { "office": "Sorrento",             "invoiceNo": "INV-6439297876", "properties":   9, "jobFeesExGst":   47.58 },
+        { "office": "Sanhurst",             "invoiceNo": "INV-9671115206", "properties":  29, "jobFeesExGst":   13.80 }
+      ]
+    },
+    "Mar-26": {
+      "invoicedTotal": 8636.70,
+      "dashboardTotal": 7225.45,
+      "mwInvoiceNo": "#794",
+      "mwPaid": 7225.45,
+      "note": "Platform charged MW $8,636.70 ex GST across 12 offices (3 at $0 — Flinders, Sandringham 2023, Balwyn on calculated plans). MW Inv #794 claims only $7,225.45 ex GST — MW has undercharged Managed by $1,411.25. MW should issue a supplementary invoice or adjust next month.",
+      "offices": [
+        { "office": "Armadale",             "invoiceNo": null, "properties": 958, "jobFeesExGst": 1868.40 },
+        { "office": "Hawthorn",             "invoiceNo": null, "properties": 785, "jobFeesExGst": 2472.55 },
+        { "office": "Manningham",           "invoiceNo": null, "properties": 292, "jobFeesExGst": 1200.43 },
+        { "office": "Mornington Peninsula", "invoiceNo": null, "properties": 173, "jobFeesExGst": 1125.01 },
+        { "office": "Albert Park",          "invoiceNo": null, "properties": 366, "jobFeesExGst":  894.98 },
+        { "office": "Brighton",             "invoiceNo": null, "properties": 279, "jobFeesExGst":  716.37 },
+        { "office": "Projects",             "invoiceNo": null, "properties": 272, "jobFeesExGst":  268.13 },
+        { "office": "Sanhurst",             "invoiceNo": null, "properties":  28, "jobFeesExGst":   52.18 },
+        { "office": "Sorrento",             "invoiceNo": null, "properties":   9, "jobFeesExGst":   38.65 },
+        { "office": "Sandringham 2023",     "invoiceNo": null, "properties":  20, "jobFeesExGst":    0.00 },
+        { "office": "Balwyn",               "invoiceNo": null, "properties":   3, "jobFeesExGst":    0.00 },
+        { "office": "Flinders",             "invoiceNo": null, "properties":   4, "jobFeesExGst":    0.00 }
+      ]
+    },
+    "Apr-26": {
+      "invoicedTotal": 8140.94,
+      "dashboardTotal": 11077.95,
+      "mwInvoiceNo": "#796",
+      "mwPaid": 11077.95,
+      "note": "Platform charged MW $8,140.94 ex GST across 12 offices (Balwyn and Sandringham 2023 at $0). MW Inv #796 claims $11,077.95 ex GST — overcharge of $2,937.01. Likely includes Mar-26 catch-up ($1,411.25 shortfall from #794), leaving ~$1,526 still unexplained. Do not pay in full without itemised reconciliation from MW.",
+      "offices": [
+        { "office": "Armadale",             "invoiceNo": null, "properties": 978, "jobFeesExGst": 2090.81 },
+        { "office": "Hawthorn",             "invoiceNo": null, "properties": 789, "jobFeesExGst": 1621.64 },
+        { "office": "Albert Park",          "invoiceNo": null, "properties": 370, "jobFeesExGst": 1157.51 },
+        { "office": "Manningham",           "invoiceNo": null, "properties": 289, "jobFeesExGst": 1007.15 },
+        { "office": "Brighton",             "invoiceNo": null, "properties": 281, "jobFeesExGst":  831.48 },
+        { "office": "Mornington Peninsula", "invoiceNo": null, "properties": 175, "jobFeesExGst":  758.93 },
+        { "office": "Projects",             "invoiceNo": null, "properties": 280, "jobFeesExGst":  495.98 },
+        { "office": "Flinders",             "invoiceNo": null, "properties":   4, "jobFeesExGst":  112.80 },
+        { "office": "Sorrento",             "invoiceNo": null, "properties":   9, "jobFeesExGst":   43.53 },
+        { "office": "Sanhurst",             "invoiceNo": null, "properties":  30, "jobFeesExGst":   21.12 },
+        { "office": "Balwyn",               "invoiceNo": null, "properties":   2, "jobFeesExGst":    0.00 },
+        { "office": "Sandringham 2023",     "invoiceNo": null, "properties":  20, "jobFeesExGst":    0.00 }
+      ]
+    }
+  }
+}
