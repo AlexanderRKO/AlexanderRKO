@@ -41,13 +41,16 @@ It turns out the federal government doesn't believe in aspiration. The strategy 
 
 **You're now facing a hard question: keep fighting with a model that no longer works, or shut the doors?**
 
-There's a third option.
+There's a third option. Actually, there are four — and at least one of them fits where you are right now:
 
-We've built an alternative for buyer's agents in exactly your position — a way to keep serving your clients, keep your business alive, and keep building wealth for the people who trust you, even in a post-2026-budget world.
+- **Acquisition** — We buy your business outright. You get a clean exit and real value for the years you've put in, instead of winding down to nothing.
+- **Merger** — Join forces with us. Keep doing what you're good at, but under a structure that's built to survive the new rules.
+- **White-label EBU** — Run your existing book as a white-labelled unit under our model. Same clients, same relationships — a sustainable engine underneath.
+- **Client-list purchase** — If you've already decided to close, don't walk away empty-handed. We'll buy your client list so your clients are still looked after and you're paid for what you built.
 
-You don't have to walk away from everything you've built. You can fight another day.
+You don't have to walk away from everything you've built. Whichever path fits, you can fight another day — or exit on your terms.
 
-**If your business model is no longer sustainable and you want an alternative to shutting down, let's talk.**
+**If your business model is no longer sustainable and you want an alternative to simply shutting down, let's talk.**
 
 [Book a confidential 15-minute call →]
 
@@ -62,8 +65,9 @@ You've spent your career helping clients buy their future. Let us help you prote
 ---
 
 ## Notes & variations
-- **Tone:** Deliberately provocative + empathetic. The "anger at the budget" hook earns attention; the "we have a solution" turn earns the click. Keep the solution vague enough to drive a call, specific enough to feel real.
+- **Tone:** Deliberately provocative + empathetic. The "anger at the budget" hook earns attention; the four concrete pathways earn the click. Naming acquisition / merger / white-label / list-purchase signals you have a real deal on the table, not just a pitch.
 - **CTA swap:** If you don't have a booking link yet, replace with "Reply to this email with 'TELL ME MORE'."
 - **Softer subject (deliverability):** If cold sending, lead with subject #5 — it's less likely to trip spam filters than "destroyed."
-- **Follow-up #2 (3 days later):** Short bump — "Did the budget change your numbers? Still happy to walk you through the alternative." Re-link the CTA.
-- **Fill the blank:** The "alternative solution" is intentionally undefined here — drop in your actual offer (new revenue model, partnership, product, licensing) before sending, or keep it teased to maximise call bookings.
+- **Segment the CTA (optional):** Two buttons — "I want to keep operating" (→ merger / white-label) vs "I'm ready to exit" (→ acquisition / list purchase) — lets you route replies and tailor the call.
+- **Follow-up #2 (3 days later):** Short bump — "Did the budget change your numbers? Whether you want to keep going or get out cleanly, we have a path. Worth a 15-minute call?" Re-link the CTA.
+- **Diligence-ready:** Anyone who replies to an acquisition/merger/list-purchase offer will expect terms fast — have a one-pager on valuation basis, deal structure, and how client data is handled (Privacy Act / APP consent for transferring a client list) ready before you send.
