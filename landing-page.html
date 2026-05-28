@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>An alternative to shutting your doors — for buyer's agents | Post-2026 Budget</title>
+  <meta name="description" content="Has the 2026 federal budget broken your buyer's agency? Four options to fight another day or exit on your terms: acquisition, merger, white-label EBU, or client-list sale.">
+  <style>
+    :root{
+      --ink:#0f1c2e; --ink-soft:#3a4a60; --bg:#ffffff; --panel:#f4f6f9;
+      --accent:#c8102e; --accent-dark:#9c0a23; --gold:#b8893a; --line:#e2e7ee;
+      --radius:14px; --max:1080px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
+    .wrap{max-width:var(--max);margin:0 auto;padding:0 22px}
+    h1,h2,h3{line-height:1.15;letter-spacing:-0.01em}
+    a{color:var(--accent);text-decoration:none}
+    .btn{display:inline-block;background:var(--accent);color:#fff;font-weight:700;padding:16px 30px;border-radius:999px;font-size:1.05rem;border:none;cursor:pointer;transition:transform .12s ease,background .2s ease}
+    .btn:hover{background:var(--accent-dark);transform:translateY(-2px)}
+    .btn.alt{background:transparent;color:var(--ink);border:2px solid var(--ink)}
+    .btn.alt:hover{background:var(--ink);color:#fff}
+
+    /* HERO */
+    header.hero{background:linear-gradient(160deg,#0f1c2e 0%,#1c3252 100%);color:#fff;padding:84px 0 76px;position:relative;overflow:hidden}
+    header.hero::after{content:"";position:absolute;right:-120px;top:-120px;width:380px;height:380px;background:radial-gradient(circle,rgba(200,16,46,.35),transparent 70%);border-radius:50%}
+    .eyebrow{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:999px;margin-bottom:22px}
+    header.hero h1{font-size:clamp(2rem,5vw,3.4rem);max-width:18ch;margin-bottom:20px}
+    header.hero p.lede{font-size:clamp(1.05rem,2.2vw,1.3rem);color:#d6deea;max-width:60ch;margin-bottom:32px}
+    .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+    .hero-note{font-size:.85rem;color:#9fb0c8;margin-top:18px}
+
+    /* SECTIONS */
+    section{padding:64px 0}
+    section.panel{background:var(--panel)}
+    .section-head{max-width:62ch;margin:0 auto 44px;text-align:center}
+    .section-head h2{font-size:clamp(1.6rem,3.5vw,2.3rem);margin-bottom:14px}
+    .section-head p{color:var(--ink-soft);font-size:1.08rem}
+
+    /* PROBLEM */
+    .story{max-width:60ch;margin:0 auto;font-size:1.12rem;color:var(--ink-soft)}
+    .story p{margin-bottom:18px}
+    .story strong{color:var(--ink)}
+
+    /* OPTIONS GRID */
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px;margin-top:8px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:28px 24px;transition:box-shadow .2s ease,transform .12s ease}
+    .card:hover{box-shadow:0 14px 40px rgba(15,28,46,.10);transform:translateY(-3px)}
+    .card .tag{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+    .card h3{font-size:1.25rem;margin-bottom:10px}
+    .card p{color:var(--ink-soft);font-size:.98rem;margin-bottom:14px}
+    .card .best{font-size:.85rem;color:var(--ink);background:var(--panel);border-radius:8px;padding:8px 12px;display:inline-block}
+
+    /* SPLIT CTA */
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:820px;margin:0 auto}
+    .split .lane{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:34px 28px;text-align:center}
+    .split .lane h3{font-size:1.35rem;margin-bottom:10px}
+    .split .lane p{color:var(--ink-soft);margin-bottom:22px}
+
+    /* STEPS */
+    .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:18px;counter-reset:step}
+    .step{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px 20px}
+    .step::before{counter-increment:step;content:counter(step);display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;margin-bottom:14px}
+    .step h4{font-size:1.02rem;margin-bottom:6px}
+    .step p{font-size:.9rem;color:var(--ink-soft)}
+
+    /* FORM */
+    .form-card{max-width:620px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:36px;box-shadow:0 20px 60px rgba(15,28,46,.08)}
+    .form-card label{display:block;font-weight:600;font-size:.92rem;margin:16px 0 6px}
+    .form-card input,.form-card select,.form-card textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:1rem;font-family:inherit;background:#fdfdfe}
+    .form-card input:focus,.form-card select:focus,.form-card textarea:focus{outline:none;border-color:var(--accent)}
+    .form-card .btn{width:100%;margin-top:24px}
+    .privacy{font-size:.8rem;color:var(--ink-soft);margin-top:14px;text-align:center}
+
+    /* FAQ */
+    .faq{max-width:760px;margin:0 auto}
+    details{border-bottom:1px solid var(--line);padding:18px 0}
+    summary{font-weight:700;cursor:pointer;font-size:1.05rem;list-style:none;display:flex;justify-content:space-between;align-items:center}
+    summary::-webkit-details-marker{display:none}
+    summary::after{content:"+";font-size:1.4rem;color:var(--accent);font-weight:400}
+    details[open] summary::after{content:"\2013"}
+    details p{color:var(--ink-soft);margin-top:12px}
+
+    /* FOOTER */
+    footer{background:#0f1c2e;color:#9fb0c8;padding:48px 0;font-size:.88rem;text-align:center}
+    footer a{color:#d6deea}
+    footer .disc{max-width:70ch;margin:18px auto 0;font-size:.78rem;color:#6f819b}
+
+    @media(max-width:640px){
+      .split{grid-template-columns:1fr}
+      section{padding:48px 0}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="wrap">
+      <span class="eyebrow">For Buyer's Agents · Post-2026 Federal Budget</span>
+      <h1>Has the 2026 federal budget destroyed your business model?</h1>
+      <p class="lede">You spent years helping clients build wealth through property. The government just changed the rules. Before you shut the doors — there are four ways out, and at least one fits where you are right now.</p>
+      <div class="hero-cta">
+        <a href="#options" class="btn">See your four options</a>
+        <a href="#talk" class="btn alt">Book a confidential call</a>
+      </div>
+      <p class="hero-note">Confidential · 15 minutes · No obligation</p>
+    </div>
+  </header>
+
+  <!-- PROBLEM / STORY -->
+  <section>
+    <div class="wrap">
+      <div class="story">
+        <p>You did everything right.</p>
+        <p>You acted in the best interest of your clients — helping everyday Australians do the one thing this country was supposedly built on: <strong>get ahead</strong>. Buy the investment property. Build a portfolio. Create a future that didn't depend on a pension or a payout.</p>
+        <p>Negatively geared property was the vehicle. <strong>You were the driver who knew the road.</strong></p>
+        <p>Then the 2026 federal budget landed. It turns out the federal government doesn't believe in aspiration — and the strategy that powered your business has been kneecapped overnight.</p>
+        <p><strong>So here's the hard question: keep fighting with a model that no longer works, or shut the doors?</strong></p>
+        <p>There's a third option. Actually, there are four.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- OPTIONS -->
+  <section id="options" class="panel">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Four ways to fight another day — or exit on your terms</h2>
+        <p>Whether you want to keep operating or walk away cleanly, you shouldn't leave empty-handed.</p>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <span class="tag">Exit</span>
+          <h3>Acquisition</h3>
+          <p>We buy your business outright. A clean exit and real value for the years you've put in — instead of winding down to nothing.</p>
+          <span class="best">Best for: owners ready to step away</span>
+        </div>
+        <div class="card">
+          <span class="tag">Keep operating</span>
+          <h3>Merger</h3>
+          <p>Join forces with us. Keep doing what you're good at, under a structure that's built to survive the new rules.</p>
+          <span class="best">Best for: operators who aren't done yet</span>
+        </div>
+        <div class="card">
+          <span class="tag">Keep operating</span>
+          <h3>White-label EBU</h3>
+          <p>Run your existing book as a white-labelled unit under our model. Same clients, same brand — a sustainable engine underneath.</p>
+          <span class="best">Best for: keeping your name in market</span>
+        </div>
+        <div class="card">
+          <span class="tag">Exit</span>
+          <h3>Client-list purchase</h3>
+          <p>Closing anyway? Don't walk away empty-handed. We'll buy your client list so your clients stay looked after and you're paid for what you built.</p>
+          <span class="best">Best for: owners closing regardless</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPLIT CTA -->
+  <section id="talk">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Which camp are you in?</h2>
+        <p>Tell us where you stand and we'll tailor the conversation. Either way it's confidential and takes 15 minutes.</p>
+      </div>
+      <div class="split">
+        <div class="lane">
+          <h3>I want to keep operating</h3>
+          <p>Explore a merger or white-label EBU — keep your clients and your name, with a model built for the new rules.</p>
+          <a href="#lead-form" class="btn" onclick="document.getElementById('intent').value='Keep operating';">Keep operating</a>
+        </div>
+        <div class="lane">
+          <h3>I'm ready to exit</h3>
+          <p>Explore an acquisition or client-list sale — get paid for what you've built and make sure your clients are looked after.</p>
+          <a href="#lead-form" class="btn alt" onclick="document.getElementById('intent').value='Ready to exit';">Plan my exit</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESS -->
+  <section class="panel">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>How it works</h2>
+        <p>Simple, confidential, and built to move at your pace.</p>
+      </div>
+      <div class="steps">
+        <div class="step"><h4>Confidential call</h4><p>A 15-minute chat to understand your situation. No pitch.</p></div>
+        <div class="step"><h4>NDA &amp; numbers</h4><p>We sign an NDA and look at high-level figures together.</p></div>
+        <div class="step"><h4>Indicative offer</h4><p>We put a clear, no-obligation option on the table.</p></div>
+        <div class="step"><h4>Light due diligence</h4><p>We verify the essentials — fast and respectful of your time.</p></div>
+        <div class="step"><h4>Terms &amp; completion</h4><p>We finalise terms and you move forward with certainty.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEAD FORM -->
+  <section id="lead-form">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Start the conversation</h2>
+        <p>Fill this in and we'll be in touch within one business day. Everything you share is confidential.</p>
+      </div>
+      <!-- NOTE: point action= at your form handler / Calendly / Beehiiv form / Formspree endpoint -->
+      <form class="form-card" action="#" method="POST">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" required placeholder="Jane Smith">
+
+        <label for="business">Business name</label>
+        <input type="text" id="business" name="business" placeholder="Smith Buyers Agency">
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required placeholder="jane@agency.com.au">
+
+        <label for="phone">Phone</label>
+        <input type="tel" id="phone" name="phone" placeholder="0400 000 000">
+
+        <label for="intent">What are you exploring?</label>
+        <select id="intent" name="intent">
+          <option value="">Select one…</option>
+          <option value="Keep operating">Keep operating (merger / white-label)</option>
+          <option value="Ready to exit">Ready to exit (acquisition / client-list sale)</option>
+          <option value="Not sure">Not sure yet — let's talk it through</option>
+        </select>
+
+        <label for="notes">Anything we should know? (optional)</label>
+        <textarea id="notes" name="notes" rows="3" placeholder="Roughly how many active clients, where you're based, your timeframe…"></textarea>
+
+        <button type="submit" class="btn">Request a confidential call</button>
+        <p class="privacy">We'll only use your details to contact you about this enquiry. No spam, ever. See our <a href="#">Privacy Policy</a>.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="panel">
+    <div class="wrap">
+      <div class="section-head"><h2>Questions, answered</h2></div>
+      <div class="faq">
+        <details><summary>Is this confidential?</summary><p>Yes. Initial conversations are confidential, and before any numbers change hands we sign a mutual NDA. Nothing is shared with the market.</p></details>
+        <details><summary>What happens to my clients?</summary><p>Looking after your clients is the whole point. Under a merger or white-label they keep the same relationship; under an acquisition or list sale they continue to be serviced. Any transfer of client data is handled in line with the Privacy Act 1988 and the Australian Privacy Principles.</p></details>
+        <details><summary>How is my business valued?</summary><p>We look at recurring revenue and active clients, your settled-deal history, the size and quality of your database, and assets like brand or referral agreements. We'll walk you through the basis on the call.</p></details>
+        <details><summary>How long does it take?</summary><p>From first call to completion is typically a matter of weeks, not months — and it moves at your pace.</p></details>
+        <details><summary>I haven't decided whether to close. Is it still worth talking?</summary><p>Absolutely. Plenty of agents start the conversation unsure. The call is there to lay out your options clearly — no pressure, no obligation.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section>
+    <div class="wrap" style="text-align:center">
+      <h2 style="font-size:clamp(1.6rem,3.5vw,2.3rem);max-width:22ch;margin:0 auto 16px">The government may not believe in aspiration. We do.</h2>
+      <p style="color:var(--ink-soft);max-width:56ch;margin:0 auto 28px">The agents who move first absorb the clients of the ones who don't. Don't wait for your next quiet quarter to decide.</p>
+      <a href="#lead-form" class="btn">Book a confidential call</a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <p>[Your Company Name] · [Address] · [Phone] · <a href="mailto:[email]">[email]</a></p>
+      <p style="margin-top:10px"><a href="#">Privacy Policy</a> · <a href="#">Terms</a></p>
+      <p class="disc">General information only and not legal, financial, or tax advice. Transfers of client information are handled in accordance with the Privacy Act 1988 (Cth). [Your Company] [ABN / licence number].</p>
+    </div>
+  </footer>
+
+</body>
+</html>

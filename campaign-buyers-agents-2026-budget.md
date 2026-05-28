@@ -1,5 +1,9 @@
 # Campaign: "Did the 2026 Federal Budget Just End Your Business?"
-### Target: Buyer's Agents | Channel: Beehiiv email newsletter
+### Target: Buyer's Agents | Channel: Beehiiv email newsletter → Landing page
+
+> **Structure:** This is a newsletter-driven funnel. The Beehiiv email is intentionally short — its only job is to earn the click. The full pitch (four options, process, FAQ, lead form) lives on the landing page (`landing-page.html`), which you host and link to via `[LANDING_PAGE_URL]`. The follow-up email, LinkedIn posts, and ads all point to the same page.
+>
+> **Funnel:** Email / LinkedIn / Ad → Landing page → Lead form or booking → Sales call → Deal one-pager.
 
 ---
 
@@ -25,52 +29,49 @@
 
 ---
 
-## Email body
+## Email body (newsletter — short, drives to landing page)
+
+> **Design note:** This is a newsletter email. Keep it short. Its only job is to land the hook and get the click through to the landing page (`landing-page.html`). All detail — the four pathways, valuation, process, FAQ, booking form — lives on the page, not in the inbox. Replace every `[LANDING_PAGE_URL]` with your real URL (with UTM tags, e.g. `?utm_source=beehiiv&utm_medium=email&utm_campaign=budget2026`).
 
 **Has the 2026 federal budget completely destroyed your business model?**
 
 You did everything right.
 
-You acted in the best interest of your clients. You helped everyday Australians do the one thing this country was supposedly built on — get ahead. Buy the investment property. Build a portfolio. Create a future that didn't depend on a pension or a payout.
-
-Negatively geared property was the vehicle. You were the driver who knew the road.
+You acted in the best interest of your clients — helping everyday Australians do the one thing this country was supposedly built on: get ahead. Buy the investment property. Build a portfolio. Negatively geared property was the vehicle, and you were the driver who knew the road.
 
 Then the 2026 federal budget landed.
 
-It turns out the federal government doesn't believe in aspiration. The strategy that powered your business — and your clients' wealth — has been kneecapped overnight. And if you're reading this, you already know what that means for your pipeline, your settlements, and your bottom line.
+It turns out the federal government doesn't believe in aspiration. The strategy that powered your business — and your clients' wealth — has been kneecapped overnight. You already know what that's doing to your pipeline.
 
-**You're now facing a hard question: keep fighting with a model that no longer works, or shut the doors?**
+**So here's the hard question: keep fighting with a model that no longer works, or shut the doors?**
 
-There's a third option. Actually, there are four — and at least one of them fits where you are right now:
+There's a third option. Actually, there are four — acquisition, merger, white-label, or a clean client-list sale — and at least one of them fits where you are right now.
 
-- **Acquisition** — We buy your business outright. You get a clean exit and real value for the years you've put in, instead of winding down to nothing.
-- **Merger** — Join forces with us. Keep doing what you're good at, but under a structure that's built to survive the new rules.
-- **White-label EBU** — Run your existing book as a white-labelled unit under our model. Same clients, same relationships — a sustainable engine underneath.
-- **Client-list purchase** — If you've already decided to close, don't walk away empty-handed. We'll buy your client list so your clients are still looked after and you're paid for what you built.
+We've laid all four out on one page, including how the numbers and the process work:
 
-You don't have to walk away from everything you've built. Whichever path fits, you can fight another day — or exit on your terms.
+### → [See your four options]([LANDING_PAGE_URL])
 
-**If your business model is no longer sustainable and you want an alternative to simply shutting down, let's talk.**
-
-[Book a confidential 15-minute call →]
-
-You've spent your career helping clients buy their future. Let us help you protect yours.
+You don't have to walk away from everything you've built. You can fight another day — or exit on your terms.
 
 — [Your name / company]
 
+*P.S. The agents who move first absorb the clients of the ones who don't. See the options here → [LANDING_PAGE_URL]*
+
 ---
 
-*P.S. The agents who adapt first will absorb the clients of the ones who don't. The window to move is now, not after your next quiet quarter.*
+### Plain-text CTA fallback (for clients that strip buttons)
+> See your four options: [LANDING_PAGE_URL]
 
 ---
 
 ## Notes & variations
-- **Tone:** Deliberately provocative + empathetic. The "anger at the budget" hook earns attention; the four concrete pathways earn the click. Naming acquisition / merger / white-label / list-purchase signals you have a real deal on the table, not just a pitch.
-- **CTA swap:** If you don't have a booking link yet, replace with "Reply to this email with 'TELL ME MORE'."
+- **Newsletter logic:** The email's only job is the click. One hook, one link, minimal friction. Every "Book a call" decision happens on the landing page, where you can show all four options, social proof, and an FAQ without overwhelming the inbox.
+- **One link, repeated:** Use the same landing-page URL for the button, the P.S., and the plain-text fallback. Don't scatter different destinations — it dilutes the click and muddies your analytics.
+- **Track it:** Add UTM params to `[LANDING_PAGE_URL]` so Beehiiv click data maps to landing-page conversions. Suggested: `?utm_source=beehiiv&utm_medium=email&utm_campaign=budget2026&utm_content=v1`.
+- **Tone:** Deliberately provocative + empathetic. The budget hook earns attention; the promise of four concrete options earns the click.
 - **Softer subject (deliverability):** If cold sending, lead with subject #5 — it's less likely to trip spam filters than "destroyed."
-- **Segment the CTA (optional):** Two buttons — "I want to keep operating" (→ merger / white-label) vs "I'm ready to exit" (→ acquisition / list purchase) — lets you route replies and tailor the call.
-- **Follow-up #2 (3 days later):** Short bump — "Did the budget change your numbers? Whether you want to keep going or get out cleanly, we have a path. Worth a 15-minute call?" Re-link the CTA.
-- **Diligence-ready:** Anyone who replies to an acquisition/merger/list-purchase offer will expect terms fast — have a one-pager on valuation basis, deal structure, and how client data is handled (Privacy Act / APP consent for transferring a client list) ready before you send.
+- **Follow-up #2 (3 days later):** Short bump to non-clickers — "Did the budget change your numbers? Whether you want to keep going or get out cleanly, we have a path." Same landing-page link.
+- **Landing page:** Built as `landing-page.html` (see below) — open it in a browser to preview. Host it anywhere (Beehiiv page, Carrd, Webflow, a static host) and point `[LANDING_PAGE_URL]` at it.
 
 ---
 
