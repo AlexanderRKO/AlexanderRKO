@@ -30,5 +30,27 @@ The board is fully touch-friendly:
 - Double-tap-to-zoom and accidental text selection are disabled for clean tapping,
   and buttons use large, thumb-friendly tap targets.
 
-Tip: on iOS/Android you can use the browser's "Add to Home Screen" option to run
-it full-screen like an app.
+## Install it on your phone (use it like a real app)
+
+The scoreboard is a **PWA** — once you open it once on your phone it installs to
+your home screen, runs full-screen with no browser bars, and works **offline**.
+
+### Easiest way: GitHub Pages (a permanent link)
+
+1. On GitHub, go to this repo → **Settings → Pages**.
+2. Under **Build and deployment → Source**, choose **Deploy from a branch**.
+3. Pick the branch `claude/digital-scoreboard-tggyx` and folder `/ (root)`, then **Save**.
+4. Wait ~1 minute, then on your phone open:
+   **`https://alexanderrko.github.io/alexanderrko/scoreboard/`**
+5. Add it to your home screen:
+   - **iPhone (Safari):** Share button → *Add to Home Screen*.
+   - **Android (Chrome):** ⋮ menu → *Install app* / *Add to Home Screen*.
+
+Now it launches full-screen like a native app and keeps working with no signal.
+
+### Files that make this work
+
+- `index.html` – the app
+- `manifest.json` – name, colours, icons, full-screen mode
+- `sw.js` – service worker for offline use
+- `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` – home-screen icons

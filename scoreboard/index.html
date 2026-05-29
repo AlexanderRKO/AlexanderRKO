@@ -6,7 +6,11 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Scoreboard" />
 <meta name="theme-color" content="#0d0b1f" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/png" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <title>⚡ Showdown Scoreboard ⚡</title>
 <style>
   :root {
@@ -501,6 +505,13 @@
     if (e.key.toLowerCase() === 'a') change('left', step);
     if (e.key.toLowerCase() === 's') change('right', step);
   });
+
+  // ---- offline / installable PWA ----
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => { /* offline-only is fine */ });
+    });
+  }
 
   load();
   render();
