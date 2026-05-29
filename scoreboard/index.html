@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>⚡ Showdown Scoreboard ⚡</title>
+<style>
+  :root {
+    --left-1: #ff512f;
+    --left-2: #dd2476;
+    --right-1: #1fa2ff;
+    --right-2: #12d8fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+    background: #0d0b1f;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(221,36,118,0.25), transparent 45%),
+      radial-gradient(circle at 80% 30%, rgba(31,162,255,0.25), transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(255,200,0,0.15), transparent 50%);
+    color: #fff;
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    text-align: center;
+    padding: 18px 10px 8px;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 5vw, 3.2rem);
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, #ff512f, #ffd200, #12d8fa, #dd2476, #ff512f);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 6s linear infinite;
+    text-shadow: 0 0 30px rgba(255,255,255,0.15);
+  }
+
+  @keyframes shimmer {
+    to { background-position: 300% center; }
+  }
+
+  .subtitle {
+    margin-top: 4px;
+    font-size: 0.95rem;
+    color: #b8b3d6;
+    letter-spacing: 1px;
+  }
+
+  /* ---------- Board ---------- */
+  .board {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: stretch;
+  }
+
+  .vs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 900;
+    font-style: italic;
+    color: #ffd200;
+    text-shadow: 0 0 20px rgba(255,210,0,0.6);
+    flex: 0 0 auto;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+  }
+
+  .team {
+    flex: 1;
+    border-radius: 24px;
+    padding: 22px 18px 26px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 60vh;
+    overflow: hidden;
+  }
+
+  .team::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, var(--c1), var(--c2));
+    opacity: 0.95;
+    z-index: 0;
+  }
+
+  .team.left  { --c1: var(--left-1);  --c2: var(--left-2);  box-shadow: 0 0 50px rgba(221,36,118,0.45); }
+  .team.right { --c1: var(--right-1); --c2: var(--right-2); box-shadow: 0 0 50px rgba(31,162,255,0.45); }
+
+  .team:active { transform: scale(0.985); }
+
+  .team > * { position: relative; z-index: 1; }
+
+  .team:hover .tap-hint { opacity: 1; }
+
+  .name-input {
+    width: 100%;
+    background: rgba(0,0,0,0.22);
+    border: 2px dashed rgba(255,255,255,0.35);
+    border-radius: 14px;
+    color: #fff;
+    font-size: clamp(1.3rem, 3.5vw, 2.1rem);
+    font-weight: 800;
+    text-align: center;
+    padding: 10px 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .name-input::placeholder { color: rgba(255,255,255,0.6); font-weight:600; }
+  .name-input:focus {
+    border-color: #fff;
+    border-style: solid;
+    background: rgba(0,0,0,0.35);
+  }
+
+  .score {
+    font-size: clamp(5rem, 22vw, 14rem);
+    font-weight: 900;
+    line-height: 1;
+    margin: auto 0;
+    text-shadow: 0 6px 0 rgba(0,0,0,0.25), 0 0 40px rgba(255,255,255,0.35);
+    transition: transform 0.15s ease;
+  }
+
+  .score.bump { animation: bump 0.3s ease; }
+  @keyframes bump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+
+  .tap-hint {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.85;
+    background: rgba(0,0,0,0.25);
+    padding: 8px 16px;
+    border-radius: 999px;
+  }
+
+  /* control row inside a team */
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    background: rgba(255,255,255,0.92);
+    color: #1a1a2e;
+    transition: transform 0.1s, background 0.2s;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.25);
+  }
+  .btn:hover { background: #fff; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+  .btn.minus { background: rgba(0,0,0,0.35); color: #fff; }
+
+  .leader-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    font-size: 1.8rem;
+    opacity: 0;
+    transform: scale(0.5) rotate(-20deg);
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 2;
+    filter: drop-shadow(0 0 8px rgba(255,210,0,0.8));
+  }
+  .team.leading .leader-badge { opacity: 1; transform: scale(1) rotate(0); }
+
+  /* ---------- Footer controls ---------- */
+  .footer-controls {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 6px 20px 40px;
+  }
+
+  .control-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    padding: 10px 18px;
+    border-radius: 999px;
+  }
+
+  .control-pill label { font-size: 0.85rem; color: #cfc9ec; letter-spacing: 1px; }
+
+  .step-select {
+    background: #1a1633;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .reset-btn {
+    background: linear-gradient(120deg, #ff512f, #dd2476);
+    color: #fff;
+    border: none;
+    padding: 12px 26px;
+    border-radius: 999px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 5px 20px rgba(221,36,118,0.5);
+    transition: transform 0.1s;
+  }
+  .reset-btn:active { transform: scale(0.95); }
+
+  @media (max-width: 640px) {
+    .board { flex-direction: column; }
+    .vs { padding: 4px 0; }
+    .team { min-height: 38vh; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>⚡ Showdown Scoreboard ⚡</h1>
+    <p class="subtitle">Tap a side to score • Click a name to rename</p>
+  </header>
+
+  <main class="board">
+    <section class="team left leading" id="team-left" data-side="left">
+      <span class="leader-badge">👑</span>
+      <input class="name-input" id="name-left" value="" placeholder="Team One" maxlength="18" />
+      <div class="score" id="score-left">0</div>
+      <div class="tap-hint">Tap anywhere to +<span class="step-label-left">1</span></div>
+      <div class="controls">
+        <button class="btn minus" data-action="minus" data-side="left">– Point</button>
+        <button class="btn" data-action="plus" data-side="left">+ Point</button>
+      </div>
+    </section>
+
+    <div class="vs">VS</div>
+
+    <section class="team right" id="team-right" data-side="right">
+      <span class="leader-badge">👑</span>
+      <input class="name-input" id="name-right" value="" placeholder="Team Two" maxlength="18" />
+      <div class="score" id="score-right">0</div>
+      <div class="tap-hint">Tap anywhere to +<span class="step-label-right">1</span></div>
+      <div class="controls">
+        <button class="btn minus" data-action="minus" data-side="right">– Point</button>
+        <button class="btn" data-action="plus" data-side="right">+ Point</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer-controls">
+    <div class="control-pill">
+      <label for="step">POINTS PER TAP</label>
+      <select id="step" class="step-select">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+    <button class="reset-btn" id="reset">🔄 Reset Scores</button>
+  </div>
+
+<script>
+  const scores = { left: 0, right: 0 };
+  let step = 1;
+
+  const els = {
+    left:  { score: document.getElementById('score-left'),  team: document.getElementById('team-left'),  name: document.getElementById('name-left') },
+    right: { score: document.getElementById('score-right'), team: document.getElementById('team-right'), name: document.getElementById('name-right') },
+  };
+
+  // ---- persistence ----
+  function save() {
+    localStorage.setItem('scoreboard', JSON.stringify({
+      scores,
+      names: { left: els.left.name.value, right: els.right.name.value },
+      step,
+    }));
+  }
+
+  function load() {
+    try {
+      const data = JSON.parse(localStorage.getItem('scoreboard'));
+      if (!data) return;
+      scores.left = data.scores?.left ?? 0;
+      scores.right = data.scores?.right ?? 0;
+      if (data.names?.left) els.left.name.value = data.names.left;
+      if (data.names?.right) els.right.name.value = data.names.right;
+      if (data.step) {
+        step = data.step;
+        document.getElementById('step').value = String(step);
+      }
+    } catch (e) { /* ignore corrupt storage */ }
+  }
+
+  // ---- rendering ----
+  function render(bumpSide) {
+    for (const side of ['left', 'right']) {
+      els[side].score.textContent = scores[side];
+    }
+    // leader crown
+    els.left.team.classList.toggle('leading', scores.left > scores.right);
+    els.right.team.classList.toggle('leading', scores.right > scores.left);
+
+    if (bumpSide) {
+      const s = els[bumpSide].score;
+      s.classList.remove('bump');
+      void s.offsetWidth; // restart animation
+      s.classList.add('bump');
+    }
+    document.querySelector('.step-label-left').textContent = step;
+    document.querySelector('.step-label-right').textContent = step;
+    save();
+  }
+
+  function change(side, delta) {
+    scores[side] = Math.max(0, scores[side] + delta);
+    render(delta > 0 ? side : null);
+    if (delta > 0) confetti(side);
+  }
+
+  // ---- confetti burst ----
+  function confetti(side) {
+    const team = els[side].team;
+    const rect = team.getBoundingClientRect();
+    const colors = side === 'left'
+      ? ['#ff512f', '#dd2476', '#ffd200', '#fff']
+      : ['#1fa2ff', '#12d8fa', '#ffd200', '#fff'];
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('div');
+      p.style.cssText = `
+        position:fixed; width:10px; height:10px; z-index:50; pointer-events:none;
+        border-radius:2px;
+        left:${rect.left + rect.width / 2}px;
+        top:${rect.top + rect.height / 3}px;
+        background:${colors[i % colors.length]};
+      `;
+      document.body.appendChild(p);
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 80 + Math.random() * 160;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist - 60;
+      p.animate([
+        { transform: 'translate(0,0) rotate(0)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy + 200}px) rotate(${Math.random()*720}deg)`, opacity: 0 }
+      ], { duration: 900 + Math.random() * 400, easing: 'cubic-bezier(.2,.7,.3,1)' })
+       .onfinish = () => p.remove();
+    }
+  }
+
+  // ---- events ----
+  for (const side of ['left', 'right']) {
+    // tap the panel to add points (but not when interacting with inputs/buttons)
+    els[side].team.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('input')) return;
+      change(side, step);
+    });
+    els[side].name.addEventListener('input', save);
+    // prevent a name click from also scoring is handled by guard above
+  }
+
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const side = btn.dataset.side;
+      const delta = btn.dataset.action === 'plus' ? step : -step;
+      change(side, delta);
+    });
+  });
+
+  document.getElementById('step').addEventListener('change', (e) => {
+    step = parseInt(e.target.value, 10) || 1;
+    render();
+  });
+
+  document.getElementById('reset').addEventListener('click', () => {
+    scores.left = 0;
+    scores.right = 0;
+    render();
+  });
+
+  // keyboard: A = left+, S = right+
+  document.addEventListener('keydown', (e) => {
+    if (document.activeElement.tagName === 'INPUT') return;
+    if (e.key.toLowerCase() === 'a') change('left', step);
+    if (e.key.toLowerCase() === 's') change('right', step);
+  });
+
+  load();
+  render();
+</script>
+</body>
+</html>
