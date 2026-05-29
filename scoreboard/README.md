@@ -18,3 +18,17 @@ a browser window).
 
 Scores, names and the points-per-tap setting are saved automatically in your
 browser, so the board survives a page refresh.
+
+## Mobile
+
+The board is fully touch-friendly:
+
+- Columns **stack vertically in portrait** and stay **side-by-side in landscape**.
+- A white **flash** and a short **vibration** confirm each tap (no hover needed).
+- Layout uses dynamic viewport height (`dvh`) and safe-area insets, so it fits
+  correctly around notches and mobile browser toolbars.
+- Double-tap-to-zoom and accidental text selection are disabled for clean tapping,
+  and buttons use large, thumb-friendly tap targets.
+
+Tip: on iOS/Android you can use the browser's "Add to Home Screen" option to run
+it full-screen like an app.

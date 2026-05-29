@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0d0b1f" />
 <title>⚡ Showdown Scoreboard ⚡</title>
 <style>
   :root {
@@ -12,7 +16,12 @@
     --right-2: #12d8fa;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
 
   html, body { height: 100%; }
 
@@ -25,8 +34,12 @@
       radial-gradient(circle at 50% 90%, rgba(255,200,0,0.15), transparent 50%);
     color: #fff;
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation; /* kill double-tap-to-zoom delay */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 
   /* ---------- Header ---------- */
@@ -118,7 +131,24 @@
 
   .team > * { position: relative; z-index: 1; }
 
-  .team:hover .tap-hint { opacity: 1; }
+  /* flash feedback when a side is tapped (touch has no hover) */
+  .team.flash::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.35);
+    z-index: 1;
+    animation: flash 0.25s ease-out;
+    pointer-events: none;
+  }
+  @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+
+  /* only enable hover effects on devices that actually have a pointer */
+  @media (hover: hover) {
+    .team:hover .tap-hint { opacity: 1; }
+    .btn:hover { background: #fff; }
+    .reset-btn:hover { filter: brightness(1.08); }
+  }
 
   .name-input {
     width: 100%;
@@ -190,7 +220,6 @@
     transition: transform 0.1s, background 0.2s;
     box-shadow: 0 4px 0 rgba(0,0,0,0.25);
   }
-  .btn:hover { background: #fff; }
   .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
   .btn.minus { background: rgba(0,0,0,0.35); color: #fff; }
 
@@ -252,10 +281,40 @@
   }
   .reset-btn:active { transform: scale(0.95); }
 
+  /* ---------- Phones (portrait) ---------- */
   @media (max-width: 640px) {
-    .board { flex-direction: column; }
-    .vs { padding: 4px 0; }
-    .team { min-height: 38vh; }
+    header { padding: 12px 10px 4px; }
+    .subtitle { font-size: 0.8rem; }
+    .board {
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px;
+    }
+    .vs {
+      padding: 2px 0;
+      font-size: 1.8rem;
+    }
+    .team {
+      min-height: 0;
+      flex: 1 1 0;
+      padding: 16px 14px 18px;
+      border-radius: 20px;
+    }
+    .score { font-size: clamp(4rem, 26vw, 9rem); margin: 8px 0; }
+    .btn { padding: 14px 20px; font-size: 1.05rem; } /* bigger tap targets */
+    .footer-controls { padding: 4px 12px 20px; gap: 10px; }
+    .tap-hint { font-size: 0.8rem; padding: 6px 12px; }
+  }
+
+  /* ---------- Phones (landscape) — keep columns side by side ---------- */
+  @media (max-height: 500px) and (orientation: landscape) {
+    header { padding: 6px; }
+    h1 { font-size: 1.4rem; }
+    .subtitle { display: none; }
+    .board { padding: 8px; gap: 10px; }
+    .team { min-height: 0; padding: 10px; }
+    .score { font-size: clamp(3rem, 14vh, 7rem); }
+    .footer-controls { padding: 4px 8px 8px; }
   }
 </style>
 </head>
@@ -361,7 +420,19 @@
   function change(side, delta) {
     scores[side] = Math.max(0, scores[side] + delta);
     render(delta > 0 ? side : null);
-    if (delta > 0) confetti(side);
+    if (delta > 0) {
+      confetti(side);
+      flash(side);
+      if (navigator.vibrate) navigator.vibrate(20); // subtle haptic on mobile
+    }
+  }
+
+  // brief white flash on the tapped panel (touch has no :hover feedback)
+  function flash(side) {
+    const t = els[side].team;
+    t.classList.remove('flash');
+    void t.offsetWidth;
+    t.classList.add('flash');
   }
 
   // ---- confetti burst ----
