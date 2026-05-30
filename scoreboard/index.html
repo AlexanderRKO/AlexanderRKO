@@ -77,6 +77,45 @@
     letter-spacing: 1px;
   }
 
+  /* ---------- Match timer ---------- */
+  .timer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .timer-display {
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #fff;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.18);
+    padding: 4px 16px;
+    border-radius: 12px;
+    text-shadow: 0 0 18px rgba(18,216,250,0.5);
+    min-width: 116px;
+    text-align: center;
+  }
+  .timer-display.running { box-shadow: 0 0 22px rgba(18,216,250,0.45); }
+
+  .timer-btn {
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+  }
+  .timer-btn:active { transform: scale(0.9); }
+
   /* ---------- Board ---------- */
   .board {
     display: flex;
@@ -285,6 +324,73 @@
   }
   .reset-btn:active { transform: scale(0.95); }
 
+  /* ---------- Winner banner ---------- */
+  .winner-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(5,4,15,0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .winner-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .winner-card {
+    text-align: center;
+    background: linear-gradient(135deg, var(--w1, #ff512f), var(--w2, #dd2476));
+    border-radius: 28px;
+    padding: 34px 30px 30px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 20px 70px rgba(0,0,0,0.6), 0 0 60px rgba(255,255,255,0.15);
+    animation: popIn 0.45s cubic-bezier(.2,1.3,.4,1);
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .winner-trophy {
+    font-size: 4rem;
+    filter: drop-shadow(0 0 18px rgba(255,210,0,0.8));
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .winner-label {
+    margin-top: 6px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.85);
+  }
+  .winner-name {
+    font-size: clamp(2rem, 8vw, 3.2rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 4px 0 2px;
+    text-shadow: 0 4px 0 rgba(0,0,0,0.25);
+    word-break: break-word;
+  }
+  .winner-score {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 22px;
+  }
+  .winner-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .winner-actions .btn { font-size: 1.05rem; padding: 13px 22px; }
+
   /* ---------- Phones (portrait) ---------- */
   @media (max-width: 640px) {
     header { padding: 12px 10px 4px; }
@@ -315,6 +421,9 @@
     header { padding: 6px; }
     h1 { font-size: 1.4rem; }
     .subtitle { display: none; }
+    .timer-bar { margin-top: 4px; gap: 8px; }
+    .timer-display { font-size: 1.3rem; padding: 2px 12px; min-width: 92px; }
+    .timer-btn { width: 36px; height: 36px; font-size: 1rem; }
     .board { padding: 8px; gap: 10px; }
     .team { min-height: 0; padding: 10px; }
     .score { font-size: clamp(3rem, 14vh, 7rem); }
@@ -326,6 +435,11 @@
   <header>
     <h1>⚡ Showdown Scoreboard ⚡</h1>
     <p class="subtitle">Tap a side to score • Click a name to rename</p>
+    <div class="timer-bar">
+      <button class="timer-btn" id="timer-toggle" aria-label="Start or pause timer">▶</button>
+      <span class="timer-display" id="timer-display">00:00</span>
+      <button class="timer-btn" id="timer-reset" aria-label="Reset timer">↺</button>
+    </div>
   </header>
 
   <main class="board">
@@ -365,12 +479,39 @@
         <option value="10">10</option>
       </select>
     </div>
+    <div class="control-pill">
+      <label for="target">PLAY TO</label>
+      <select id="target" class="step-select">
+        <option value="0">Off</option>
+        <option value="7">7</option>
+        <option value="11">11</option>
+        <option value="15">15</option>
+        <option value="21">21</option>
+        <option value="25">25</option>
+      </select>
+    </div>
     <button class="reset-btn" id="reset">🔄 Reset Scores</button>
+  </div>
+
+  <div class="winner-overlay" id="winner-overlay">
+    <div class="winner-card" id="winner-card">
+      <div class="winner-trophy">🏆</div>
+      <div class="winner-label">Winner</div>
+      <div class="winner-name" id="winner-name">Team</div>
+      <div class="winner-score" id="winner-score">0 – 0</div>
+      <div class="winner-actions">
+        <button class="btn minus" id="winner-keep">Keep playing</button>
+        <button class="btn" id="winner-rematch">Rematch</button>
+      </div>
+    </div>
   </div>
 
 <script>
   const scores = { left: 0, right: 0 };
   let step = 1;
+  let target = 0;             // 0 = no win target
+  let lastWinner = null;      // side that triggered the current banner
+  const timer = { elapsed: 0, running: false, startedAt: 0 }; // elapsed in ms
 
   const els = {
     left:  { score: document.getElementById('score-left'),  team: document.getElementById('team-left'),  name: document.getElementById('name-left') },
@@ -383,6 +524,8 @@
       scores,
       names: { left: els.left.name.value, right: els.right.name.value },
       step,
+      target,
+      timer,
     }));
   }
 
@@ -397,6 +540,16 @@
       if (data.step) {
         step = data.step;
         document.getElementById('step').value = String(step);
+      }
+      if (data.target != null) {
+        target = data.target;
+        document.getElementById('target').value = String(target);
+      }
+      if (data.timer) {
+        timer.elapsed = data.timer.elapsed ?? 0;
+        timer.running = !!data.timer.running;
+        // resume the running clock from where it left off
+        if (timer.running) timer.startedAt = Date.now();
       }
     } catch (e) { /* ignore corrupt storage */ }
   }
@@ -428,6 +581,10 @@
       confetti(side);
       flash(side);
       if (navigator.vibrate) navigator.vibrate(20); // subtle haptic on mobile
+      // win target reached → celebrate
+      if (target > 0 && scores[side] >= target && lastWinner !== side) {
+        showWinner(side);
+      }
     }
   }
 
@@ -468,6 +625,91 @@
     }
   }
 
+  // ---- match timer ----
+  const timerDisplay = document.getElementById('timer-display');
+  const timerToggle = document.getElementById('timer-toggle');
+
+  function timerTotal() {
+    return timer.elapsed + (timer.running ? Date.now() - timer.startedAt : 0);
+  }
+
+  function renderTimer() {
+    const total = Math.floor(timerTotal() / 1000);
+    const m = String(Math.floor(total / 60)).padStart(2, '0');
+    const s = String(total % 60).padStart(2, '0');
+    timerDisplay.textContent = `${m}:${s}`;
+    timerDisplay.classList.toggle('running', timer.running);
+    timerToggle.textContent = timer.running ? '⏸' : '▶';
+  }
+
+  function toggleTimer() {
+    if (timer.running) {
+      timer.elapsed += Date.now() - timer.startedAt;
+      timer.running = false;
+    } else {
+      timer.startedAt = Date.now();
+      timer.running = true;
+    }
+    renderTimer();
+    save();
+  }
+
+  function resetTimer() {
+    timer.elapsed = 0;
+    timer.running = false;
+    timer.startedAt = 0;
+    renderTimer();
+    save();
+  }
+
+  timerToggle.addEventListener('click', toggleTimer);
+  document.getElementById('timer-reset').addEventListener('click', resetTimer);
+  setInterval(() => { if (timer.running) renderTimer(); }, 250); // live tick
+
+  // ---- winner banner ----
+  const overlay = document.getElementById('winner-overlay');
+
+  function showWinner(side) {
+    lastWinner = side;
+    // pause the clock — the game's over
+    if (timer.running) {
+      timer.elapsed += Date.now() - timer.startedAt;
+      timer.running = false;
+      renderTimer();
+    }
+    const palette = side === 'left'
+      ? ['#ff512f', '#dd2476'] : ['#1fa2ff', '#12d8fa'];
+    const card = document.getElementById('winner-card');
+    card.style.setProperty('--w1', palette[0]);
+    card.style.setProperty('--w2', palette[1]);
+    const name = els[side].name.value.trim() || els[side].name.placeholder;
+    document.getElementById('winner-name').textContent = name;
+    document.getElementById('winner-score').textContent = `${scores.left} – ${scores.right}`;
+    overlay.classList.add('show');
+    if (navigator.vibrate) navigator.vibrate([40, 60, 120]);
+    // a bigger burst from both sides to celebrate
+    confetti('left');
+    confetti('right');
+    save();
+  }
+
+  function hideWinner() {
+    overlay.classList.remove('show');
+  }
+
+  document.getElementById('winner-keep').addEventListener('click', () => {
+    // dismiss but keep score; arm again only when the leader scores past target
+    hideWinner();
+  });
+  document.getElementById('winner-rematch').addEventListener('click', () => {
+    scores.left = 0;
+    scores.right = 0;
+    lastWinner = null;
+    hideWinner();
+    resetTimer();
+    render();
+  });
+
   // ---- events ----
   for (const side of ['left', 'right']) {
     // tap the panel to add points (but not when interacting with inputs/buttons)
@@ -493,9 +735,16 @@
     render();
   });
 
+  document.getElementById('target').addEventListener('change', (e) => {
+    target = parseInt(e.target.value, 10) || 0;
+    lastWinner = null; // re-arm for the new target
+    save();
+  });
+
   document.getElementById('reset').addEventListener('click', () => {
     scores.left = 0;
     scores.right = 0;
+    lastWinner = null;
     render();
   });
 
@@ -515,6 +764,7 @@
 
   load();
   render();
+  renderTimer();
 </script>
 </body>
 </html>

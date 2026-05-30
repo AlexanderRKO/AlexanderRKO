@@ -16,8 +16,23 @@ a browser window).
 - **🔄 Reset Scores** sets both back to 0 (names are kept).
 - Keyboard shortcuts: press **A** to score the left side, **S** for the right.
 
-Scores, names and the points-per-tap setting are saved automatically in your
-browser, so the board survives a page refresh.
+### Match timer
+
+A **start / pause / reset** clock sits in the header (▶ / ⏸ / ↺). Use it to time
+each game or period. It keeps counting across a page refresh, and it pauses
+automatically when someone wins.
+
+### Win target & winner banner
+
+The **Play to** dropdown sets a target score (7, 11, 15, 21, 25, or *Off*). When a
+competitor reaches it, a celebratory **🏆 Winner** banner pops up with their name
+and the final score. From there you can:
+
+- **Rematch** – reset both scores and the timer for a fresh game, or
+- **Keep playing** – dismiss the banner and carry on (e.g. to play win-by-two).
+
+Scores, names, points-per-tap, the win target and the timer are all saved
+automatically in your browser, so the board survives a page refresh.
 
 ## Mobile
 
