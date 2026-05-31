@@ -1,5 +1,5 @@
 // Service worker: makes the scoreboard work fully offline once opened once.
-const CACHE = 'scoreboard-v3';
+const CACHE = 'scoreboard-v4';
 const ASSETS = [
   './',
   './index.html',

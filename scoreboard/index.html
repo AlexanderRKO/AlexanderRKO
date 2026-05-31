@@ -190,10 +190,20 @@
     font-family: inherit;
     transition: transform 0.1s ease, background 0.2s ease;
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none; /* no iOS text/callout menu on long-press */
+    user-select: none;
+    -webkit-user-select: none;
   }
   .score-btn:active {
     transform: scale(0.97);
     background: rgba(0,0,0,0.28);
+  }
+
+  /* quick blue-white pulse to confirm a long-press undo */
+  .score-btn.undo-flash { animation: undoFlash 0.4s ease; }
+  @keyframes undoFlash {
+    0%   { background: rgba(255,255,255,0.45); }
+    100% { background: rgba(0,0,0,0.18); }
   }
 
   /* small "+1" pill in the corner of the big button so its purpose is obvious */
@@ -471,7 +481,7 @@
 <body>
   <header>
     <h1>⚡ Showdown Scoreboard ⚡</h1>
-    <p class="subtitle">Tap the big score to add a point • Tap a name to edit</p>
+    <p class="subtitle">Tap the big score to add • Hold it to undo • Tap a name to edit</p>
     <div class="timer-bar">
       <button class="timer-btn" id="timer-toggle" aria-label="Start or pause timer">▶</button>
       <span class="timer-display" id="timer-display">00:00</span>
@@ -486,7 +496,7 @@
       <button class="score-btn" data-action="plus" data-side="left" aria-label="Add a point to the left side">
         <span class="plus-badge">+<span class="step-label-left">1</span></span>
         <span class="score" id="score-left">0</span>
-        <span class="tap-hint">Tap to score</span>
+        <span class="tap-hint">Tap +1 · hold to undo</span>
       </button>
       <div class="controls">
         <button class="btn minus" data-action="minus" data-side="left">– Correct</button>
@@ -501,7 +511,7 @@
       <button class="score-btn" data-action="plus" data-side="right" aria-label="Add a point to the right side">
         <span class="plus-badge">+<span class="step-label-right">1</span></span>
         <span class="score" id="score-right">0</span>
-        <span class="tap-hint">Tap to score</span>
+        <span class="tap-hint">Tap +1 · hold to undo</span>
       </button>
       <div class="controls">
         <button class="btn minus" data-action="minus" data-side="right">– Correct</button>
@@ -552,6 +562,7 @@
   let step = 1;
   let target = 0;             // 0 = no win target
   let lastWinner = null;      // side that triggered the current banner
+  const history = [];         // score snapshots for long-press undo
   const timer = { elapsed: 0, running: false, startedAt: 0 }; // elapsed in ms
 
   const els = {
@@ -616,7 +627,13 @@
   }
 
   function change(side, delta) {
-    scores[side] = Math.max(0, scores[side] + delta);
+    const next = Math.max(0, scores[side] + delta);
+    if (next !== scores[side]) {
+      // remember the state before this change so a long-press can undo it
+      history.push({ left: scores.left, right: scores.right, lastWinner });
+      if (history.length > 50) history.shift();
+    }
+    scores[side] = next;
     render(delta > 0 ? side : null);
     if (delta > 0) {
       confetti(side);
@@ -627,6 +644,20 @@
         showWinner(side);
       }
     }
+  }
+
+  // ---- long-press undo (hold a score to take back the last point) ----
+  function undo() {
+    const prev = history.pop();
+    if (!prev) {
+      if (navigator.vibrate) navigator.vibrate(10); // nothing left to undo
+      return;
+    }
+    scores.left = prev.left;
+    scores.right = prev.right;
+    lastWinner = prev.lastWinner ?? null; // re-arm the win banner if needed
+    if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+    render();
   }
 
   // brief white flash on the tapped panel (touch has no :hover feedback)
@@ -765,6 +796,39 @@
       const delta = btn.dataset.action === 'plus' ? step : -step;
       change(side, delta);
     });
+  });
+
+  // press-and-hold a big score to undo the last point (instead of adding one)
+  const LONG_PRESS_MS = 500;
+  document.querySelectorAll('.score-btn').forEach(btn => {
+    let timer = null;
+    let longFired = false;
+
+    const start = () => {
+      longFired = false;
+      timer = setTimeout(() => {
+        longFired = true;
+        undo();
+        btn.classList.remove('undo-flash');
+        void btn.offsetWidth;
+        btn.classList.add('undo-flash');
+      }, LONG_PRESS_MS);
+    };
+    const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+
+    btn.addEventListener('pointerdown', start);
+    btn.addEventListener('pointerup', cancel);
+    btn.addEventListener('pointerleave', cancel);
+    btn.addEventListener('pointercancel', cancel);
+
+    // swallow the click that fires after a long-press so it doesn't also add a point
+    btn.addEventListener('click', (e) => {
+      if (longFired) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        longFired = false;
+      }
+    }, true); // capture phase: runs before the scoring handler above
   });
 
   document.getElementById('step').addEventListener('change', (e) => {

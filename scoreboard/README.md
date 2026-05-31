@@ -8,9 +8,10 @@ step — just open the file in any web browser.
 Open `scoreboard/index.html` in your browser (double-click it, or drag it into
 a browser window).
 
-- **Tap / click either coloured side** to add points to that competitor.
+- **Tap the big score button** on either side to add a point to that competitor.
+- **Press and hold** a score to **undo** the last point (handy for mis-taps).
 - **Click a name** at the top of a column to rename the competitor.
-- **+ Point / – Point** buttons give precise control (scores never drop below 0).
+- **– Correct** button fixes an over-count (scores never drop below 0).
 - **Points per tap** dropdown lets you score 1, 2, 3, 5 or 10 at a time.
 - **👑 crown** automatically appears above whoever is in the lead.
 - **🔄 Reset Scores** sets both back to 0 (names are kept).
