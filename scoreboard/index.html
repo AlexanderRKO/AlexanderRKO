@@ -147,13 +147,13 @@
   .team {
     flex: 1;
     border-radius: 24px;
-    padding: 22px 18px 26px;
+    padding: 18px 16px 20px;
     position: relative;
-    cursor: pointer;
-    transition: transform 0.12s ease, box-shadow 0.3s ease;
+    transition: box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 12px;
     min-height: 60vh;
     overflow: hidden;
   }
@@ -170,9 +170,46 @@
   .team.left  { --c1: var(--left-1);  --c2: var(--left-2);  box-shadow: 0 0 50px rgba(221,36,118,0.45); }
   .team.right { --c1: var(--right-1); --c2: var(--right-2); box-shadow: 0 0 50px rgba(31,162,255,0.45); }
 
-  .team:active { transform: scale(0.985); }
-
   .team > * { position: relative; z-index: 1; }
+
+  /* ---------- Big +1 score button (the main mobile tap target) ---------- */
+  .score-btn {
+    flex: 1;
+    width: 100%;
+    border: none;
+    border-radius: 18px;
+    background: rgba(0,0,0,0.18);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px;
+    font-family: inherit;
+    transition: transform 0.1s ease, background 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .score-btn:active {
+    transform: scale(0.97);
+    background: rgba(0,0,0,0.28);
+  }
+
+  /* small "+1" pill in the corner of the big button so its purpose is obvious */
+  .plus-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-size: 1rem;
+    font-weight: 900;
+    background: rgba(255,255,255,0.9);
+    color: #1a1a2e;
+    padding: 4px 12px;
+    border-radius: 999px;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+    z-index: 2;
+  }
 
   /* flash feedback when a side is tapped (touch has no hover) */
   .team.flash::after {
@@ -188,7 +225,7 @@
 
   /* only enable hover effects on devices that actually have a pointer */
   @media (hover: hover) {
-    .team:hover .tap-hint { opacity: 1; }
+    .score-btn:hover { background: rgba(0,0,0,0.26); }
     .btn:hover { background: #fff; }
     .reset-btn:hover { filter: brightness(1.08); }
   }
@@ -219,7 +256,6 @@
     font-size: clamp(5rem, 22vw, 14rem);
     font-weight: 900;
     line-height: 1;
-    margin: auto 0;
     text-shadow: 0 6px 0 rgba(0,0,0,0.25), 0 0 40px rgba(255,255,255,0.35);
     transition: transform 0.15s ease;
   }
@@ -246,7 +282,6 @@
   .controls {
     display: flex;
     gap: 10px;
-    margin-top: 14px;
     flex-wrap: wrap;
     justify-content: center;
   }
@@ -410,8 +445,10 @@
       padding: 16px 14px 18px;
       border-radius: 20px;
     }
-    .score { font-size: clamp(4rem, 26vw, 9rem); margin: 8px 0; }
+    .score { font-size: clamp(4rem, 26vw, 9rem); }
     .btn { padding: 14px 20px; font-size: 1.05rem; } /* bigger tap targets */
+    .name-input { flex: 0 0 auto; }
+    .score-btn { padding: 8px; } /* maximise the tap area */
     .footer-controls { padding: 4px 12px 20px; gap: 10px; }
     .tap-hint { font-size: 0.8rem; padding: 6px 12px; }
   }
@@ -434,7 +471,7 @@
 <body>
   <header>
     <h1>⚡ Showdown Scoreboard ⚡</h1>
-    <p class="subtitle">Tap a side to score • Click a name to rename</p>
+    <p class="subtitle">Tap the big score to add a point • Tap a name to edit</p>
     <div class="timer-bar">
       <button class="timer-btn" id="timer-toggle" aria-label="Start or pause timer">▶</button>
       <span class="timer-display" id="timer-display">00:00</span>
@@ -446,11 +483,13 @@
     <section class="team left leading" id="team-left" data-side="left">
       <span class="leader-badge">👑</span>
       <input class="name-input" id="name-left" value="" placeholder="Team One" maxlength="18" />
-      <div class="score" id="score-left">0</div>
-      <div class="tap-hint">Tap anywhere to +<span class="step-label-left">1</span></div>
+      <button class="score-btn" data-action="plus" data-side="left" aria-label="Add a point to the left side">
+        <span class="plus-badge">+<span class="step-label-left">1</span></span>
+        <span class="score" id="score-left">0</span>
+        <span class="tap-hint">Tap to score</span>
+      </button>
       <div class="controls">
-        <button class="btn minus" data-action="minus" data-side="left">– Point</button>
-        <button class="btn" data-action="plus" data-side="left">+ Point</button>
+        <button class="btn minus" data-action="minus" data-side="left">– Correct</button>
       </div>
     </section>
 
@@ -459,11 +498,13 @@
     <section class="team right" id="team-right" data-side="right">
       <span class="leader-badge">👑</span>
       <input class="name-input" id="name-right" value="" placeholder="Team Two" maxlength="18" />
-      <div class="score" id="score-right">0</div>
-      <div class="tap-hint">Tap anywhere to +<span class="step-label-right">1</span></div>
+      <button class="score-btn" data-action="plus" data-side="right" aria-label="Add a point to the right side">
+        <span class="plus-badge">+<span class="step-label-right">1</span></span>
+        <span class="score" id="score-right">0</span>
+        <span class="tap-hint">Tap to score</span>
+      </button>
       <div class="controls">
-        <button class="btn minus" data-action="minus" data-side="right">– Point</button>
-        <button class="btn" data-action="plus" data-side="right">+ Point</button>
+        <button class="btn minus" data-action="minus" data-side="right">– Correct</button>
       </div>
     </section>
   </main>
@@ -711,17 +752,13 @@
   });
 
   // ---- events ----
+  // names are their own field, kept well clear of the scoring button
   for (const side of ['left', 'right']) {
-    // tap the panel to add points (but not when interacting with inputs/buttons)
-    els[side].team.addEventListener('click', (e) => {
-      if (e.target.closest('button') || e.target.closest('input')) return;
-      change(side, step);
-    });
     els[side].name.addEventListener('input', save);
-    // prevent a name click from also scoring is handled by guard above
   }
 
-  document.querySelectorAll('.btn').forEach(btn => {
+  // the big score button (+) and the small correct button (–) both score via data-action
+  document.querySelectorAll('[data-action]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const side = btn.dataset.side;
