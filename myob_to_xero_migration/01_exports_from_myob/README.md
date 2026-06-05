@@ -5,6 +5,12 @@ kept in its original, detailed format. Files in this stage are
 **immutable** — never edit them in place. Transformations happen in
 `../02_cleansed_for_xero/`.
 
+> ⚠️ **Payroll subfolders (`04_employees/`, `12_payroll_history/`) are
+> high-sensitivity.** They carry TFNs, DOBs, bank details, and
+> identified earnings, governed by the Privacy Act 1988 and the TFN
+> Rule. Read `../PRIVACY.md` and complete its §8 pre-pull sign-off
+> before exporting either.
+
 ## Subfolders
 
 | Folder | What goes in here | Suggested file |

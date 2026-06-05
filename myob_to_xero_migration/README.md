@@ -23,6 +23,12 @@ The toolkit enforces a four-stage pipeline:
 See `PLAN.md` for the full conversion plan and export mapping, and
 `INDEX.md` for the live status of every artefact.
 
+> ⚠️ **Before you pull any employee or payroll data, read `PRIVACY.md`.**
+> Payroll exports contain TFNs and identified earnings — they are
+> governed by the Privacy Act 1988, the TFN Rule 2015, and the
+> Notifiable Data Breaches scheme. Real client files must never be
+> committed to this repository; see `.gitignore`.
+
 ## Quick start
 
 1. Read `PLAN.md` end-to-end before pulling any data.

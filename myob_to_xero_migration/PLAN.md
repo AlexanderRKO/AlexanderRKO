@@ -96,7 +96,29 @@ Xero validates dependencies between data sets, so order matters:
 12. Fixed assets register.
 13. Repeating transactions and templates.
 
-## 4. Tolerances & sign-off
+## 4. Privacy & payroll data handling
+
+Payroll exports (entities 4 and 12) carry TFNs, DOBs, bank details,
+and identified earnings. Treat them as the highest-risk dataset in
+this migration.
+
+- **Read `PRIVACY.md` before pulling employee or payroll data.** Do
+  not begin Stage 01 for those entities until the §8 pre-pull
+  sign-off checklist is fully ticked.
+- Only authorised migration team members (named in `INDEX.md`) may
+  open these folders. Restrict storage permissions accordingly.
+- Transfer only over encrypted channels (HTTPS direct download from
+  MYOB, secure portals, encrypted expiring links). **Never** by
+  plain email or personal cloud drive.
+- Minimise data at Stage 02: current employees only, drop notes and
+  history Xero doesn't need (see Stage-02 payroll READMEs).
+- Validator logs must not echo TFN, DOB, or bank values.
+- Secure-delete payroll exports within 30 days of final sign-off and
+  record the destruction (`04_xero_post_upload_checks/06_final_sign_off/`).
+- A misdirected file is a notifiable breach candidate — follow
+  `PRIVACY.md` §7 immediately, do not attempt to "fix by forwarding".
+
+## 5. Tolerances & sign-off
 
 - Variances ≤ A$1.00 per account are recorded but accepted.
 - Variances > A$1.00 must be investigated and either corrected or

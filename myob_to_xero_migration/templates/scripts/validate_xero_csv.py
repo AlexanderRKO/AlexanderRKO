@@ -67,6 +67,10 @@ def validate(cleansed: Path, template: Path) -> int:
         if len(blank_required) > 20:
             errors.append(f"  ... and {len(blank_required) - 20} more")
 
+    # Privacy guard: this validator must never echo identified payroll
+    # values. Only row counts, column names, and pass/fail are logged.
+    # See PRIVACY.md.
+
     if errors:
         print("RESULT     : FAIL")
         for e in errors:

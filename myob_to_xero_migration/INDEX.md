@@ -5,6 +5,18 @@ Update the **Status** column every time a file moves between stages.
 
 Status legend: `⬜ todo` · `🟡 in progress` · `🟢 done` · `⚠ exception`
 
+> ⚠️ **Payroll rows (04, 12 in Stage 01; 03, 12 in Stage 02) are
+> high-sensitivity.** Confirm the `PRIVACY.md` §8 pre-pull sign-off
+> is complete and that every team member listed below has
+> acknowledged `PRIVACY.md` before those rows move off `⬜ todo`.
+
+## Authorised migration team (payroll access)
+
+| Name | Role | MFA confirmed | Confidentiality undertaking | PRIVACY.md acknowledged |
+| ---- | ---- | ------------- | --------------------------- | ----------------------- |
+| _TBD_ | Lead | ⬜ | ⬜ | ⬜ |
+| _TBD_ | Support | ⬜ | ⬜ | ⬜ |
+
 ## Client header
 
 | Field | Value |

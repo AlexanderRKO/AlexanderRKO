@@ -3,6 +3,12 @@
 Working folder where the raw exports from `01_exports_from_myob/` are
 transformed into **Xero-approved CSV templates** ready to upload.
 
+> ⚠️ **Payroll subfolders (`03_employees/`,
+> `12_payroll_opening_balances/`) are high-sensitivity.** Apply data
+> minimisation (current employees only, drop notes/history) and
+> ensure validator logs do **not** echo TFN, DOB, or bank values.
+> Read `../PRIVACY.md` before working in either folder.
+
 ## Subfolders
 
 Each folder mirrors a Xero import endpoint and **must use Xero's column
