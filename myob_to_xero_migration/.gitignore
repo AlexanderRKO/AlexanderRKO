@@ -2,6 +2,14 @@
 # Only the folder structure, READMEs, and templates are version-controlled.
 # See PRIVACY.md for the full rationale.
 
+# --- Launcher-created environment & generated artefacts ---
+.venv/
+__pycache__/
+*.pyc
+status_report.pdf
+getting_started_visual.pdf
+status.txt
+
 # --- Payroll & employee data (highest sensitivity, TFN Rule applies) ---
 01_exports_from_myob/04_employees/*
 01_exports_from_myob/12_payroll_history/*

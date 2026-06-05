@@ -46,9 +46,28 @@ at each phase.
 See `PLAN.md` for the full conversion plan and export mapping, and
 `INDEX.md` for the live status of every artefact.
 
-## Visual layer
+## For non-technical users — double-click and go
 
-Three ways to view the same data, picked to match the audience:
+If you don't use a terminal, **double-click one of these launchers**
+to open the interactive dashboard in your browser. The first run
+sets up Python deps automatically (~30s); subsequent launches are
+near-instant.
+
+| Platform | File |
+| -------- | ---- |
+| macOS | `Start Migration Dashboard.command` |
+| Windows | `Start Migration Dashboard.bat` |
+| Linux | `start_dashboard.sh` |
+
+From the dashboard you can create a new engagement, tick artefacts
+done, drag-and-drop files into stage folders, validate Stage-02 CSVs,
+run the trial-balance acceptance gate, log exceptions, and download
+all three PDF deliverables — without touching the terminal or a
+markdown file.
+
+## Visual layer (for power users)
+
+Same data, multiple surfaces:
 
 | Surface | Command | Audience | Dependencies |
 | ------- | ------- | -------- | ------------ |

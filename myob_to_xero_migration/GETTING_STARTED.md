@@ -13,6 +13,22 @@ touch payroll data.
 > coloured callouts, and a one-page cheat sheet. Hand it to new team
 > members on day one.
 
+> 🖱 **Don't use a terminal?** Double-click the launcher and skip
+> sections 3 and 5 below — the dashboard does everything from the
+> browser:
+>
+> - macOS: `Start Migration Dashboard.command`
+> - Windows: `Start Migration Dashboard.bat`
+> - Linux: `start_dashboard.sh`
+>
+> The first run takes ~30 seconds (it creates a virtual environment
+> and installs dependencies). After that the dashboard opens in your
+> default browser at `http://localhost:8501` whenever you double-click
+> the launcher. From there you can: create a new engagement, tick
+> artefacts as you complete them, drag-and-drop files into the right
+> folders, validate Stage-02 CSVs, run the trial-balance acceptance
+> gate, add exceptions, and download all three PDF deliverables.
+
 ## 1. What this toolkit is
 
 A folder-based project framework that takes a client's MYOB Online
