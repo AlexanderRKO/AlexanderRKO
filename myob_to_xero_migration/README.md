@@ -54,7 +54,8 @@ Three ways to view the same data, picked to match the audience:
 | ------- | ------- | -------- | ------------ |
 | Terminal | `python migration.py status` | day-to-day operator | none |
 | Browser | `streamlit run dashboard.py` | accountant, partner | `pip install -r requirements.txt` |
-| Printable PDF | `python migration.py report -o status.pdf` | client / file | `reportlab` |
+| Printable PDF (status) | `python migration.py report -o status.pdf` | client / file | `reportlab` |
+| **Visual onboarding guide** | `python migration.py guide -o guide.pdf` | new team member | `reportlab` |
 | CI artefact | GitHub Actions `Migration status` workflow | reviewers | runs in CI |
 
 ### CLI

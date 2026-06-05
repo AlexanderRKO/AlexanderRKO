@@ -306,6 +306,18 @@ def cmd_check(args: argparse.Namespace) -> int:
     return subprocess.call(cmd)
 
 
+def cmd_guide(args: argparse.Namespace) -> int:
+    out = args.output or str(ROOT / "getting_started_visual.pdf")
+    return subprocess.call(
+        [
+            sys.executable,
+            str(SCRIPTS / "build_getting_started_pdf.py"),
+            "--output",
+            out,
+        ]
+    )
+
+
 # --------------------------------------------------------------------------- #
 # report — one-page PDF status                                                #
 # --------------------------------------------------------------------------- #
@@ -546,6 +558,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="output PDF path (default: status_report.pdf in toolkit root)",
     )
     rep.set_defaults(func=cmd_report)
+
+    gui = sub.add_parser(
+        "guide", help="build the downloadable visual Getting-Started PDF"
+    )
+    gui.add_argument(
+        "--output",
+        "-o",
+        default=None,
+        help="output PDF path (default: getting_started_visual.pdf in toolkit root)",
+    )
+    gui.set_defaults(func=cmd_guide)
 
     return p
 

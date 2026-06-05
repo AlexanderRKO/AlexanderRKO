@@ -7,6 +7,12 @@ itself runs through five phases over 1–3 weeks depending on the file.
 If you only read one other thing, read **`PRIVACY.md`** before you
 touch payroll data.
 
+> 📄 **Prefer a visual / printable version?** Run
+> `python migration.py guide -o getting_started_visual.pdf` to
+> generate a styled 7-page A4 PDF of this guide with a cover diagram,
+> coloured callouts, and a one-page cheat sheet. Hand it to new team
+> members on day one.
+
 ## 1. What this toolkit is
 
 A folder-based project framework that takes a client's MYOB Online
