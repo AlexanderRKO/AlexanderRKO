@@ -42,23 +42,57 @@ flowchart LR
 See `PLAN.md` for the full conversion plan and export mapping, and
 `INDEX.md` for the live status of every artefact.
 
-## CLI quick reference
+## Visual layer
 
-The `migration.py` wrapper at the toolkit root provides a single entry
-point for the most common operations:
+Three ways to view the same data, picked to match the audience:
+
+| Surface | Command | Audience | Dependencies |
+| ------- | ------- | -------- | ------------ |
+| Terminal | `python migration.py status` | day-to-day operator | none |
+| Browser | `streamlit run dashboard.py` | accountant, partner | `pip install -r requirements.txt` |
+| Printable PDF | `python migration.py report -o status.pdf` | client / file | `reportlab` |
+| CI artefact | GitHub Actions `Migration status` workflow | reviewers | runs in CI |
+
+### CLI
 
 ```bash
-python migration.py status                                   # progress dashboard
+python migration.py status                                          # coloured progress dashboard
 python migration.py init --client "Acme Pty Ltd" \
     --conversion-date 2026-07-01 --xero-org-target new \
-    --lead "J. Smith" [--dry-run]                            # fill engagement params
-python migration.py validate <cleansed.csv> <template.csv>   # Stage-02 preflight
-python migration.py check --myob <myob_tb.csv> --xero <xero_tb.csv>  # Stage-04 gate
+    --lead "J. Smith" [--dry-run]                                   # fill engagement params
+python migration.py validate <cleansed.csv> <template.csv>          # Stage-02 preflight
+python migration.py check --myob <myob_tb.csv> --xero <xero_tb.csv> # Stage-04 acceptance gate
+python migration.py report --output status_report.pdf               # one-page PDF
 ```
 
-`status` reads `INDEX.md` and the Stage-04 trackers; it prints a
-coloured per-stage progress bar, the open-exception count, the
-clearing-account roll-up, and the acceptance-gate verdict.
+### Streamlit dashboard
+
+```bash
+pip install -r requirements.txt
+streamlit run dashboard.py
+```
+
+Open `http://localhost:8501`. The dashboard renders:
+
+- **Overview** — client header, four per-stage progress bars, roll-up
+  metrics (open exceptions, clearing accounts at NIL, acceptance-gate
+  verdict), and the Equity vs Net-Profit reconciliation.
+- **Per-stage pages** — Stage 01 / 02 / 03 / 04 each show their
+  artefact table with done / wip / exception counts.
+- **Exceptions** — filterable table of `exceptions.csv`.
+- **Action Checklist** — preview of the client-facing sign-off
+  document.
+
+The dashboard is read-only — nothing it does modifies the underlying
+files. **Run it locally only when real client data is loaded**
+(see `PRIVACY.md`).
+
+### GitHub Actions
+
+`.github/workflows/migration-status.yml` runs `migration.py status`
+on every push that touches the toolkit, publishes the text output to
+the workflow summary, generates the PDF, and uploads both as a
+30-day artefact.
 
 > ⚠️ **Before you pull any employee or payroll data, read `PRIVACY.md`.**
 > Payroll exports contain TFNs and identified earnings — they are

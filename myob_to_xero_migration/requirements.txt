@@ -1,0 +1,15 @@
+# Optional dependencies for the migration toolkit's visual layer.
+# The core CLI (python migration.py status / init / validate / check) has
+# no external dependencies and works without anything installed.
+#
+# Install with:
+#     pip install -r requirements.txt
+#
+# Components that need these packages:
+#   reportlab → python migration.py report   (one-page PDF status)
+#   streamlit → streamlit run dashboard.py   (browser dashboard)
+#   pandas    → dashboard.py table rendering
+
+reportlab>=4.0
+streamlit>=1.30
+pandas>=2.0
