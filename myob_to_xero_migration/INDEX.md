@@ -25,9 +25,13 @@ Status legend: `⬜ todo` · `🟡 in progress` · `🟢 done` · `⚠ exception
 | Conversion date | _TBD_ |
 | MYOB file ID | _TBD_ |
 | Xero organisation | _TBD_ |
+| Xero org target | _new / existing_ |
+| Monthly comparatives required | _Y/N, range_ |
+| Custom CoA required | _Y/N_ |
 | Lead accountant | _TBD_ |
 | Migration started | _TBD_ |
 | Migration completed | _TBD_ |
+| MYOB file-readiness checklist cleared | ⬜ (`templates/checklists/myob_file_readiness.md`) |
 
 ## 01 — Exports from MYOB
 
@@ -97,7 +101,11 @@ Status legend: `⬜ todo` · `🟡 in progress` · `🟢 done` · `⚠ exception
 | Payroll opening balances match | Per employee | ⬜ | — | — |
 | Fixed assets register loaded | All assets | ⬜ | — | — |
 | Tracking categories active | All categories | ⬜ | — | — |
+| Clearing / suspense accounts at NIL | All clearing accts | ⬜ | — | `clearing_accounts_tracker.csv` |
+| Equity = Net Profit movement | BS vs P&L | ⬜ | — | `equity_vs_net_profit_check.csv` |
+| Automated acceptance gate (TB diff) | PASS required | ⬜ | — | `post_upload_acceptance_check.py` |
 | Final Trial Balance match | All accounts | ⬜ | — | — |
+| Action Checklist delivered to client | PDF | ⬜ | — | `06_final_sign_off/` |
 | Client final sign-off | — | ⬜ | — | — |
 
 ## Change log

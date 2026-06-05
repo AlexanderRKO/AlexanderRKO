@@ -31,12 +31,22 @@ See `PLAN.md` for the full conversion plan and export mapping, and
 
 ## Quick start
 
-1. Read `PLAN.md` end-to-end before pulling any data.
+1. Read `PLAN.md` end-to-end before pulling any data — especially
+   §4 (known Xero limitations: payroll, clearing accounts,
+   recurring txns, attachments) so the client is briefed up front.
 2. Fill in client details in `INDEX.md` (company name, conversion date,
-   GST status, payroll cut-over, etc.).
-3. Work top-down through the four folders — do not skip stages.
-4. Update the status column in `INDEX.md` whenever an artefact moves
+   GST status, payroll cut-over, target Xero org new-or-existing,
+   monthly comparatives, custom CoA).
+3. **Pre-export gate**: complete `templates/checklists/myob_file_readiness.md`
+   inside MYOB. Do not start Stage 01 until every item is ticked or
+   exception-logged.
+4. Work top-down through the four folders — do not skip stages.
+5. Update the status column in `INDEX.md` whenever an artefact moves
    between stages.
+6. At Stage 04, run `templates/scripts/post_upload_acceptance_check.py`
+   as the automated TB-diff gate, then deliver
+   `04_xero_post_upload_checks/06_final_sign_off/action_checklist_template.md`
+   to the client as the single roll-up summary.
 
 ## Conventions
 

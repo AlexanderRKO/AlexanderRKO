@@ -5,6 +5,12 @@ kept in its original, detailed format. Files in this stage are
 **immutable** — never edit them in place. Transformations happen in
 `../02_cleansed_for_xero/`.
 
+> ⚠️ **Pre-export gate.** Before exporting anything, complete
+> `../templates/checklists/myob_file_readiness.md` — bank/AR/AP/GST
+> reconciliations, clearing-account zero-outs, MYOB file verification,
+> backup, and period/EOY lock dates. A dirty source file makes
+> everything downstream unreliable.
+
 > ⚠️ **Payroll subfolders (`04_employees/`, `12_payroll_history/`) are
 > high-sensitivity.** They carry TFNs, DOBs, bank details, and
 > identified earnings, governed by the Privacy Act 1988 and the TFN

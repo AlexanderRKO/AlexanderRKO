@@ -21,6 +21,24 @@ earnings information and is equally sensitive. Treat as TFN-adjacent:
 even where the TFN itself isn't in the file, identity + earnings is
 serious-harm-grade data under the NDB scheme.
 
+## Xero limitation — what actually gets loaded
+
+Xero's API does **not** accept historical payruns. The data in this
+folder seeds two outputs only:
+
+1. **Employee YTD opening balances** at the conversion date
+   (gross, PAYG, super, leave-pay items, allowances).
+2. **Reference-only bills or manual journals** for any historic
+   payruns the client wants visible inside Xero. These do not
+   appear in Payroll History and must not be edited as payroll.
+
+Things that do **not** come across at all:
+- Casual employees' leave entitlement balances — set manually in
+  Xero before the first pay run.
+- Employer expenses other than superannuation.
+- Pay items not used during the conversion FY.
+- Detailed payrun breakdowns (only YTD totals survive).
+
 ## Data minimisation guidance
 
 When you transform these into Stage-02 opening balances, carry forward

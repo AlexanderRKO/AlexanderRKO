@@ -49,7 +49,13 @@
 04_xero_post_upload_checks/06_final_sign_off/*
 
 # --- Always keep scaffolding ---
+# Re-include nested scaffolding dirs first so their contents become reachable.
+!02_cleansed_for_xero/05_conversion_balances/monthly_comparatives/
 !**/.gitkeep
 !**/README.md
+!02_cleansed_for_xero/01_chart_of_accounts/coa_mapping_template.csv
 !04_xero_post_upload_checks/01_account_by_account_checklists/trial_balance_diff.csv
+!04_xero_post_upload_checks/03_balance_reconciliations/clearing_accounts_tracker.csv
+!04_xero_post_upload_checks/03_balance_reconciliations/equity_vs_net_profit_check.csv
 !04_xero_post_upload_checks/05_exception_log/exceptions.csv
+!04_xero_post_upload_checks/06_final_sign_off/action_checklist_template.md

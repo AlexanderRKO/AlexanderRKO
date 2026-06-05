@@ -16,6 +16,9 @@
 | Multi-currency (Y/N) | _TBD_ |
 | Number of bank/credit-card accounts | _TBD_ |
 | Number of active jobs/tracking categories | _TBD_ |
+| Target Xero org: new or existing | _new / existing_ |
+| Monthly comparatives required (Y/N, range) | _TBD_ |
+| Custom CoA required (Y/N) | _TBD_ |
 
 ## 1. Migration phases
 
@@ -27,6 +30,9 @@
 - Build the contact, employee, and account inventory in `INDEX.md`.
 
 ### Phase B — Extract (→ `01_exports_from_myob/`)
+- **Pre-export gate**: complete every item in
+  `templates/checklists/myob_file_readiness.md` first. Sign-off must be
+  in `INDEX.md` change log before any data leaves MYOB.
 - Pull every export listed in §2 below.
 - Keep all files in **MYOB's native export format** (CSV/XLSX/PDF) without
   any cleansing.
@@ -53,8 +59,14 @@
 - Upload in the correct sequence (see §3).
 - After each upload run an account-by-account reconciliation; record
   variances in the exception log.
-- Final sign-off when every account in the Xero Trial Balance matches
-  the locked MYOB report within tolerance.
+- Track every clearing / suspense account in
+  `04_xero_post_upload_checks/03_balance_reconciliations/clearing_accounts_tracker.csv`.
+  None may remain non-zero at sign-off (see §6).
+- Run the automated acceptance gate
+  (`templates/scripts/post_upload_acceptance_check.py`) — it must
+  return PASS before sign-off.
+- Final sign-off via the rolled-up `06_final_sign_off/action_checklist_template.md`
+  delivered to the client.
 
 ## 2. Export map (what to pull out of MYOB)
 
@@ -96,7 +108,53 @@ Xero validates dependencies between data sets, so order matters:
 12. Fixed assets register.
 13. Repeating transactions and templates.
 
-## 4. Privacy & payroll data handling
+## 4. Known Xero limitations to brief the client on
+
+Some MYOB constructs do not survive the conversion intact. Set client
+expectations **before** starting Phase B.
+
+### Payroll
+- Xero's API does not accept historical payruns. Each historic payrun
+  is loaded as a **paid bill or manual journal** for reference only —
+  it does not appear in Payroll History.
+- Employees are seeded with **YTD opening balances** as of the
+  conversion date. The first Xero pay run continues from there.
+- **Casual employees' leave entitlement balances are not migrated** —
+  set them manually in Xero before the first pay run if required.
+- Pay items linked in MYOB to a bank or asset account are remapped to
+  a **payroll clearing account** that must be unlinked before the
+  first Xero pay run.
+- Employer expenses other than superannuation do not come across in
+  opening balances.
+
+### Clearing & suspense accounts
+- A **Suspense** account holds any transaction whose mapping is
+  uncertain. It must be at zero before sign-off.
+- A **Payroll clearing** account is created automatically for the
+  pay-item issue above.
+- All clearing accounts are tracked in
+  `04_xero_post_upload_checks/03_balance_reconciliations/clearing_accounts_tracker.csv`.
+
+### Other
+- Recurring transaction schedules do not migrate — recreate in Xero.
+- Custom MYOB reports have no Xero equivalent — replace with Xero
+  report packs.
+- MYOB In Tray attachments don't migrate automatically — re-attach in
+  Xero Files / Hubdoc only those the client nominates.
+- Closed-period detail beyond the conversion FY remains in the locked
+  Stage-03 PDFs, not in Xero.
+
+## 5. Optional: monthly comparative balances
+
+For clients who want historic month-by-month reporting in Xero rather
+than referring back to the locked Stage-03 PDFs, load per-month
+opening balances into
+`02_cleansed_for_xero/05_conversion_balances/monthly_comparatives/`.
+Xero accepts this via the same conversion-balances screen and will
+render comparative reports for the loaded range. See the folder
+README for file layout and validation rules.
+
+## 6. Privacy & payroll data handling
 
 Payroll exports (entities 4 and 12) carry TFNs, DOBs, bank details,
 and identified earnings. Treat them as the highest-risk dataset in
@@ -118,7 +176,7 @@ this migration.
 - A misdirected file is a notifiable breach candidate — follow
   `PRIVACY.md` §7 immediately, do not attempt to "fix by forwarding".
 
-## 5. Tolerances & sign-off
+## 7. Tolerances & sign-off
 
 - Variances ≤ A$1.00 per account are recorded but accepted.
 - Variances > A$1.00 must be investigated and either corrected or
