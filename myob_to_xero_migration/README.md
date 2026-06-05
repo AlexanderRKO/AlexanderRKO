@@ -39,6 +39,10 @@ flowchart LR
 | 3 | `03_finalized_reports/` | Snapshot of pre-conversion balances, reconciliations, sign-offs. |
 | 4 | `04_xero_post_upload_checks/` | Account-by-account verification inside Xero after upload. |
 
+**New here?** Start with **`GETTING_STARTED.md`** — a step-by-step
+walk-through of your first migration with the exact commands to run
+at each phase.
+
 See `PLAN.md` for the full conversion plan and export mapping, and
 `INDEX.md` for the live status of every artefact.
 
