@@ -6,11 +6,30 @@ organisation file.
 
 The toolkit enforces a four-stage pipeline:
 
-```
-  ┌──────────────┐   ┌────────────────┐   ┌──────────────────┐   ┌────────────────────┐
-  │ 01_EXPORTS   │ → │ 02_CLEANSED    │ → │ 03_FINALIZED     │ → │ 04_POST_UPLOAD     │
-  │  (raw MYOB)  │   │ (Xero template)│   │  REPORTS         │   │  CHECKS (in Xero)  │
-  └──────────────┘   └────────────────┘   └──────────────────┘   └────────────────────┘
+```mermaid
+flowchart LR
+    MYOB[(MYOB Online<br/>company file)]
+    S1[["**Stage 01**<br/>Exports from MYOB<br/>_raw, immutable_"]]
+    S2[["**Stage 02**<br/>Cleansed for Xero<br/>_template-compliant CSV_"]]
+    S3[["**Stage 03**<br/>Finalized reports<br/>_locked source of truth_"]]
+    S4[["**Stage 04**<br/>Post-upload checks<br/>_inside Xero_"]]
+    XERO[(Xero<br/>organisation)]
+    SIGNOFF{{Client sign-off}}
+
+    MYOB -->|17 exports| S1
+    S1 -->|transform + minimise| S2
+    S2 -->|upload sequence| XERO
+    S1 -->|lock as PDF| S3
+    S3 -.->|reconcile against| S4
+    XERO -->|export TB| S4
+    S4 --> SIGNOFF
+
+    classDef stage fill:#0b5394,stroke:#073763,color:#fff;
+    classDef store fill:#e69138,stroke:#b45f06,color:#fff;
+    classDef gate fill:#38761d,stroke:#274e13,color:#fff;
+    class S1,S2,S3,S4 stage;
+    class MYOB,XERO store;
+    class SIGNOFF gate;
 ```
 
 | Stage | Folder | Purpose |
@@ -22,6 +41,24 @@ The toolkit enforces a four-stage pipeline:
 
 See `PLAN.md` for the full conversion plan and export mapping, and
 `INDEX.md` for the live status of every artefact.
+
+## CLI quick reference
+
+The `migration.py` wrapper at the toolkit root provides a single entry
+point for the most common operations:
+
+```bash
+python migration.py status                                   # progress dashboard
+python migration.py init --client "Acme Pty Ltd" \
+    --conversion-date 2026-07-01 --xero-org-target new \
+    --lead "J. Smith" [--dry-run]                            # fill engagement params
+python migration.py validate <cleansed.csv> <template.csv>   # Stage-02 preflight
+python migration.py check --myob <myob_tb.csv> --xero <xero_tb.csv>  # Stage-04 gate
+```
+
+`status` reads `INDEX.md` and the Stage-04 trackers; it prints a
+coloured per-stage progress bar, the open-exception count, the
+clearing-account roll-up, and the acceptance-gate verdict.
 
 > ⚠️ **Before you pull any employee or payroll data, read `PRIVACY.md`.**
 > Payroll exports contain TFNs and identified earnings — they are

@@ -1,5 +1,51 @@
 # Conversion Plan — MYOB Online → Xero
 
+## Phases at a glance
+
+```mermaid
+gantt
+    title MYOB → Xero conversion phases
+    dateFormat  YYYY-MM-DD
+    axisFormat  %d %b
+    todayMarker off
+
+    section Discovery
+    A — Discovery & scoping       :a1, 2026-06-01, 5d
+    section Extract
+    Pre-export gate (MYOB ready)  :crit, a2, after a1, 2d
+    B — Extract (Stage 01)        :a3, after a2, 5d
+    section Transform
+    C — Transform & cleanse (02)  :a4, after a3, 7d
+    Preflight validation          :crit, a5, after a4, 1d
+    section Lock
+    D — Reporting & sign-off (03) :a6, after a5, 2d
+    Client sign-off               :milestone, a7, after a6, 0d
+    section Load & verify
+    E — Load to Xero              :a8, after a7, 3d
+    Acceptance gate (TB diff)     :crit, a9, after a8, 1d
+    F — Post-upload checks (04)   :a10, after a9, 4d
+    Final sign-off                :milestone, a11, after a10, 0d
+```
+
+```mermaid
+flowchart TD
+    A[A — Discovery] --> B0[/Pre-export readiness gate/]
+    B0 -->|all checks pass| B[B — Extract<br/>Stage 01]
+    B --> C[C — Transform<br/>Stage 02]
+    C --> Cval[/Preflight validator/]
+    Cval -->|zero errors| D[D — Lock reports<br/>Stage 03]
+    D --> D2{{Client sign-off}}
+    D2 -->|approved| E[E — Load to Xero]
+    E --> EG[/Acceptance gate<br/>TB diff/]
+    EG -->|PASS| F[F — Post-upload checks<br/>Stage 04]
+    F --> F2{{Final sign-off}}
+
+    Cval -.->|errors| C
+    EG -.->|FAIL| E
+    classDef gate fill:#fff2cc,stroke:#bf9000;
+    class B0,Cval,EG gate;
+```
+
 ## 0. Engagement parameters (fill in per client)
 
 | Item | Value |
@@ -107,6 +153,34 @@ Xero validates dependencies between data sets, so order matters:
 11. Payroll opening balances, leave, super.
 12. Fixed assets register.
 13. Repeating transactions and templates.
+
+## 3a. Payroll data flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant MYOB as MYOB Payroll
+    participant S1 as Stage 01<br/>raw exports
+    participant S2 as Stage 02<br/>Xero templates
+    participant X as Xero<br/>(API)
+    participant S4 as Stage 04<br/>verification
+
+    MYOB->>S1: employee cards + standard pay
+    MYOB->>S1: Payroll Activity (YTD)
+    MYOB->>S1: Entitlement Balances
+    MYOB->>S1: Super accrual report
+
+    S1->>S2: minimise — current employees only
+    Note over S1,S2: TFN/DOB/bank stay on managed storage<br/>(see PRIVACY.md)
+
+    S2->>X: employees + YTD opening balances
+    S2-->>X: historic payruns → bills/MJs (reference only)
+    Note over X: Casual leave balances DROPPED<br/>Pay-items relinked to clearing account
+
+    X->>S4: payroll opening per employee
+    S4->>S4: diff vs MYOB Payroll Activity
+    S4-->>S4: clearing accounts → NIL via MJ
+```
 
 ## 4. Known Xero limitations to brief the client on
 

@@ -5,6 +5,22 @@ Update the **Status** column every time a file moves between stages.
 
 Status legend: `⬜ todo` · `🟡 in progress` · `🟢 done` · `⚠ exception`
 
+```mermaid
+stateDiagram-v2
+    [*] --> todo
+    todo --> wip: started
+    wip --> done: artefact landed & reviewed
+    wip --> exception: variance > tolerance
+    exception --> wip: investigating
+    exception --> done: documented & accepted
+    done --> [*]
+```
+
+> Live dashboard: run `python migration.py status` from the toolkit
+> root for a coloured per-stage progress view including open
+> exceptions, clearing-account roll-up, and the acceptance-gate
+> verdict.
+
 > ⚠️ **Payroll rows (04, 12 in Stage 01; 03, 12 in Stage 02) are
 > high-sensitivity.** Confirm the `PRIVACY.md` §8 pre-pull sign-off
 > is complete and that every team member listed below has
