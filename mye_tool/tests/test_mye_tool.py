@@ -1,0 +1,182 @@
+"""Tests for mye_tool using a synthetic fixture that mirrors the byte
+layout of a real Xero "Accountants Enterprise (MAS)" .MYE export
+(no real client data is stored in the repository)."""
+
+import io
+import os
+import zipfile
+from decimal import Decimal
+
+import pytest
+
+import mye_tool
+from mye_tool import exporters
+from mye_tool.core import MyeFile
+
+EXTRACT_INF = (
+    b"[Info]\r\n"
+    b"ExtractVersion=1.0\r\n"
+    b"ExtractCount=1\r\n"
+    b"\r\n"
+    b"[Extract001]\r\n"
+    b"ExtractFile=MYOBAO.TXT\r\n"
+    b"EntityType=MYOBAccounting\r\n"
+    b"DataFileName=Test Company Pty Ltd\r\n"
+    b"FinancialYearEnd=20250630\r\n"
+    b"RangeStart=20240701\r\n"
+    b"RangeEnd=20250630\r\n"
+)
+
+# Faithful to the real layout: CRLF everywhere, account rows have four
+# tab-separated fields, journal rows end \r\r\n, blank line after each
+# journal entry (including the last).
+MYOBAO = (
+    b"[MYOB2000.05]\r\n"
+    b"Test Company Pty Ltd\tPO Box 1  Testville\t\t\t01/07/2024\t30/06/2025\r\n"
+    b"[ACCOUNTS]\r\n"
+    b"200\t\tSales\t\r\n"
+    b"406\t\tBank Fees\t\r\n"
+    b"680\t\tBank Account\t\r\n"
+    b"820\t\tGST\t\r\n"
+    b"[JOURNAL]\r\n"
+    b"01/07/2024\t1001\t680\t-110.0000\tWidget sale\r\r\n"
+    b"01/07/2024\t1001\t200\t100.0000\tWidget sale\r\r\n"
+    b"01/07/2024\t1001\t820\t10.0000\tWidget sale\r\r\n"
+    b"\r\n"
+    b"02/07/2024\t1002\t680\t-10.0000\tBANK FEE\r\r\n"
+    b"02/07/2024\t1002\t406\t10.0000\tBANK FEE\r\r\n"
+    b"\r\n"
+)
+
+
+@pytest.fixture
+def sample_mye(tmp_path):
+    path = tmp_path / "sample.mye"
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("Extract.inf", EXTRACT_INF)
+        z.writestr("MYOBAO.TXT", MYOBAO)
+    return str(path)
+
+
+def test_parse(sample_mye):
+    mye = mye_tool.load(sample_mye)
+    assert mye.company_name == "Test Company Pty Ltd"
+    assert mye.period_start == "01/07/2024"
+    assert mye.period_end == "30/06/2025"
+    assert [a.code for a in mye.accounts] == ["200", "406", "680", "820"]
+    assert mye.account_map()["406"] == "Bank Fees"
+    assert len(mye.entries) == 2
+    assert [len(e.lines) for e in mye.entries] == [3, 2]
+    line = mye.entries[0].lines[1]
+    assert (line.account_code, line.amount) == ("200", Decimal("100"))
+    assert line.debit == Decimal("100") and line.credit == 0
+    assert mye.extract_info()["DataFileName"] == "Test Company Pty Ltd"
+
+
+def test_roundtrip_bytes(sample_mye):
+    mye = mye_tool.load(sample_mye)
+    assert mye.data_text_bytes() == MYOBAO
+
+
+def test_save_and_reload(sample_mye, tmp_path):
+    mye = mye_tool.load(sample_mye)
+    out = str(tmp_path / "resaved.mye")
+    mye.save(out)
+    again = mye_tool.load(out)
+    assert again.data_text_bytes() == MYOBAO
+    assert again.extract_inf == EXTRACT_INF
+
+
+def test_validate_clean(sample_mye):
+    assert mye_tool.load(sample_mye).validate() == []
+
+
+def test_validate_catches_problems(sample_mye):
+    mye = mye_tool.load(sample_mye)
+    mye.entries[0].lines[0].amount += Decimal("1")  # unbalance
+    mye.entries[1].lines[0].account_code = "999"  # unknown account
+    mye.entries[1].lines[1].date = "01/01/2030"  # outside period
+    problems = "\n".join(mye.validate())
+    assert "does not balance" in problems
+    assert "not in the chart" in problems
+    assert "outside the export period" in problems
+
+
+def test_trial_balance(sample_mye):
+    mye = mye_tool.load(sample_mye)
+    tb = {code: net for code, _, _, _, net in mye.trial_balance()}
+    assert tb["680"] == Decimal("-120")
+    assert tb["200"] == Decimal("100")
+    assert tb["406"] == Decimal("10")
+    assert tb["820"] == Decimal("10")
+    assert sum(tb.values()) == 0
+
+
+def test_unpack_edit_pack(sample_mye, tmp_path):
+    mye = mye_tool.load(sample_mye)
+    work = str(tmp_path / "work")
+    exporters.unpack(mye, work)
+
+    # untouched round trip is byte exact
+    rebuilt = exporters.pack_dir(work)
+    assert rebuilt.data_text_bytes() == MYOBAO
+    assert rebuilt.extract_inf == EXTRACT_INF
+
+    # edit a memo via the CSV and repack
+    journal = os.path.join(work, "journal.csv")
+    with open(journal, encoding="utf-8-sig") as fh:
+        text = fh.read()
+    with open(journal, "w", encoding="utf-8-sig") as fh:
+        fh.write(text.replace("BANK FEE", "Account keeping fee"))
+    edited = exporters.pack_dir(work)
+    assert edited.validate() == []
+    memos = {l.memo for l in edited.journal_lines}
+    assert "Account keeping fee" in memos and "BANK FEE" not in memos
+
+
+def test_exports(sample_mye, tmp_path):
+    mye = mye_tool.load(sample_mye)
+    out = str(tmp_path / "out")
+    paths = exporters.export_csv(mye, out)
+    assert all(os.path.getsize(p) > 0 for p in paths)
+
+    json_path = exporters.export_json(mye, str(tmp_path / "out.json"))
+    import json
+
+    doc = json.load(open(json_path, encoding="utf-8"))
+    assert doc["company"]["name"] == "Test Company Pty Ltd"
+    assert len(doc["journal"]) == 2
+
+    iif_path = exporters.export_iif(mye, str(tmp_path / "out.iif"))
+    iif = open(iif_path, encoding="utf-8").read()
+    assert "GENERAL JOURNAL" in iif and iif.count("ENDTRNS") >= 2
+
+    openpyxl = pytest.importorskip("openpyxl")
+    xlsx_path = exporters.export_xlsx(mye, str(tmp_path / "out.xlsx"))
+    wb = openpyxl.load_workbook(xlsx_path)
+    assert set(wb.sheetnames) == {"Company", "Accounts", "Journal", "Trial Balance"}
+    assert wb["Journal"].max_row == 1 + 5  # header + 5 lines
+
+
+def test_cli_smoke(sample_mye, tmp_path, capsys):
+    from mye_tool.cli import main
+
+    assert main(["info", sample_mye]) == 0
+    assert "Test Company Pty Ltd" in capsys.readouterr().out
+    assert main(["check", sample_mye]) == 0
+    assert main(["accounts", sample_mye]) == 0
+    assert main(["trial-balance", sample_mye]) == 0
+    out_dir = str(tmp_path / "exp")
+    assert main(["export", sample_mye, "-o", out_dir, "--format", "csv"]) == 0
+    work = str(tmp_path / "w")
+    assert main(["unpack", sample_mye, "-o", work]) == 0
+    packed = str(tmp_path / "packed.mye")
+    assert main(["pack", work, "-o", packed]) == 0
+    assert mye_tool.load(packed).data_text_bytes() == MYOBAO
+
+
+def test_not_a_zip(tmp_path):
+    bad = tmp_path / "bad.mye"
+    bad.write_bytes(b"StuffIt (c)1997")
+    with pytest.raises(ValueError):
+        mye_tool.load(str(bad))
