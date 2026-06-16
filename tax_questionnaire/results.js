@@ -139,9 +139,13 @@
             (payload.submitted_at ? " · " + new Date(payload.submitted_at).toLocaleString("en-AU") : ""),
           ]),
         ]),
-        el("button", { class: "btn btn-ghost", type: "button",
-          onclick: () => { copy(plainTextSummary(payload)); toast("Copied full summary"); } },
-          ["Copy full summary"]),
+        el("div", { class: "head-actions" }, [
+          el("button", { class: "btn btn-ghost", type: "button",
+            onclick: () => { copy(plainTextSummary(payload)); toast("Copied full summary"); } },
+            ["Copy full summary"]),
+          el("button", { class: "btn btn-ghost", type: "button",
+            onclick: () => window.print() }, ["Print / PDF"]),
+        ]),
       ]),
 
       /* Xero contact quick-copy */

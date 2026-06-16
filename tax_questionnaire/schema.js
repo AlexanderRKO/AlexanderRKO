@@ -105,6 +105,13 @@ const FORM_SCHEMA = {
           options: ["2026", "2025", "2024", "2023", "2022", "Multiple Years", "Other"],
         },
         {
+          id: "tax_year_other",
+          type: "text",
+          label: "Which other year(s) should we complete?",
+          required: false,
+          showIf: { field: "tax_year", contains: "Other" },
+        },
+        {
           // Free-text in the original form. Captured as structured fields here so
           // staff can copy Account name / BSB / Account number straight into Xero.
           id: "bank",
@@ -225,6 +232,13 @@ const FORM_SCHEMA = {
           showIf: { field: "significant_items", contains: "Invest or Trade in Crypto" },
         },
         {
+          id: "significant_items_other",
+          type: "text",
+          label: "Please tell us about the other significant item.",
+          required: false,
+          showIf: { field: "significant_items", contains: "Other" },
+        },
+        {
           id: "questions_for_us",
           type: "textarea",
           label:
@@ -284,6 +298,13 @@ const FORM_SCHEMA = {
             "Other",
           ],
         },
+        {
+          id: "other_services_other",
+          type: "text",
+          label: "Which other service are you interested in?",
+          required: false,
+          showIf: { field: "other_services", contains: "Other" },
+        },
       ],
     },
 
@@ -314,6 +335,13 @@ const FORM_SCHEMA = {
           label: "Who can we thank for referring you?",
           required: false,
           showIf: { field: "how_heard", equals: "Referral" },
+        },
+        {
+          id: "how_heard_other",
+          type: "text",
+          label: "Please tell us how you heard about us.",
+          required: false,
+          showIf: { field: "how_heard", equals: "Other" },
         },
         {
           id: "google_review",

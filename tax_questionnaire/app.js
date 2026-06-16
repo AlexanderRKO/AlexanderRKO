@@ -302,19 +302,48 @@
     }
   }
 
+  // Types backed by a single native control we can associate a <label for> with.
+  const SINGLE_CONTROL = ["text", "tel", "email", "textarea", "date", "select"];
+  // Composite controls exposed as an ARIA group/radiogroup.
+  const GROUP_ROLE = { yesno: "radiogroup", radio: "radiogroup", checkboxes: "group", bank: "group", file: "group" };
+
   function renderQuestion(q) {
     const err = state.showErrors ? questionError(q) : null;
+    const labelId = "lbl_" + q.id, errId = "err_" + q.id, helpId = "help_" + q.id, fieldId = "f_" + q.id;
     const wrap = el("div", { class: "q" + (err ? " invalid" : ""), "data-qid": q.id });
+
     if (q.type !== "acknowledge") {
       wrap.appendChild(
-        el("label", { class: "q-label" }, [
-          q.label, q.required ? el("span", { class: "req" }, ["*"]) : null,
-        ])
+        el("label", {
+          class: "q-label", id: labelId,
+          for: SINGLE_CONTROL.includes(q.type) ? fieldId : null,
+        }, [q.label, q.required ? el("span", { class: "req", title: "Required" }, ["*"]) : null])
       );
     }
-    if (q.help) wrap.appendChild(el("p", { class: "q-help" }, [q.help]));
-    wrap.appendChild(renderField(q));
-    wrap.appendChild(el("div", { class: "field-error" }, [err || ""]));
+    if (q.help) wrap.appendChild(el("p", { class: "q-help", id: helpId }, [q.help]));
+
+    const field = renderField(q);
+    const describedBy = [q.help ? helpId : null, err ? errId : null].filter(Boolean).join(" ") || null;
+
+    // Wire ARIA: associate the control(s) with the label, help and error text.
+    if (SINGLE_CONTROL.includes(q.type)) {
+      const ctrl = field.matches && field.matches("input,select,textarea") ? field : field.querySelector("input,select,textarea");
+      if (ctrl) {
+        ctrl.id = fieldId;
+        if (q.required) ctrl.setAttribute("aria-required", "true");
+        if (err) ctrl.setAttribute("aria-invalid", "true");
+        if (describedBy) ctrl.setAttribute("aria-describedby", describedBy);
+      }
+    } else if (GROUP_ROLE[q.type]) {
+      field.setAttribute("role", GROUP_ROLE[q.type]);
+      field.setAttribute("aria-labelledby", labelId);
+      if (q.required) field.setAttribute("aria-required", "true");
+      if (err) field.setAttribute("aria-invalid", "true");
+      if (describedBy) field.setAttribute("aria-describedby", describedBy);
+    }
+
+    wrap.appendChild(field);
+    wrap.appendChild(el("div", { class: "field-error", id: errId, role: "alert" }, [err || ""]));
     return wrap;
   }
 
@@ -438,6 +467,18 @@
     return activeQuestions(step).some((q) => questionError(q));
   }
 
+  // After a failed validation, move keyboard focus to the first problem field
+  // and bring it into view — clearer than a generic banner alone.
+  function focusFirstInvalid() {
+    const bad = root.querySelector(".q.invalid");
+    if (!bad) return;
+    const ctrl = bad.querySelector("input,select,textarea,button");
+    if (ctrl) {
+      ctrl.focus({ preventScroll: true });
+      bad.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
   function prev() {
     state.showErrors = false;
     state.errorBanner = null;
@@ -451,6 +492,7 @@
     if (stepHasErrors(step)) {
       state.showErrors = true;
       render();
+      focusFirstInvalid();
       return;
     }
     state.showErrors = false;
@@ -498,6 +540,7 @@
       state.showErrors = true;
       state.errorBanner = null;
       render();
+      focusFirstInvalid();
       return;
     }
 
@@ -542,10 +585,11 @@
   function renderSuccess() {
     return el("div", { class: "card success" }, [
       el("div", { class: "check" }, ["✓"]),
-      el("h2", {}, ["Thank you — we've received your questionnaire"]),
+      el("h2", {}, ["Thanks — we've got what we need to get started"]),
       el("p", {}, [
-        "Our team will be in touch. Remember, we can only begin once your income is " +
-        "noted as 'Tax Ready' in myGov and all requested information has been received.",
+        "One of our team will be in touch shortly to begin preparing your return. A quick " +
+        "reminder: we can only start once your income shows as 'Tax Ready' in myGov and we " +
+        "have all of your information.",
       ]),
       el("div", { class: "ref" }, ["Reference: " + state.reference]),
       // In demo mode (no backend) offer a quick link to preview the staff

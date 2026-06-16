@@ -16,22 +16,32 @@ same engine can host the Existing Client questionnaire too — just swap `schema
 | `schema.js` | **Every question**, in plain editable form. Non-developers edit this. |
 | `config.js` | Endpoint, branding, upload limit. |
 | `app.js` | The form engine (wizard, conditional logic, validation, autosave). |
-| `styles.css` | Styling (matches the firm's teal/slate look). |
+| `styles.css` | Styling — LMS brand (navy/orange, Georgia). |
 | `results.html` + `results.js` | **Staff view** — one-click copy on every field + a Xero contact card. |
 | `server/submit-handler.js` | Reference backend: emails the team + upserts a Xero contact. |
+| `INSTALL-WORDPRESS.md` | Plain-English WordPress setup guide. |
+| `LMS-Questionnaire-WordPress-Setup.docx` | The same guide as a branded Word document. |
 
 ## Key features
 
 - **Multi-step wizard** with progress bar — far less daunting than one long page.
 - **Conditional questions** — e.g. "Own a rental property? → Yes" reveals the
-  rental-summary question; "Sole trader? → Yes" reveals the ABN field.
-- **Validation** — Australian mobile, BSB, account number, ABN, required fields,
-  and the four mandatory legal acknowledgements.
+  rental-summary question; "Sole trader? → Yes" reveals the ABN field; any
+  "Other" selection reveals a "please specify" box.
+- **Validation** — Australian mobile, email, BSB, account number, ABN, required
+  fields, and the four mandatory legal acknowledgements. On error, focus jumps to
+  the first problem field.
+- **Accessibility** — proper `<label for>` associations, `aria-required`,
+  `aria-invalid`, `aria-describedby`, and `role="radiogroup"` on choice groups.
 - **Autosave** — progress is kept in the browser so clients can finish later.
 - **Review step** before submitting.
-- **Staff results view** with click-to-copy on every field and a Xero-shaped
-  "Add Contact" card (Contact name, First/Last name, Mobile, Account name, BSB,
-  Account number, Occupation), plus "Copy full contact block".
+- **LMS branding** — official navy (`#002555`, PMS 7463) and orange (`#ED8B00`,
+  PMS 144C), Georgia typeface, logo mark, and the firm-name footer applied per the
+  LMS brand guidelines. Voice/spelling follows the LMS brand-voice skill (AU English).
+- **Staff results view** with click-to-copy on every field, a Print/PDF action,
+  and a Xero-shaped "Add Contact" card (Contact name, First/Last name, Email,
+  Mobile, Date of birth, Postal address, Occupation, Account name, BSB, Account
+  number), plus "Copy full contact block".
 
 ## Quick start (preview locally)
 
