@@ -13,7 +13,7 @@ const FORM_CONFIG = {
 
   // Branding shown in the form header.
   brandName: "LMS Advisory",
-  brandTagline: "Existing Client Tax Questionnaire",
+  brandTagline: "New Client Questionnaire — Tax Preparation",
 
   // Maximum total size of uploaded files (MB). Keep modest for email/JSON.
   maxUploadMb: 15,

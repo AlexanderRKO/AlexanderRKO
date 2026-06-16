@@ -1,8 +1,12 @@
 # LMS Advisory — Interactive Tax Questionnaire
 
-A self-contained, dependency-free replacement for the Paperform "Existing Client
-Tax Questionnaire". Drops into any website (plain HTML, React, Squarespace embed,
-etc.) and produces submissions that staff can **copy into Xero with single clicks**.
+A self-contained, dependency-free replacement for the Paperform **"New Client
+Questionnaire — Tax Preparation"** (the commencement/onboarding step of the
+process). Drops into a WordPress page (or any site) via an auto-resizing iframe
+and produces submissions that staff can **copy into Xero with single clicks**.
+
+The question set in `schema.js` mirrors the live Paperform (v2026.01.25). The
+same engine can host the Existing Client questionnaire too — just swap `schema.js`.
 
 ## What's here
 

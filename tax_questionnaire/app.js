@@ -27,6 +27,7 @@
     const v = state.answers[q.showIf.field];
     if ("equals" in q.showIf) return v === q.showIf.equals;
     if ("in" in q.showIf) return q.showIf.in.includes(v);
+    if ("contains" in q.showIf) return Array.isArray(v) && v.includes(q.showIf.contains);
     return true;
   }
 
@@ -45,6 +46,7 @@
     bsb: (v) => /^\d{6}$/.test(String(v || "").replace(/\D/g, "")),
     account: (v) => /^\d{5,12}$/.test(String(v || "").replace(/\D/g, "")),
     abn: (v) => /^\d{11}$/.test(String(v || "").replace(/\D/g, "")),
+    email: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim()),
   };
 
   function isAnswered(q) {
@@ -75,6 +77,7 @@
       if (!validators[q.validate](v)) {
         if (q.validate === "mobile") return "Enter a valid Australian mobile (04xx xxx xxx).";
         if (q.validate === "abn") return "An ABN is 11 digits.";
+        if (q.validate === "email") return "Enter a valid email address.";
         return "That value doesn't look right.";
       }
     }
@@ -171,6 +174,23 @@
           );
         });
         return wrap;
+      }
+
+      case "radio": {
+        const list = el("div", { class: "opt-list" });
+        q.options.forEach((opt) => {
+          const checked = state.answers[q.id] === opt;
+          list.appendChild(
+            el("label", { class: "opt" + (checked ? " checked" : "") }, [
+              el("input", {
+                type: "radio", name: q.id, checked: checked ? "checked" : null,
+                onchange: () => { set(opt); renderStep(); },
+              }),
+              el("span", {}, [opt]),
+            ])
+          );
+        });
+        return list;
       }
 
       case "checkboxes": {
