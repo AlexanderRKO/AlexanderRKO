@@ -53,7 +53,21 @@ const ENV = {
   // CORS — set to your website origin in production (e.g. https://lmsadvisory.com.au).
   ALLOW_ORIGIN: process.env.ALLOW_ORIGIN || "*",
   MAX_BYTES: Number(process.env.MAX_BYTES || 20 * 1024 * 1024),
+
+  // Public URL of the hosted results.html. When set, the notification email
+  // includes a one-click link that opens the submission in the staff
+  // copy-paste view (answers only — attachments stay in the email).
+  RESULTS_URL: process.env.RESULTS_URL, // e.g. https://lmsadvisory.com.au/tax/results.html
 };
+
+function buildResultsLink(payload) {
+  if (!ENV.RESULTS_URL) return null;
+  const slim = { form: payload.form, submitted_at: payload.submitted_at, answers: payload.answers };
+  const b64url = Buffer.from(JSON.stringify(slim), "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `${ENV.RESULTS_URL}?d=${b64url}`;
+}
 
 /* ------------------------------------------------------------ formatting */
 function summariseForEmail(payload) {
@@ -100,11 +114,15 @@ async function sendEmail(payload) {
     auth: ENV.SMTP_USER ? { user: ENV.SMTP_USER, pass: ENV.SMTP_PASS } : undefined,
   });
   const name = payload.answers.full_name || "client";
+  const link = buildResultsLink(payload);
+  const body = link
+    ? summariseForEmail(payload) + `\n\nOpen in staff copy-paste view:\n${link}\n`
+    : summariseForEmail(payload);
   await transporter.sendMail({
     from: ENV.MAIL_FROM,
     to: ENV.MAIL_TO,
     subject: `Tax questionnaire — ${name} (${payload.answers.tax_year || "year n/a"})`,
-    text: summariseForEmail(payload),
+    text: body,
     attachments: filesToAttachments(payload.files),
   });
 }

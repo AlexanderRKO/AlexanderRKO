@@ -163,6 +163,59 @@ textarea { resize: vertical; min-height: 92px; }
 
 .footnote { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 20px; }
 
+/* ---------------------------------------------------- Staff results view */
+.results-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.results-head .meta { color: var(--muted); font-size: 13px; }
+.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); font-weight: 700; margin: 22px 0 6px; }
+
+/* Xero quick-copy card */
+.xero-card { background: var(--accent-soft); border: 1px solid #99e6dd; border-radius: var(--radius);
+  padding: 16px; margin-top: 8px; }
+.xero-card h3 { margin: 0 0 4px; font-size: 16px; color: var(--accent-ink); }
+.xero-card .hint { margin: 0 0 12px; font-size: 13px; color: var(--accent-ink); opacity: 0.85; }
+.copy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+
+/* A click-to-copy field */
+.cp {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; text-align: left; cursor: pointer; font: inherit;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  padding: 9px 12px; transition: border-color 0.15s, background 0.15s;
+}
+.cp:hover { border-color: var(--accent); }
+.cp.copied { border-color: var(--done); background: #f0fdf4; }
+.cp .cp-body { min-width: 0; }
+.cp .cp-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); font-weight: 700; }
+.cp .cp-val { font-size: 14.5px; font-weight: 600; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp .cp-val.empty { color: var(--muted); font-weight: 400; font-style: italic; }
+.cp .cp-icon { flex: none; color: var(--muted); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+.cp.copied .cp-icon { color: var(--done); }
+
+/* Full answer rows */
+.ans-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 11px 0; border-top: 1px solid var(--line); }
+.ans-row:first-child { border-top: 0; }
+.ans-row .ans-q { font-size: 13px; color: var(--muted); max-width: 60%; }
+.ans-row .ans-right { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ans-row .ans-v { font-weight: 600; white-space: pre-wrap; text-align: right; }
+.mini-copy { appearance: none; border: 1.5px solid var(--line); background: var(--surface);
+  border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12px; font-weight: 600;
+  color: var(--muted); cursor: pointer; flex: none; transition: all 0.15s; }
+.mini-copy:hover { border-color: var(--accent); color: var(--accent); }
+.mini-copy.copied { border-color: var(--done); color: var(--done); background: #f0fdf4; }
+
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px;
+  font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 50; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.paste-area textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; min-height: 120px; }
+
+.attachments a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.attachments a:hover { text-decoration: underline; }
+
 @media (max-width: 480px) {
   .card { padding: 18px; }
   .bank { grid-template-columns: 1fr; }

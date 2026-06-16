@@ -444,6 +444,20 @@
     };
   }
 
+  // Stash the most recent submission so the staff results view (results.html)
+  // can open it locally. Files can be large, so retry without their data if the
+  // browser's storage quota is exceeded.
+  function saveLastSubmission(payload) {
+    try {
+      localStorage.setItem("lms_last_submission", JSON.stringify(payload));
+    } catch (e) {
+      try {
+        const slim = { ...payload, files: (payload.files || []).map((f) => ({ name: f.name, type: f.type, size: f.size })) };
+        localStorage.setItem("lms_last_submission", JSON.stringify(slim));
+      } catch (_) {}
+    }
+  }
+
   async function submit() {
     // Final full validation across all steps.
     const firstBadStep = schema.steps.findIndex((s) => stepHasErrors(s));
@@ -460,6 +474,7 @@
     if (!cfg.submitEndpoint) {
       // DEMO mode — no backend configured.
       console.log("Submission payload (demo mode):", payload);
+      saveLastSubmission(payload);
       state.reference = "DEMO-" + Date.now().toString(36).toUpperCase();
       state.done = true;
       clearSaved();
@@ -478,6 +493,7 @@
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json().catch(() => ({}));
+      saveLastSubmission(payload);
       state.reference = data.reference || "LMS-" + Date.now().toString(36).toUpperCase();
       state.done = true;
       clearSaved();
@@ -500,6 +516,15 @@
         "noted as 'Tax Ready' in myGov and all requested information has been received.",
       ]),
       el("div", { class: "ref" }, ["Reference: " + state.reference]),
+      // In demo mode (no backend) offer a quick link to preview the staff
+      // copy-paste results view. This block does not appear once an endpoint
+      // is configured, so clients never see it in production.
+      !cfg.submitEndpoint
+        ? el("p", { style: "margin-top:18px" }, [
+            el("a", { href: "results.html", class: "review-edit", style: "float:none" },
+              ["Staff preview: open copy-paste results →"]),
+          ])
+        : null,
     ]);
   }
 
