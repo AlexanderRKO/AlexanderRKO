@@ -1,0 +1,511 @@
+/*
+ * LMS Advisory — Tax Questionnaire form engine
+ * Schema-driven, dependency-free. Renders FORM_SCHEMA using FORM_CONFIG.
+ */
+(function () {
+  "use strict";
+
+  const schema = FORM_SCHEMA;
+  const cfg = FORM_CONFIG;
+  const root = document.getElementById("form-root");
+
+  const REVIEW = schema.steps.length; // virtual step index for the review page
+
+  const state = {
+    stepIndex: 0,
+    answers: {}, // id -> value
+    files: [], // {name, size, type, data} for the 'documents' question
+    submitting: false,
+  };
+
+  /* ---------------------------------------------------------------- utils */
+  const flatQuestions = schema.steps.flatMap((s) => s.questions);
+  const byId = (id) => flatQuestions.find((q) => q.id === id);
+
+  function isActive(q) {
+    if (!q.showIf) return true;
+    const v = state.answers[q.showIf.field];
+    if ("equals" in q.showIf) return v === q.showIf.equals;
+    if ("in" in q.showIf) return q.showIf.in.includes(v);
+    return true;
+  }
+
+  function activeQuestions(step) {
+    return step.questions.filter(isActive);
+  }
+
+  function normalizeMobile(v) {
+    let d = String(v || "").replace(/\D/g, "");
+    if (d.startsWith("61") && d.length === 11) d = "0" + d.slice(2);
+    return d;
+  }
+
+  const validators = {
+    mobile: (v) => /^04\d{8}$/.test(normalizeMobile(v)),
+    bsb: (v) => /^\d{6}$/.test(String(v || "").replace(/\D/g, "")),
+    account: (v) => /^\d{5,12}$/.test(String(v || "").replace(/\D/g, "")),
+    abn: (v) => /^\d{11}$/.test(String(v || "").replace(/\D/g, "")),
+  };
+
+  function isAnswered(q) {
+    const v = state.answers[q.id];
+    if (q.type === "bank") {
+      return v && v.bsb && v.account_number && v.account_name;
+    }
+    if (q.type === "checkboxes") return Array.isArray(v) && v.length > 0;
+    if (q.type === "acknowledge") return v === true;
+    if (q.type === "file") return state.files.length > 0;
+    return v !== undefined && v !== null && String(v).trim() !== "";
+  }
+
+  function questionError(q) {
+    const v = state.answers[q.id];
+    if (q.required && !isAnswered(q)) {
+      return q.type === "acknowledge"
+        ? "Please confirm to continue."
+        : "This field is required.";
+    }
+    if (!isAnswered(q)) return null; // optional & empty
+    if (q.type === "bank") {
+      if (!validators.bsb(v.bsb)) return "BSB should be 6 digits (e.g. 062-000).";
+      if (!validators.account(v.account_number)) return "Account number looks incorrect.";
+      return null;
+    }
+    if (q.validate && validators[q.validate]) {
+      if (!validators[q.validate](v)) {
+        if (q.validate === "mobile") return "Enter a valid Australian mobile (04xx xxx xxx).";
+        if (q.validate === "abn") return "An ABN is 11 digits.";
+        return "That value doesn't look right.";
+      }
+    }
+    return null;
+  }
+
+  /* --------------------------------------------------------------- storage */
+  function save() {
+    try {
+      const data = { stepIndex: state.stepIndex, answers: state.answers };
+      localStorage.setItem(cfg.storageKey, JSON.stringify(data));
+    } catch (e) {
+      /* storage full or unavailable — non-fatal */
+    }
+  }
+  function restore() {
+    try {
+      const raw = localStorage.getItem(cfg.storageKey);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      state.answers = data.answers || {};
+      state.stepIndex = Math.min(data.stepIndex || 0, schema.steps.length - 1);
+    } catch (e) {
+      /* ignore corrupt state */
+    }
+  }
+  function clearSaved() {
+    try { localStorage.removeItem(cfg.storageKey); } catch (e) {}
+  }
+
+  /* ------------------------------------------------------------ rendering */
+  function el(tag, attrs, children) {
+    const n = document.createElement(tag);
+    if (attrs) {
+      for (const k in attrs) {
+        if (k === "class") n.className = attrs[k];
+        else if (k === "html") n.innerHTML = attrs[k];
+        else if (k.startsWith("on") && typeof attrs[k] === "function")
+          n.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+        else if (attrs[k] != null) n.setAttribute(k, attrs[k]);
+      }
+    }
+    (children || []).forEach((c) => {
+      if (c == null) return;
+      n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  function renderField(q) {
+    const set = (val) => { state.answers[q.id] = val; save(); };
+
+    switch (q.type) {
+      case "text":
+      case "tel":
+      case "email": {
+        return el("input", {
+          type: q.type, value: state.answers[q.id] || "",
+          placeholder: q.placeholder || "",
+          oninput: (e) => set(e.target.value),
+        });
+      }
+      case "textarea":
+        return el("textarea", {
+          placeholder: q.placeholder || "",
+          oninput: (e) => set(e.target.value),
+        }, [state.answers[q.id] || ""]);
+
+      case "date":
+        return el("input", {
+          type: "date", value: state.answers[q.id] || "",
+          oninput: (e) => set(e.target.value),
+        });
+
+      case "select": {
+        const sel = el("select", { onchange: (e) => set(e.target.value) }, [
+          el("option", { value: "" }, ["Please choose…"]),
+          ...q.options.map((o) =>
+            el("option", { value: o, selected: state.answers[q.id] === o ? "selected" : null }, [o])
+          ),
+        ]);
+        return sel;
+      }
+
+      case "yesno": {
+        const wrap = el("div", { class: "yesno", role: "group" });
+        ["Yes", "No"].forEach((opt) => {
+          wrap.appendChild(
+            el("button", {
+              type: "button",
+              "aria-pressed": state.answers[q.id] === opt ? "true" : "false",
+              onclick: () => { set(opt); renderStep(); },
+            }, [opt])
+          );
+        });
+        return wrap;
+      }
+
+      case "checkboxes": {
+        const list = el("div", { class: "opt-list" });
+        const current = Array.isArray(state.answers[q.id]) ? state.answers[q.id] : [];
+        q.options.forEach((opt) => {
+          const exclusive = /^no thanks$/i.test(opt);
+          const checked = current.includes(opt);
+          const row = el("label", { class: "opt" + (checked ? " checked" : "") }, [
+            el("input", {
+              type: "checkbox", checked: checked ? "checked" : null,
+              onchange: (e) => {
+                let next = Array.isArray(state.answers[q.id]) ? [...state.answers[q.id]] : [];
+                if (e.target.checked) {
+                  next = exclusive ? [opt] : next.filter((x) => !/^no thanks$/i.test(x));
+                  if (!next.includes(opt)) next.push(opt);
+                } else {
+                  next = next.filter((x) => x !== opt);
+                }
+                set(next); renderStep();
+              },
+            }),
+            el("span", {}, [opt]),
+          ]);
+          list.appendChild(row);
+        });
+        return list;
+      }
+
+      case "acknowledge": {
+        const checked = state.answers[q.id] === true;
+        return el("label", { class: "opt ack" + (checked ? " checked" : "") }, [
+          el("input", {
+            type: "checkbox", checked: checked ? "checked" : null,
+            onchange: (e) => { set(e.target.checked); renderStep(); },
+          }),
+          el("span", {}, [q.label]),
+        ]);
+      }
+
+      case "bank": {
+        const v = state.answers[q.id] || {};
+        const upd = (k, val) => { set({ ...(state.answers[q.id] || {}), [k]: val }); };
+        return el("div", { class: "bank" }, [
+          el("div", {}, [
+            el("label", {}, ["BSB"]),
+            el("input", { type: "text", inputmode: "numeric", placeholder: "062-000",
+              value: v.bsb || "", oninput: (e) => upd("bsb", e.target.value) }),
+          ]),
+          el("div", {}, [
+            el("label", {}, ["Account number"]),
+            el("input", { type: "text", inputmode: "numeric", placeholder: "12345678",
+              value: v.account_number || "", oninput: (e) => upd("account_number", e.target.value) }),
+          ]),
+          el("div", { class: "full" }, [
+            el("label", {}, ["Account name"]),
+            el("input", { type: "text", placeholder: "Name on the account",
+              value: v.account_name || "", oninput: (e) => upd("account_name", e.target.value) }),
+          ]),
+        ]);
+      }
+
+      case "file": {
+        const wrap = el("div");
+        const input = el("input", {
+          type: "file", multiple: "multiple",
+          onchange: (e) => addFiles(e.target.files),
+        });
+        const drop = el("label", { class: "file-drop" }, [
+          "Tap to choose files, or drag them here", input,
+        ]);
+        wrap.appendChild(drop);
+        const list = el("div", { class: "file-list" });
+        state.files.forEach((f, i) => {
+          list.appendChild(el("div", { class: "file-chip" }, [
+            el("span", {}, [`${f.name} · ${(f.size / 1024).toFixed(0)} KB`]),
+            el("button", { type: "button", onclick: () => { state.files.splice(i, 1); renderStep(); } }, ["Remove"]),
+          ]));
+        });
+        wrap.appendChild(list);
+        return wrap;
+      }
+
+      default:
+        return el("div", {}, [String(state.answers[q.id] || "")]);
+    }
+  }
+
+  function addFiles(fileList) {
+    const maxBytes = cfg.maxUploadMb * 1024 * 1024;
+    const existing = state.files.reduce((s, f) => s + f.size, 0);
+    let total = existing;
+    let queued = 0;
+    const arr = Array.from(fileList);
+    if (arr.length === 0) return;
+    arr.forEach((file) => {
+      total += file.size;
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.files.push({ name: file.name, size: file.size, type: file.type, data: reader.result });
+        queued -= 1;
+        if (queued === 0) renderStep();
+      };
+      queued += 1;
+      reader.readAsDataURL(file);
+    });
+    if (total > maxBytes) {
+      alert(`Total uploads exceed ${cfg.maxUploadMb} MB. Please remove some files or email them to us.`);
+    }
+  }
+
+  function renderQuestion(q) {
+    const err = state.showErrors ? questionError(q) : null;
+    const wrap = el("div", { class: "q" + (err ? " invalid" : ""), "data-qid": q.id });
+    if (q.type !== "acknowledge") {
+      wrap.appendChild(
+        el("label", { class: "q-label" }, [
+          q.label, q.required ? el("span", { class: "req" }, ["*"]) : null,
+        ])
+      );
+    }
+    if (q.help) wrap.appendChild(el("p", { class: "q-help" }, [q.help]));
+    wrap.appendChild(renderField(q));
+    wrap.appendChild(el("div", { class: "field-error" }, [err || ""]));
+    return wrap;
+  }
+
+  /* --------------------------------------------------------- review page */
+  function answerText(q) {
+    const v = state.answers[q.id];
+    if (q.type === "bank" && v) {
+      const bsb = String(v.bsb || "").replace(/\D/g, "").replace(/(\d{3})(\d{3})/, "$1-$2");
+      return `BSB ${bsb}  Acc ${v.account_number}\n${v.account_name}`;
+    }
+    if (q.type === "checkboxes" && Array.isArray(v)) return v.join(", ");
+    if (q.type === "acknowledge") return v ? "Agreed" : "—";
+    if (q.type === "file") return state.files.length ? `${state.files.length} file(s) attached` : "—";
+    return v ? String(v) : "—";
+  }
+
+  function renderReview() {
+    const card = el("div", { class: "card" });
+    card.appendChild(el("div", { class: "step-head" }, [
+      el("h2", {}, ["Review your answers"]),
+      el("p", {}, ["Please check everything below, then submit. You can jump back to edit any section."]),
+    ]));
+    schema.steps.forEach((step, i) => {
+      activeQuestions(step).forEach((q) => {
+        if (q.type === "info") return;
+        card.appendChild(el("div", { class: "review-item" }, [
+          el("button", { class: "review-edit", type: "button",
+            onclick: () => { state.stepIndex = i; state.showErrors = false; render(); } }, ["Edit"]),
+          el("div", { class: "review-q" }, [q.label]),
+          el("div", { class: "review-a" }, [answerText(q)]),
+        ]));
+      });
+    });
+
+    if (state.errorBanner) {
+      card.appendChild(el("div", { class: "banner banner-error" }, [state.errorBanner]));
+    }
+
+    const nav = el("div", { class: "nav" }, [
+      el("button", { class: "btn btn-ghost", type: "button",
+        onclick: () => { state.stepIndex = schema.steps.length - 1; render(); } }, ["Back"]),
+      el("div", { class: "spacer" }),
+      el("button", {
+        class: "btn btn-primary", type: "button",
+        disabled: state.submitting ? "disabled" : null,
+        onclick: submit,
+      }, [state.submitting ? "Submitting…" : "Submit questionnaire"]),
+    ]);
+    card.appendChild(nav);
+    return card;
+  }
+
+  /* ------------------------------------------------------------ step view */
+  function renderStep() { render(); }
+
+  function render() {
+    root.innerHTML = "";
+    root.appendChild(renderProgress());
+
+    if (state.done) { root.appendChild(renderSuccess()); return; }
+    if (state.stepIndex === REVIEW) { root.appendChild(renderReview()); return; }
+
+    const step = schema.steps[state.stepIndex];
+    const card = el("div", { class: "card" });
+    card.appendChild(el("div", { class: "step-head" }, [
+      el("h2", {}, [step.title]),
+      step.subtitle ? el("p", {}, [step.subtitle]) : null,
+    ]));
+
+    activeQuestions(step).forEach((q) => card.appendChild(renderQuestion(q)));
+
+    if (state.showErrors && stepHasErrors(step)) {
+      card.appendChild(el("div", { class: "banner banner-error" }, [
+        "Please complete the highlighted questions above.",
+      ]));
+    }
+
+    const isFirst = state.stepIndex === 0;
+    const nav = el("div", { class: "nav" }, [
+      el("button", { class: "btn btn-ghost", type: "button", disabled: isFirst ? "disabled" : null,
+        onclick: prev }, ["Back"]),
+      el("div", { class: "spacer" }),
+      el("button", { class: "btn btn-primary", type: "button", onclick: next },
+        [state.stepIndex === schema.steps.length - 1 ? "Review" : "Continue"]),
+    ]);
+    card.appendChild(nav);
+    root.appendChild(card);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function renderProgress() {
+    const total = schema.steps.length + 1; // + review
+    const current = Math.min(state.stepIndex, schema.steps.length) + 1;
+    const pct = state.done ? 100 : ((current - 1) / total) * 100 + 8;
+    const label = state.done
+      ? "Complete"
+      : state.stepIndex === REVIEW
+        ? "Final step · Review & submit"
+        : `Step ${current} of ${total} · ${schema.steps[state.stepIndex].title}`;
+    return el("div", { class: "progress" }, [
+      el("div", { class: "progress-track" }, [
+        el("div", { class: "progress-fill", style: `width:${Math.min(pct, 100)}%` }),
+      ]),
+      el("div", { class: "progress-label" }, [label]),
+    ]);
+  }
+
+  function stepHasErrors(step) {
+    return activeQuestions(step).some((q) => questionError(q));
+  }
+
+  function prev() {
+    state.showErrors = false;
+    state.errorBanner = null;
+    if (state.stepIndex > 0) state.stepIndex -= 1;
+    save();
+    render();
+  }
+
+  function next() {
+    const step = schema.steps[state.stepIndex];
+    if (stepHasErrors(step)) {
+      state.showErrors = true;
+      render();
+      return;
+    }
+    state.showErrors = false;
+    state.stepIndex += 1;
+    save();
+    render();
+  }
+
+  /* -------------------------------------------------------------- submit */
+  function buildPayload() {
+    const answers = {};
+    flatQuestions.forEach((q) => {
+      if (!isActive(q)) return;
+      if (q.type === "file") return; // handled separately
+      answers[q.id] = state.answers[q.id] ?? null;
+    });
+    if (answers.mobile) answers.mobile = normalizeMobile(answers.mobile);
+    return {
+      form: schema.title,
+      submitted_at: new Date().toISOString(),
+      answers,
+      files: state.files.map((f) => ({ name: f.name, type: f.type, size: f.size, data: f.data })),
+    };
+  }
+
+  async function submit() {
+    // Final full validation across all steps.
+    const firstBadStep = schema.steps.findIndex((s) => stepHasErrors(s));
+    if (firstBadStep !== -1) {
+      state.stepIndex = firstBadStep;
+      state.showErrors = true;
+      state.errorBanner = null;
+      render();
+      return;
+    }
+
+    const payload = buildPayload();
+
+    if (!cfg.submitEndpoint) {
+      // DEMO mode — no backend configured.
+      console.log("Submission payload (demo mode):", payload);
+      state.reference = "DEMO-" + Date.now().toString(36).toUpperCase();
+      state.done = true;
+      clearSaved();
+      render();
+      return;
+    }
+
+    state.submitting = true;
+    state.errorBanner = null;
+    render();
+    try {
+      const res = await fetch(cfg.submitEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json().catch(() => ({}));
+      state.reference = data.reference || "LMS-" + Date.now().toString(36).toUpperCase();
+      state.done = true;
+      clearSaved();
+    } catch (err) {
+      state.errorBanner =
+        "Sorry — we couldn't submit your questionnaire just now. Please try again, " +
+        "or email us and we'll help. (" + err.message + ")";
+    } finally {
+      state.submitting = false;
+      render();
+    }
+  }
+
+  function renderSuccess() {
+    return el("div", { class: "card success" }, [
+      el("div", { class: "check" }, ["✓"]),
+      el("h2", {}, ["Thank you — we've received your questionnaire"]),
+      el("p", {}, [
+        "Our team will be in touch. Remember, we can only begin once your income is " +
+        "noted as 'Tax Ready' in myGov and all requested information has been received.",
+      ]),
+      el("div", { class: "ref" }, ["Reference: " + state.reference]),
+    ]);
+  }
+
+  /* ---------------------------------------------------------------- init */
+  document.getElementById("brand-name").textContent = cfg.brandName;
+  document.getElementById("brand-tag").textContent = cfg.brandTagline;
+  restore();
+  render();
+})();
