@@ -345,9 +345,8 @@ const FORM_SCHEMA = {
     },
 
     // ---------------------------------------------------------------------
-    // ACKNOWLEDGEMENTS — carried over from the Existing Client questionnaire.
-    // TODO: confirm the exact wording/order LMS uses on the NEW CLIENT form
-    // (these were not in the supplied screenshots). Edit or remove as needed.
+    // ACKNOWLEDGEMENTS — the client must confirm each of these to submit.
+    // (Confirmed for use on the New Client form.)
     // ---------------------------------------------------------------------
     {
       id: "acknowledgements",
