@@ -54,6 +54,46 @@ results view (`results.html`) populated from your test submission.
    `RESULTS_URL` (the public URL of `results.html`) so the notification email
    includes a one-click "open in staff view" link.
 
+## Embedding in WordPress (recommended approach)
+
+**Recommendation: host the form as static files and embed it with an auto-resizing
+iframe in a Custom HTML block.** This isolates the form from your theme's and
+plugins' global CSS/JavaScript (WordPress themes have aggressive styles that would
+otherwise fight the form's design), needs no plugin, and updates independently of
+the site.
+
+Steps:
+
+1. Upload the `tax_questionnaire/` folder to your hosting (via cPanel File Manager
+   or FTP), e.g. to `https://www.lmsadvisory.com.au/tax/`. (A subdomain such as
+   `forms.lmsadvisory.com.au` also works and keeps it off the main install.)
+2. On the page where the form should appear, add a **Custom HTML** block (Gutenberg)
+   — or an **HTML widget** in Elementor/Divi/WPBakery — and paste:
+
+   ```html
+   <iframe id="lms-tax-form" src="https://www.lmsadvisory.com.au/tax/index.html"
+           title="Tax Questionnaire" loading="lazy"
+           style="width:100%;border:0;min-height:900px;overflow:hidden"></iframe>
+   <script>
+     window.addEventListener("message", function (e) {
+       if (e.data && e.data.type === "lms-form-height") {
+         document.getElementById("lms-tax-form").style.height = e.data.height + "px";
+       }
+     });
+   </script>
+   ```
+
+   The form reports its height as clients move through the steps, so the iframe
+   grows/shrinks with no inner scrollbar.
+
+3. Keep **`results.html` private** — it's staff-only. Put it behind your client/staff
+   login, at an unguessable path, or restrict by IP, and add `noindex`. Don't link
+   to it publicly.
+
+Alternatives, if you'd rather not host static files: a small custom plugin exposing
+a `[lms_tax_form]` shortcode, or pasting the markup inline — but both invite theme
+CSS conflicts and more maintenance, so the iframe is the cleaner choice.
+
 ## How the copy-to-Xero flow works
 
 1. Client submits → backend emails your team a formatted summary **and** a link

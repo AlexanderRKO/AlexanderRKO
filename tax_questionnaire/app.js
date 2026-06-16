@@ -354,8 +354,8 @@
     root.innerHTML = "";
     root.appendChild(renderProgress());
 
-    if (state.done) { root.appendChild(renderSuccess()); return; }
-    if (state.stepIndex === REVIEW) { root.appendChild(renderReview()); return; }
+    if (state.done) { root.appendChild(renderSuccess()); postHeight(); return; }
+    if (state.stepIndex === REVIEW) { root.appendChild(renderReview()); postHeight(); return; }
 
     const step = schema.steps[state.stepIndex];
     const card = el("div", { class: "card" });
@@ -383,6 +383,18 @@
     card.appendChild(nav);
     root.appendChild(card);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    postHeight();
+  }
+
+  // When embedded in an iframe, tell the parent page our height so it can size
+  // the iframe with no inner scrollbar. The parent listens for this message
+  // (see the embed snippet in README.md). Harmless when not embedded.
+  function postHeight() {
+    if (window.parent === window) return;
+    requestAnimationFrame(() => {
+      const h = document.body.scrollHeight;
+      window.parent.postMessage({ type: "lms-form-height", height: h }, "*");
+    });
   }
 
   function renderProgress() {
