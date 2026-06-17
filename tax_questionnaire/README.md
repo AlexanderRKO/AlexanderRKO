@@ -21,6 +21,8 @@ same engine can host the Existing Client questionnaire too — just swap `schema
 | `server/submit-handler.js` | Reference backend: emails the team + upserts a Xero contact. |
 | `INSTALL-WORDPRESS.md` | Plain-English WordPress setup guide. |
 | `LMS-Questionnaire-WordPress-Setup.docx` | The same guide as a branded Word document. |
+| `build-standalone.js` + `STANDALONE.md` | Bundle the tool into a single self-contained HTML file (no WordPress needed). |
+| `standalone/` | The built single-file editions (client form + staff view). |
 
 ## Key features
 
