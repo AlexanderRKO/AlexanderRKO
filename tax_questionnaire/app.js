@@ -127,6 +127,28 @@
     return n;
   }
 
+  // Once the user has tried to advance (state.showErrors), give live feedback on
+  // text fields without a full re-render (which would steal focus): clear the
+  // error optimistically as they type, and re-check when they leave the field.
+  function clearQError(target) {
+    if (!state.showErrors || !target.closest) return;
+    const w = target.closest(".q"); if (!w) return;
+    w.classList.remove("invalid");
+    const fe = w.querySelector(".field-error"); if (fe) fe.textContent = "";
+    target.removeAttribute("aria-invalid");
+  }
+  function revalidateQ(q, target) {
+    if (!state.showErrors || !target.closest) return;
+    const w = target.closest(".q"); if (!w) return;
+    const err = questionError(q);
+    w.classList.toggle("invalid", !!err);
+    const fe = w.querySelector(".field-error"); if (fe) fe.textContent = err || "";
+    if (err) target.setAttribute("aria-invalid", "true");
+    else target.removeAttribute("aria-invalid");
+  }
+  // Suggest the right mobile keyboard for a given field type.
+  const INPUTMODE = { tel: "tel", email: "email" };
+
   function renderField(q) {
     const set = (val) => { state.answers[q.id] = val; save(); };
 
@@ -137,19 +159,26 @@
         return el("input", {
           type: q.type, value: state.answers[q.id] || "",
           placeholder: q.placeholder || "",
-          oninput: (e) => set(e.target.value),
+          autocomplete: q.autocomplete || null,
+          inputmode: INPUTMODE[q.type] || null,
+          oninput: (e) => { set(e.target.value); clearQError(e.target); },
+          onblur: (e) => revalidateQ(q, e.target),
         });
       }
       case "textarea":
         return el("textarea", {
           placeholder: q.placeholder || "",
-          oninput: (e) => set(e.target.value),
+          autocomplete: q.autocomplete || null,
+          oninput: (e) => { set(e.target.value); clearQError(e.target); },
+          onblur: (e) => revalidateQ(q, e.target),
         }, [state.answers[q.id] || ""]);
 
       case "date":
         return el("input", {
           type: "date", value: state.answers[q.id] || "",
-          oninput: (e) => set(e.target.value),
+          autocomplete: q.autocomplete || null,
+          oninput: (e) => { set(e.target.value); clearQError(e.target); },
+          onblur: (e) => revalidateQ(q, e.target),
         });
 
       case "select": {
@@ -281,25 +310,36 @@
 
   function addFiles(fileList) {
     const maxBytes = cfg.maxUploadMb * 1024 * 1024;
-    const existing = state.files.reduce((s, f) => s + f.size, 0);
-    let total = existing;
-    let queued = 0;
+    let total = state.files.reduce((s, f) => s + f.size, 0);
     const arr = Array.from(fileList);
     if (arr.length === 0) return;
+    // Only accept files that keep the running total under the cap; tell the user
+    // which were skipped rather than silently bloating the submission.
+    const accepted = [];
+    const skipped = [];
     arr.forEach((file) => {
+      if (total + file.size > maxBytes) { skipped.push(file.name); return; }
       total += file.size;
+      accepted.push(file);
+    });
+    let queued = accepted.length;
+    if (queued === 0) {
+      alert(`These files would exceed the ${cfg.maxUploadMb} MB limit, so they weren't added. Please upload smaller files or email them to us.`);
+      return;
+    }
+    accepted.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
         state.files.push({ name: file.name, size: file.size, type: file.type, data: reader.result });
-        queued -= 1;
-        if (queued === 0) renderStep();
+        if (--queued === 0) {
+          renderStep();
+          if (skipped.length) {
+            alert(`Added ${accepted.length} file(s). Skipped (over ${cfg.maxUploadMb} MB): ${skipped.join(", ")}.`);
+          }
+        }
       };
-      queued += 1;
       reader.readAsDataURL(file);
     });
-    if (total > maxBytes) {
-      alert(`Total uploads exceed ${cfg.maxUploadMb} MB. Please remove some files or email them to us.`);
-    }
   }
 
   // Types backed by a single native control we can associate a <label for> with.
@@ -408,6 +448,10 @@
 
     const step = schema.steps[state.stepIndex];
     const card = el("div", { class: "card" });
+    // Welcome note on the first step (uses the schema intro if present).
+    if (state.stepIndex === 0 && schema.intro) {
+      card.appendChild(el("p", { class: "intro-note" }, [schema.intro]));
+    }
     card.appendChild(el("div", { class: "step-head" }, [
       el("h2", {}, [step.title]),
       step.subtitle ? el("p", {}, [step.subtitle]) : null,
@@ -455,8 +499,13 @@
       : state.stepIndex === REVIEW
         ? "Final step · Review & submit"
         : `Step ${current} of ${total} · ${schema.steps[state.stepIndex].title}`;
+    const pctClamped = Math.round(Math.min(pct, 100));
     return el("div", { class: "progress" }, [
-      el("div", { class: "progress-track" }, [
+      el("div", {
+        class: "progress-track", role: "progressbar",
+        "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(pctClamped),
+        "aria-label": label,
+      }, [
         el("div", { class: "progress-fill", style: `width:${Math.min(pct, 100)}%` }),
       ]),
       el("div", { class: "progress-label" }, [label]),

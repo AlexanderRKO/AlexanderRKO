@@ -37,6 +37,7 @@ const FORM_SCHEMA = {
             "Please ensure this matches your drivers licence or passport. We will need to " +
             "contact you to verify these details as per our AML/CTF obligations.",
           required: true,
+          autocomplete: "name",
           placeholder: "e.g. Owen James Smith",
         },
         {
@@ -44,6 +45,7 @@ const FORM_SCHEMA = {
           type: "date",
           label: "What is your Date of Birth?",
           required: true,
+          autocomplete: "bday",
         },
         {
           id: "residential_address",
@@ -51,6 +53,7 @@ const FORM_SCHEMA = {
           label: "Please confirm your current residential address to include in the return.",
           help: "We will also treat this as your postal address.",
           required: true,
+          autocomplete: "street-address",
           placeholder: "Unit / Street / Suburb / State / Postcode",
         },
         {
@@ -65,6 +68,7 @@ const FORM_SCHEMA = {
             "return lodged needs its own unique email address and unique mobile phone number.",
           required: true,
           validate: "mobile",
+          autocomplete: "tel-national",
           placeholder: "04xx xxx xxx",
         },
         {
@@ -75,6 +79,7 @@ const FORM_SCHEMA = {
             "It is important we select the right occupation code in your return, as the ATO " +
             "will benchmark the usual deductions claimed in different industries against your peers.",
           required: true,
+          autocomplete: "organization-title",
           placeholder: "e.g. Landscaper",
         },
         {
@@ -86,6 +91,7 @@ const FORM_SCHEMA = {
             "mobile phone number.",
           required: true,
           validate: "email",
+          autocomplete: "email",
           placeholder: "name@example.com",
         },
       ],
