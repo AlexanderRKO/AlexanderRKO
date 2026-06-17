@@ -22,7 +22,12 @@ same engine can host the Existing Client questionnaire too — just swap `schema
 | `INSTALL-WORDPRESS.md` | Plain-English WordPress setup guide. |
 | `LMS-Questionnaire-WordPress-Setup.docx` | The same guide as a branded Word document. |
 | `build-standalone.js` + `STANDALONE.md` | Bundle the tool into a single self-contained HTML file (no WordPress needed). |
-| `standalone/` | The built single-file editions (client form + staff view). |
+| `build-editor.js` + `editor.src.html` + `EDITOR-GUIDE.md` | Build the in-browser, no-install form editor. |
+| `standalone/` | Built files: single-file form, staff view, and `LMS-Form-Editor.html`. |
+
+> **No-install editing:** `standalone/LMS-Form-Editor.html` lets non-technical
+> staff edit the questions and download a finished form using only a web browser
+> — no Node, no Notepad. See `EDITOR-GUIDE.md`.
 
 ## Key features
 

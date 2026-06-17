@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#002555" />
+  <title>LMS Form Editor</title>
+  <style>
+    :root { --navy:#002555; --navy-deep:#001a3d; --orange:#ed8b00; --line:#dde1ea;
+      --bg:#f5f6f9; --ink:#1f2a38; --muted:#5b6573; --surface:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:15px/1.5 Georgia,"Times New Roman",serif; color:var(--ink); background:var(--bg); }
+    .topbar { background:var(--navy); color:#fff; padding:12px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; position:sticky; top:0; z-index:10; }
+    .topbar .mark { font-weight:800; letter-spacing:.12em; border-left:4px solid var(--orange); padding-left:8px; }
+    .topbar .sub { color:#b9c4d6; font-size:13px; }
+    .topbar .grow { flex:1; }
+    .btn { font:inherit; font-weight:700; border:0; border-radius:8px; padding:9px 16px; cursor:pointer; }
+    .btn-primary { background:var(--orange); color:#fff; }
+    .btn-primary:hover { background:#cf7c08; }
+    .btn-light { background:#fff; color:var(--navy); }
+    .btn-ghost { background:transparent; color:#fff; border:1.5px solid #3b5076; }
+    .btn-ghost:hover { border-color:#fff; }
+    .btn-sm { padding:5px 10px; font-size:13px; border-radius:6px; }
+    .wrap { display:grid; grid-template-columns: 1fr 1fr; gap:0; height:calc(100vh - 56px); }
+    .pane { overflow:auto; padding:18px; }
+    .pane.edit { border-right:1px solid var(--line); }
+    .pane.preview { background:#e9edf3; }
+    h2.sect { color:var(--navy); font-size:16px; margin:6px 0 10px; border-bottom:2px solid var(--orange); padding-bottom:4px; }
+    .panel { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
+    .field { margin-bottom:10px; }
+    .field label { display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-bottom:3px; }
+    .field input[type=text], .field input[type=url], .field textarea, .field select {
+      width:100%; font:inherit; font-size:14px; border:1.5px solid var(--line); border-radius:8px; padding:8px 10px; background:#fff; color:var(--ink); }
+    .field textarea { resize:vertical; min-height:54px; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .chk { display:flex; align-items:center; gap:7px; font-size:14px; }
+    .chk input { width:17px; height:17px; accent-color:var(--navy); }
+    .step-card { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:16px; }
+    .step-head { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .step-head .grow { flex:1; }
+    .q-card { border:1px solid var(--line); border-left:4px solid var(--navy); border-radius:8px; padding:11px; margin:10px 0; background:#fbfcfe; }
+    .q-top { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .badge { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#fff; background:var(--navy); border-radius:999px; padding:2px 9px; }
+    .badge.cond { background:var(--orange); }
+    .q-top .grow { flex:1; }
+    .iconbtn { border:1px solid var(--line); background:#fff; color:var(--muted); border-radius:6px; cursor:pointer; font-size:13px; padding:3px 8px; font-family:inherit; }
+    .iconbtn:hover { border-color:var(--navy); color:var(--navy); }
+    .iconbtn.danger:hover { border-color:#dc2626; color:#dc2626; }
+    .hint { font-size:12.5px; color:var(--muted); margin:4px 0 12px; }
+    .add-row { display:flex; gap:8px; margin-top:8px; }
+    .add-row select { flex:1; }
+    iframe { width:100%; height:100%; border:0; background:#fff; border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.1); }
+    .preview-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .preview-head .t { font-weight:700; color:var(--navy); }
+    .saved-note { font-size:12px; color:var(--muted); }
+    @media (max-width:900px) { .wrap { grid-template-columns:1fr; height:auto; } .pane { height:auto; } .pane.preview { min-height:70vh; } iframe { height:70vh; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="mark">LMS</span>
+    <span class="sub">Form Editor — edit questions and download a ready-to-use form</span>
+    <span class="grow"></span>
+    <button class="btn btn-ghost btn-sm" id="loadBtn">Open saved</button>
+    <button class="btn btn-light btn-sm" id="saveBtn">Save working copy</button>
+    <button class="btn btn-primary" id="downloadBtn">⤓ Download form</button>
+    <input type="file" id="loadFile" accept=".json" style="display:none" />
+  </div>
+
+  <div class="wrap">
+    <div class="pane edit">
+      <h2 class="sect">Settings</h2>
+      <div class="panel" id="settings"></div>
+
+      <h2 class="sect">Questions</h2>
+      <p class="hint">Edit any wording below and the preview on the right updates. Use “Download form” when you’re happy.
+        Advanced logic (e.g. follow-up questions that only appear after a “Yes”) is preserved but edited in the schema file.</p>
+      <div id="steps"></div>
+      <button class="btn btn-light btn-sm" id="addStep">+ Add a section</button>
+    </div>
+
+    <div class="pane preview">
+      <div class="preview-head">
+        <span class="t">Live preview</span>
+        <button class="btn btn-light btn-sm" id="refreshBtn">↻ Refresh</button>
+        <span class="saved-note" id="savedNote"></span>
+      </div>
+      <iframe id="preview" title="Form preview"></iframe>
+    </div>
+  </div>
+
+  <!-- Default questions & settings are injected here at build time -->
+  <script>/*
+ * LMS Advisory — New Client Questionnaire (Tax Preparation)
+ * Mirrors the Paperform "NEW CLIENT QUESTIONNAIRE - TAX PREPARATION" (v2026.01.25).
+ * ----------------------------------------------------------------------------
+ * Non-developers can safely edit labels, help text, options and ordering here
+ * without touching the form engine (app.js).
+ *
+ * Question types:
+ *   text | tel | email | textarea | date | select | radio | yesno |
+ *   checkboxes | bank | file | acknowledge
+ *
+ * showIf conditions (a question only shows/required when matched):
+ *   { field: 'id', equals: 'Yes' }
+ *   { field: 'id', in: ['A','B'] }
+ *   { field: 'id', contains: 'Option text' }   // for checkboxes (array) fields
+ */
+
+const FORM_SCHEMA = {
+  title: "New Client Questionnaire — Tax Preparation",
+  version: "v2026.01.25",
+  intro:
+    "Welcome to LMS Advisory. Please complete the questions below so we can prepare " +
+    "your income tax return. Your progress is saved automatically on this device — " +
+    "you can return and finish later.",
+
+  steps: [
+    {
+      id: "about_you",
+      title: "About you",
+      subtitle: "So we know who we're acting for and can meet our verification obligations.",
+      questions: [
+        {
+          id: "full_name",
+          type: "text",
+          label: "What is your full name including any middle names?",
+          help:
+            "Please ensure this matches your drivers licence or passport. We will need to " +
+            "contact you to verify these details as per our AML/CTF obligations.",
+          required: true,
+          autocomplete: "name",
+          placeholder: "e.g. Owen James Smith",
+        },
+        {
+          id: "date_of_birth",
+          type: "date",
+          label: "What is your Date of Birth?",
+          required: true,
+          autocomplete: "bday",
+        },
+        {
+          id: "residential_address",
+          type: "textarea",
+          label: "Please confirm your current residential address to include in the return.",
+          help: "We will also treat this as your postal address.",
+          required: true,
+          autocomplete: "street-address",
+          placeholder: "Unit / Street / Suburb / State / Postcode",
+        },
+        {
+          id: "mobile",
+          type: "tel",
+          label:
+            "Confirm Mobile Phone number to access secure documents and complete " +
+            "electronic signature verification?",
+          help:
+            "We use Fusesign for digital signatures. The added layer of SMS authentication " +
+            "ensures that your Tax File Number will always be secure to you. Every individual " +
+            "return lodged needs its own unique email address and unique mobile phone number.",
+          required: true,
+          validate: "mobile",
+          autocomplete: "tel-national",
+          placeholder: "04xx xxx xxx",
+        },
+        {
+          id: "occupation",
+          type: "text",
+          label: "What would you describe as your Primary Occupation?",
+          help:
+            "It is important we select the right occupation code in your return, as the ATO " +
+            "will benchmark the usual deductions claimed in different industries against your peers.",
+          required: true,
+          autocomplete: "organization-title",
+          placeholder: "e.g. Landscaper",
+        },
+        {
+          id: "signing_email",
+          type: "email",
+          label: "Preferred email address for electronic signing of documents?",
+          help:
+            "Every return lodged for each taxpayer needs its own unique email address and " +
+            "mobile phone number.",
+          required: true,
+          validate: "email",
+          autocomplete: "email",
+          placeholder: "name@example.com",
+        },
+      ],
+    },
+
+    {
+      id: "year_refund",
+      title: "Tax year & refund",
+      subtitle: "The year(s) we're lodging and where any refund should go.",
+      questions: [
+        {
+          id: "tax_year",
+          type: "checkboxes",
+          label: "What Tax Year are we completing for you?",
+          help: "Select all that apply.",
+          required: true,
+          options: ["2026", "2025", "2024", "2023", "2022", "Multiple Years", "Other"],
+        },
+        {
+          id: "tax_year_other",
+          type: "text",
+          label: "Which other year(s) should we complete?",
+          required: false,
+          showIf: { field: "tax_year", contains: "Other" },
+        },
+        {
+          // Free-text in the original form. Captured as structured fields here so
+          // staff can copy Account name / BSB / Account number straight into Xero.
+          id: "bank",
+          type: "bank",
+          label:
+            "What is your preferred Bank Account for your refund? Please provide even if you " +
+            "anticipate your return being payable this year.",
+          help: "Please provide Account Name, BSB and Account Number.",
+          required: true,
+        },
+        {
+          id: "use_trust_account",
+          type: "yesno",
+          label:
+            "If your return is refundable, do you intend to use the LMS Trust Account service " +
+            "to pay your tax return fee from your refund?",
+          help:
+            "Our fees will be quoted in advance wherever possible. If your return is refundable " +
+            "and you wish to use the Trust Account Service, the ATO will pay your refund into our " +
+            "Trust Account first. Your agreed fee is then transferred to LMS and the balance " +
+            "returned to you. This may delay receipt of your refund by up to 1 week. There is no " +
+            "charge for using the Trust Account service. We will send you a Trust Authority " +
+            "document to complete with your tax paperwork.",
+          required: true,
+        },
+      ],
+    },
+
+    {
+      id: "getting_started",
+      title: "Getting started",
+      subtitle: "A couple of quick questions before we dig in.",
+      questions: [
+        {
+          id: "received_checklist",
+          type: "yesno",
+          label:
+            "Have you received a copy of our Tax Checklist for completion to assist you in " +
+            "providing us with the documents we'll need to complete your return?",
+          help:
+            "Copies can also be downloaded from the LMS website: " +
+            "https://www.lmsadvisory.com.au/knowledge/taxpreparation/",
+          required: false,
+        },
+        {
+          id: "consultation",
+          type: "radio",
+          label:
+            "Do you require a consultation with an accountant in relation to your tax affairs?",
+          help:
+            "In-person appointments are not necessary to progress tax return preparation. If you " +
+            "are looking to book an in-person advice consultation with one of our accountants, you " +
+            "can schedule once your returns are complete. Appointments outside of office hours and " +
+            "on Saturdays are available by Zoom only. Please note additional fees may apply for " +
+            "consultations.",
+          required: true,
+          options: ["Yes", "No", "Unsure, I'd like a phone call to discuss"],
+        },
+      ],
+    },
+
+    {
+      id: "about_return",
+      title: "About your return",
+      subtitle: "This helps us tailor our advice to your circumstances.",
+      questions: [
+        {
+          id: "significant_items",
+          type: "checkboxes",
+          label: "Do any of these significant items apply to you?",
+          help: "Multiple answers could apply — this will help guide us in advising you on your tax affairs.",
+          required: true,
+          options: [
+            "I am a sole trader",
+            "Bought/Sold a Significant Asset required a Capital Gains Tax calculation (investment property/shares)",
+            "Own 1 or more investment properties",
+            "Got Married in the financial year",
+            "Separated from your spouse in the financial year",
+            "Welcomed a new child into the world",
+            "Moved House (changed my main residence)",
+            "Started a new job / Retired",
+            "Started my own business",
+            "Commenced new studies / Finalised my studies",
+            "Paid out my HECS Debt",
+            "Refinanced a home loan or investment loan",
+            "Invest or Trade in Crypto",
+            "Make additional contributions to super",
+            "Unsure",
+            "Other",
+          ],
+        },
+        // --- Conditional follow-ups driven by the significant items above ---
+        {
+          id: "sole_trader_abn",
+          type: "text",
+          label: "As a sole trader, what is your ABN?",
+          required: false,
+          validate: "abn",
+          placeholder: "11 digits",
+          showIf: { field: "significant_items", contains: "I am a sole trader" },
+        },
+        {
+          id: "rental_summary_ready",
+          type: "yesno",
+          label:
+            "Do you have your agent's Annual Rental Summary, loan statements and out-of-pocket " +
+            "expenses ready to provide?",
+          help: "Our checklist has a detailed rental schedule you can complete.",
+          required: false,
+          showIf: { field: "significant_items", contains: "Own 1 or more investment properties" },
+        },
+        {
+          id: "crypto_detail",
+          type: "textarea",
+          label: "Tell us briefly about your crypto activity.",
+          help: "Which exchanges you used and roughly how many transactions — we'll follow up for detail.",
+          required: false,
+          showIf: { field: "significant_items", contains: "Invest or Trade in Crypto" },
+        },
+        {
+          id: "significant_items_other",
+          type: "text",
+          label: "Please tell us about the other significant item.",
+          required: false,
+          showIf: { field: "significant_items", contains: "Other" },
+        },
+        {
+          id: "questions_for_us",
+          type: "textarea",
+          label:
+            "Do you have any questions in particular related to this year's return or your tax " +
+            "affairs in general?",
+          help:
+            "Please list your questions separated by a comma, e.g. (1. Can I claim this? 2. What " +
+            "are the 2 alternate work-from-home claim methods?). It's OK if you have no questions!",
+          required: false,
+        },
+      ],
+    },
+
+    {
+      id: "documents_services",
+      title: "Documents & services",
+      subtitle: "Share anything useful and tell us where else we can help.",
+      questions: [
+        {
+          id: "documents",
+          type: "file",
+          label: "Would you like to upload any documents linked to the questions above for us to consider?",
+          help:
+            "You are welcome to upload any documentation referred to in the checklist. We'd also " +
+            "love a copy of last year's tax return lodged.",
+          required: false,
+        },
+        {
+          id: "last_year_return",
+          type: "yesno",
+          label: "Do you have a copy of last year's tax return on hand in case we need it?",
+          help:
+            "Providing last year's return helps us ensure we address all applicable aspects of " +
+            "your return. Email us or upload it using the link above.",
+          required: true,
+        },
+        {
+          id: "other_services",
+          type: "checkboxes",
+          label: "Are you interested in any of the other services LMS can provide?",
+          help:
+            "If you do not require any additional services, please select 'No Thanks'. You may " +
+            "select as many services as you need — we'll be in touch!",
+          required: true,
+          options: [
+            "No Thanks",
+            "Financial Planning",
+            "Budgeting / Cashflow Forecasting",
+            "Asset purchase structuring and entity formations",
+            "Referral to Mortgage Brokers in our network",
+            "Referral to Solicitors",
+            "Bookkeeping Services",
+            "Self Managed Superannuation Creation and Advice",
+            "Wealth Creation Strategies",
+            "Property Portfolio Review and Growth Strategies",
+            "Starting a new business or side hustle",
+            "Other",
+          ],
+        },
+        {
+          id: "other_services_other",
+          type: "text",
+          label: "Which other service are you interested in?",
+          required: false,
+          showIf: { field: "other_services", contains: "Other" },
+        },
+      ],
+    },
+
+    {
+      id: "last_things",
+      title: "A few last things",
+      subtitle: "Almost done.",
+      questions: [
+        {
+          id: "how_heard",
+          type: "radio",
+          label: "How did you hear about us?",
+          help: "If you were referred to LMS, we would love to thank the person who passed on our details.",
+          required: true,
+          options: [
+            "Referral",
+            "LMS Website",
+            "LinkedIn",
+            "Facebook",
+            "Instagram",
+            "Saw us in a magazine or online publication",
+            "Other",
+          ],
+        },
+        {
+          id: "referrer_name",
+          type: "text",
+          label: "Who can we thank for referring you?",
+          required: false,
+          showIf: { field: "how_heard", equals: "Referral" },
+        },
+        {
+          id: "how_heard_other",
+          type: "text",
+          label: "Please tell us how you heard about us.",
+          required: false,
+          showIf: { field: "how_heard", equals: "Other" },
+        },
+        {
+          id: "google_review",
+          type: "yesno",
+          label:
+            "If we provide you an outstanding service, would you be willing to leave us a Google review?",
+          help:
+            "Our business grows when our valued customers share their positive experience with us. " +
+            "We look forward to working with you!",
+          required: false,
+        },
+        {
+          id: "other_entities",
+          type: "yesno",
+          label: "Do you have any other entities that you would like us to look after?",
+          help:
+            "You may have associated companies, trusts or an SMSF. We have expertise in all of the " +
+            "above and would love to help.",
+          required: true,
+        },
+        {
+          id: "other_entities_detail",
+          type: "textarea",
+          label: "Tell us about the entities you'd like us to look after.",
+          required: false,
+          showIf: { field: "other_entities", equals: "Yes" },
+        },
+      ],
+    },
+
+    // ---------------------------------------------------------------------
+    // ACKNOWLEDGEMENTS — the client must confirm each of these to submit.
+    // (Confirmed for use on the New Client form.)
+    // ---------------------------------------------------------------------
+    {
+      id: "acknowledgements",
+      title: "Acknowledgements",
+      subtitle: "Please read and confirm each of the following to continue.",
+      questions: [
+        {
+          id: "ack_tax_ready",
+          type: "acknowledge",
+          required: true,
+          label:
+            "I understand that LMS cannot commence working on my return until my Income Tax " +
+            "Finalisation for the year is noted as 'Tax Ready' in myGov or on the ATO Prefill report.",
+        },
+        {
+          id: "ack_info_received",
+          type: "acknowledge",
+          required: true,
+          label:
+            "I understand that LMS will start working on my return when all of the information " +
+            "requested from me has been received.",
+        },
+        {
+          id: "ack_source_documents",
+          type: "acknowledge",
+          required: true,
+          label:
+            "Where source documents have not been provided (for example, items listed on a " +
+            "spreadsheet without a receipt), I confirm the source documents are in my possession " +
+            "and can be provided on request by LMS Advisory Pty Limited, the Australian Taxation " +
+            "Office, or any other party with authority to request them.",
+        },
+        {
+          id: "ack_withhold_lodgement",
+          type: "acknowledge",
+          required: true,
+          label:
+            "I understand LMS Advisory reserves the right to withhold lodgement of my return until " +
+            "any outstanding invoice(s) for the preparation of that return have been paid.",
+        },
+      ],
+    },
+  ],
+};
+
+if (typeof module !== "undefined") module.exports = FORM_SCHEMA;
+
+window.FORM_SCHEMA = FORM_SCHEMA;</script>
+  <script>/*
+ * LMS Advisory — Tax Questionnaire configuration
+ * ----------------------------------------------
+ * Edit these settings to point the form at your backend and brand it.
+ */
+
+const FORM_CONFIG = {
+  // Where submissions are POSTed (JSON). See server/submit-handler.js for a
+  // reference implementation that emails your team and updates Xero.
+  // Leave as "" to run in DEMO mode: the form validates and shows the payload
+  // on screen without sending anything anywhere.
+  submitEndpoint: "",
+
+  // Branding shown in the form header.
+  brandName: "LMS Advisory",
+  brandTagline: "New Client Questionnaire — Tax Preparation",
+
+  // Maximum total size of uploaded files (MB). Keep modest for email/JSON.
+  maxUploadMb: 15,
+
+  // Require a privacy/consent tick before the client can submit.
+  requireConsent: true,
+  privacyPolicyUrl: "https://www.lmsadvisory.com.au/privacy-policy/",
+
+  // Optional Cloudflare Turnstile (free, privacy-friendly CAPTCHA). Leave blank
+  // to rely on the built-in honeypot + timing trap only. If you paste a site key
+  // here, also add this once to index.html's <head>:
+  //   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer><\/script>
+  // and verify the token server-side (see server/submit-handler.js).
+  turnstileSiteKey: "",
+
+  // Key used to autosave progress in the browser (localStorage).
+  storageKey: "lms_tax_questionnaire_v1",
+};
+
+if (typeof module !== "undefined") module.exports = FORM_CONFIG;
+
+window.FORM_CONFIG = FORM_CONFIG;</script>
+
+  <script>
+  (function () {
+    "use strict";
+    // Engine + shell embedded at build time (so this editor is one self-contained file).
+    var ENGINE_CSS = ":root {\n  /* LMS Advisory official brand palette\n     Dark Navy  PMS 7463  (CMYK 100/62/12/62)\n     Orange     PMS 144c  (CMYK 0/50/100/0)\n     Grey       PMS 432   (CMYK 0/0/0/80) */\n  --navy: #002555;          /* primary brand — buttons, selected states, headings */\n  --navy-deep: #001a3d;     /* hover / pressed */\n  --navy-soft: #e4ebf3;     /* selected backgrounds, soft fills */\n  --orange: #ed8b00;        /* accent — progress, required marks, highlights */\n  --orange-deep: #c77600;\n  --orange-soft: #fdf1db;\n  --grey: #333f48;          /* PMS 432 — strong secondary */\n\n  --bg: #f5f6f9;\n  --surface: #ffffff;\n  --ink: #1f2a38;           /* body text */\n  --muted: #5b6573;\n  --line: #dde1ea;\n  --accent: var(--navy);    /* engine uses --accent for primary actions */\n  --accent-ink: var(--navy-deep);\n  --accent-soft: var(--navy-soft);\n  --done: #16a34a;\n  --warn: var(--orange);\n  --error: #dc2626;\n  --error-soft: #fef2f2;\n  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 30px rgba(21, 41, 78, 0.08);\n  --radius: 16px;\n  --radius-sm: 10px;\n}\n\n* { box-sizing: border-box; }\nhtml, body { margin: 0; padding: 0; }\nbody {\n  /* LMS primary typeface: Georgia (web-safe serif, no external dependency) */\n  font: 16px/1.6 Georgia, \"Times New Roman\", \"Liberation Serif\", serif;\n  color: var(--ink);\n  background: var(--bg);\n  min-height: 100dvh;\n  -webkit-font-smoothing: antialiased;\n}\n\n.app { max-width: 680px; margin: 0 auto; padding: 24px 16px 64px; }\n\n/* Header & progress */\nheader.top { padding: 4px 4px 18px; }\n.brand { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }\n\n/* LMS logo mark: navy tile with an orange vertical bar, echoing the logo */\n.logo-mark {\n  display: inline-flex; align-items: center;\n  background: var(--navy); color: #fff;\n  border-radius: 8px; padding: 9px 14px 9px 11px; gap: 10px;\n  box-shadow: 0 2px 8px rgba(21, 41, 78, 0.25);\n}\n.logo-mark::before {\n  content: \"\"; width: 4px; align-self: stretch; min-height: 22px;\n  background: var(--orange); border-radius: 2px;\n}\n.logo-mark .lm-l { font-weight: 800; letter-spacing: 0.12em; font-size: 19px; line-height: 1; }\n.logo-mark .lm-s { font-size: 9.5px; letter-spacing: 0.34em; opacity: 0.85; margin-top: 3px; }\n.logo-mark .lm-stack { display: flex; flex-direction: column; }\n\n.brand .titles h1 { margin: 0; font-size: 17px; font-weight: 700; color: var(--navy); letter-spacing: -0.01em; }\n.brand .titles .tag { color: var(--muted); font-size: 13px; }\n\n.progress { margin-top: 18px; }\n.progress-track {\n  height: 8px; background: var(--line); border-radius: 999px; overflow: hidden;\n}\n.progress-fill {\n  height: 100%; width: 0%;\n  background: linear-gradient(90deg, var(--orange), var(--orange-deep));\n  border-radius: 999px; transition: width 0.35s ease;\n}\n.progress-label { margin-top: 8px; font-size: 13px; color: var(--muted); font-weight: 500; }\n\n/* Card */\n.card {\n  background: var(--surface); border: 1px solid var(--line);\n  border-radius: var(--radius); box-shadow: var(--shadow);\n  padding: 24px; margin-top: 16px;\n}\n/* Honeypot — pushed off-screen, never shown to real users */\n.hp-field { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }\n\n/* Consent row on the review step */\n.consent-row { margin: 18px 0 4px; }\n.consent-row .opt { align-items: flex-start; }\n.consent-row a { color: var(--navy); font-weight: 700; }\n.consent-row.invalid .opt { border-color: var(--error); }\n\n.intro-note {\n  margin: 0 0 18px; padding: 14px 16px; font-size: 14.5px; line-height: 1.55;\n  color: var(--navy); background: var(--navy-soft); border-radius: var(--radius-sm);\n  border-left: 4px solid var(--orange);\n}\n.step-head h2 { margin: 0 0 4px; font-size: 21px; letter-spacing: -0.01em; color: var(--navy); }\n.step-head p { margin: 0 0 8px; color: var(--muted); font-size: 14px; }\n\n/* Questions */\n.q { padding: 18px 0; border-top: 1px solid var(--line); }\n.q:first-of-type { border-top: 0; padding-top: 8px; }\n.q-label { display: block; font-weight: 600; margin-bottom: 4px; }\n.q-label .req { color: var(--orange); margin-left: 2px; font-weight: 700; }\n.q-help { color: var(--muted); font-size: 13.5px; margin: 0 0 12px; }\n\ninput[type=\"text\"], input[type=\"tel\"], input[type=\"email\"],\ninput[type=\"date\"], select, textarea {\n  width: 100%; font: inherit; color: var(--ink);\n  background: var(--surface);\n  border: 1.5px solid var(--line); border-radius: var(--radius-sm);\n  padding: 11px 13px; outline: none; transition: border-color 0.15s, box-shadow 0.15s;\n}\ninput:focus, select:focus, textarea:focus {\n  border-color: var(--accent);\n  box-shadow: 0 0 0 3px var(--accent-soft);\n}\ntextarea { resize: vertical; min-height: 92px; }\n.invalid input, .invalid select, .invalid textarea,\n.invalid .yesno, .invalid .bank, .invalid .opt-list {\n  border-color: var(--error);\n}\n.field-error { color: var(--error); font-size: 13px; margin-top: 6px; display: none; }\n.invalid .field-error { display: block; }\n\n/* Yes/No segmented control */\n.yesno { display: inline-flex; border: 1.5px solid var(--line); border-radius: 999px; overflow: hidden; }\n.yesno button {\n  appearance: none; border: 0; background: var(--surface); cursor: pointer;\n  font: inherit; font-weight: 600; padding: 9px 26px; color: var(--muted);\n  transition: background 0.15s, color 0.15s;\n}\n.yesno button + button { border-left: 1.5px solid var(--line); }\n.yesno button[aria-pressed=\"true\"] { background: var(--accent); color: #fff; }\n\n/* Checkbox / acknowledge list */\n.opt-list { display: flex; flex-direction: column; gap: 8px; }\n.opt {\n  display: flex; gap: 11px; align-items: flex-start;\n  border: 1.5px solid var(--line); border-radius: var(--radius-sm);\n  padding: 12px 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s;\n}\n.opt:hover { border-color: var(--accent); }\n.opt.checked { border-color: var(--accent); background: var(--accent-soft); }\n.opt input { margin: 3px 0 0; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }\n.opt span { font-size: 14.5px; }\n.ack span { font-size: 14px; color: var(--ink); }\n\n/* Bank group */\n.bank { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }\n.bank .full { grid-column: 1 / -1; }\n.bank label { font-size: 12.5px; color: var(--muted); display: block; margin-bottom: 4px; font-weight: 600; }\n\n/* File input */\n.file-drop {\n  border: 1.5px dashed var(--line); border-radius: var(--radius-sm);\n  padding: 20px; text-align: center; color: var(--muted); cursor: pointer;\n  transition: border-color 0.15s, background 0.15s;\n}\n.file-drop:hover { border-color: var(--accent); background: var(--accent-soft); }\n.file-drop input { display: none; }\n.file-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }\n.file-chip {\n  display: flex; justify-content: space-between; align-items: center; gap: 10px;\n  background: var(--bg); border: 1px solid var(--line);\n  border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13.5px;\n}\n.file-chip button { appearance: none; border: 0; background: none; color: var(--error); cursor: pointer; font-weight: 600; }\n\n/* Navigation */\n.nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; }\n.btn {\n  appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 600;\n  border-radius: var(--radius-sm); padding: 13px 24px; transition: background 0.15s, opacity 0.15s;\n}\n.btn-primary { background: var(--accent); color: #fff; }\n.btn-primary:hover { background: var(--accent-ink); }\n.btn-ghost { background: var(--surface); color: var(--ink); border: 1.5px solid var(--line); }\n.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }\n.btn:disabled { opacity: 0.5; cursor: not-allowed; }\n.nav .spacer { flex: 1; }\n\n/* Review */\n.review-item { padding: 12px 0; border-top: 1px solid var(--line); }\n.review-item:first-child { border-top: 0; }\n.review-q { font-size: 13px; color: var(--muted); }\n.review-a { font-weight: 600; margin-top: 2px; white-space: pre-wrap; }\n.review-edit { float: right; font-size: 13px; color: var(--accent); background: none; border: 0; cursor: pointer; font-weight: 600; }\n\n/* Status / banners */\n.banner { border-radius: var(--radius-sm); padding: 12px 14px; font-size: 14px; margin-top: 16px; }\n.banner-error { background: var(--error-soft); color: var(--error); border: 1px solid #fecaca; }\n.banner-info { background: var(--accent-soft); color: var(--accent-ink); }\n\n/* Success screen */\n.success { text-align: center; padding: 16px 8px; }\n.success .check {\n  width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 999px;\n  background: var(--accent-soft); color: var(--accent);\n  display: grid; place-items: center; font-size: 32px;\n}\n.success h2 { margin: 0 0 8px; }\n.success p { color: var(--muted); margin: 0 auto; max-width: 42ch; }\n.ref { display: inline-block; margin-top: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;\n  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 12px; }\n\n.footnote { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 20px; }\n.footnote.firm { margin-top: 6px; font-size: 11px; opacity: 0.85; }\n\n/* ---------------------------------------------------- Staff results view */\n.results-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }\n.results-head .meta { color: var(--muted); font-size: 13px; }\n.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;\n  color: var(--muted); font-weight: 700; margin: 22px 0 6px; }\n\n/* Xero quick-copy card */\n.xero-card { background: var(--navy-soft); border: 1px solid #c3d0e2; border-radius: var(--radius);\n  padding: 16px; margin-top: 8px; }\n.xero-card h3 { margin: 0 0 4px; font-size: 16px; color: var(--navy); }\n.xero-card .hint { margin: 0 0 12px; font-size: 13px; color: var(--navy); opacity: 0.85; }\n.copy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }\n\n/* A click-to-copy field */\n.cp {\n  display: flex; align-items: center; justify-content: space-between; gap: 10px;\n  width: 100%; text-align: left; cursor: pointer; font: inherit;\n  background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius-sm);\n  padding: 9px 12px; transition: border-color 0.15s, background 0.15s;\n}\n.cp:hover { border-color: var(--accent); }\n.cp.copied { border-color: var(--done); background: #f0fdf4; }\n.cp .cp-body { min-width: 0; }\n.cp .cp-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); font-weight: 700; }\n.cp .cp-val { font-size: 14.5px; font-weight: 600; color: var(--ink);\n  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\n.cp .cp-val.empty { color: var(--muted); font-weight: 400; font-style: italic; }\n.cp .cp-icon { flex: none; color: var(--muted); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px; }\n.cp.copied .cp-icon { color: var(--done); }\n\n/* Full answer rows */\n.ans-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;\n  padding: 11px 0; border-top: 1px solid var(--line); }\n.ans-row:first-child { border-top: 0; }\n.ans-row .ans-q { font-size: 13px; color: var(--muted); max-width: 60%; }\n.ans-row .ans-right { display: flex; align-items: center; gap: 10px; min-width: 0; }\n.ans-row .ans-v { font-weight: 600; white-space: pre-wrap; text-align: right; }\n.mini-copy { appearance: none; border: 1.5px solid var(--line); background: var(--surface);\n  border-radius: 8px; padding: 8px 14px; min-height: 38px; font: inherit; font-size: 12.5px; font-weight: 600;\n  color: var(--muted); cursor: pointer; flex: none; transition: all 0.15s; }\n.mini-copy:hover { border-color: var(--accent); color: var(--accent); }\n.mini-copy.copied { border-color: var(--done); color: var(--done); background: #f0fdf4; }\n\n.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);\n  background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px;\n  font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 50; }\n.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }\n\n.paste-area textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; min-height: 120px; }\n\n.attachments a { color: var(--accent); font-weight: 600; text-decoration: none; }\n.attachments a:hover { text-decoration: underline; }\n\n.head-actions { display: flex; gap: 8px; flex-wrap: wrap; }\n\n/* Printing the staff results view: drop interactive chrome, keep the content */\n@media print {\n  body { background: #fff; }\n  .toast, .mini-copy, .head-actions, .review-edit, .cp .cp-icon { display: none !important; }\n  .card { box-shadow: none; border-color: #ccc; break-inside: avoid; }\n  .cp { border-color: #ccc; }\n  .xero-card { background: #fff; border-color: #ccc; }\n}\n\n@media (max-width: 480px) {\n  .app { padding: 18px 12px 56px; }\n  .card { padding: 18px; }\n  .bank { grid-template-columns: 1fr; }\n  .yesno { display: flex; width: 100%; }\n  .yesno button { flex: 1; padding: 12px 0; }\n  /* Full-width, evenly split navigation buttons are easier to thumb-tap */\n  .nav .spacer { display: none; }\n  .nav .btn { flex: 1; }\n  .head-actions { width: 100%; }\n  .head-actions .btn { flex: 1; }\n  .results-head { gap: 10px; }\n}\n";
+    var ENGINE_APP = "/*\n * LMS Advisory — Tax Questionnaire form engine\n * Schema-driven, dependency-free. Renders FORM_SCHEMA using FORM_CONFIG.\n */\n(function () {\n  \"use strict\";\n\n  const schema = FORM_SCHEMA;\n  const cfg = FORM_CONFIG;\n  const root = document.getElementById(\"form-root\");\n\n  const REVIEW = schema.steps.length; // virtual step index for the review page\n\n  const state = {\n    stepIndex: 0,\n    answers: {}, // id -> value\n    files: [], // {name, size, type, data} for the 'documents' question\n    submitting: false,\n    startTime: Date.now(), // for the timing-based spam trap\n    consent: false,\n  };\n\n  /* ---------------------------------------------------------------- utils */\n  const flatQuestions = schema.steps.flatMap((s) => s.questions);\n  const byId = (id) => flatQuestions.find((q) => q.id === id);\n\n  function isActive(q) {\n    if (!q.showIf) return true;\n    const v = state.answers[q.showIf.field];\n    if (\"equals\" in q.showIf) return v === q.showIf.equals;\n    if (\"in\" in q.showIf) return q.showIf.in.includes(v);\n    if (\"contains\" in q.showIf) return Array.isArray(v) && v.includes(q.showIf.contains);\n    return true;\n  }\n\n  function activeQuestions(step) {\n    return step.questions.filter(isActive);\n  }\n\n  function normalizeMobile(v) {\n    let d = String(v || \"\").replace(/\\D/g, \"\");\n    if (d.startsWith(\"61\") && d.length === 11) d = \"0\" + d.slice(2);\n    return d;\n  }\n\n  const validators = {\n    mobile: (v) => /^04\\d{8}$/.test(normalizeMobile(v)),\n    bsb: (v) => /^\\d{6}$/.test(String(v || \"\").replace(/\\D/g, \"\")),\n    account: (v) => /^\\d{5,12}$/.test(String(v || \"\").replace(/\\D/g, \"\")),\n    abn: (v) => /^\\d{11}$/.test(String(v || \"\").replace(/\\D/g, \"\")),\n    email: (v) => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(String(v || \"\").trim()),\n  };\n\n  function isAnswered(q) {\n    const v = state.answers[q.id];\n    if (q.type === \"bank\") {\n      return v && v.bsb && v.account_number && v.account_name;\n    }\n    if (q.type === \"checkboxes\") return Array.isArray(v) && v.length > 0;\n    if (q.type === \"acknowledge\") return v === true;\n    if (q.type === \"file\") return state.files.length > 0;\n    return v !== undefined && v !== null && String(v).trim() !== \"\";\n  }\n\n  function questionError(q) {\n    const v = state.answers[q.id];\n    if (q.required && !isAnswered(q)) {\n      return q.type === \"acknowledge\"\n        ? \"Please confirm to continue.\"\n        : \"This field is required.\";\n    }\n    if (!isAnswered(q)) return null; // optional & empty\n    if (q.type === \"bank\") {\n      if (!validators.bsb(v.bsb)) return \"BSB should be 6 digits (e.g. 062-000).\";\n      if (!validators.account(v.account_number)) return \"Account number looks incorrect.\";\n      return null;\n    }\n    if (q.validate && validators[q.validate]) {\n      if (!validators[q.validate](v)) {\n        if (q.validate === \"mobile\") return \"Enter a valid Australian mobile (04xx xxx xxx).\";\n        if (q.validate === \"abn\") return \"An ABN is 11 digits.\";\n        if (q.validate === \"email\") return \"Enter a valid email address.\";\n        return \"That value doesn't look right.\";\n      }\n    }\n    return null;\n  }\n\n  /* --------------------------------------------------------------- storage */\n  function save() {\n    try {\n      const data = { stepIndex: state.stepIndex, answers: state.answers };\n      localStorage.setItem(cfg.storageKey, JSON.stringify(data));\n    } catch (e) {\n      /* storage full or unavailable — non-fatal */\n    }\n  }\n  function restore() {\n    try {\n      const raw = localStorage.getItem(cfg.storageKey);\n      if (!raw) return;\n      const data = JSON.parse(raw);\n      state.answers = data.answers || {};\n      state.stepIndex = Math.min(data.stepIndex || 0, schema.steps.length - 1);\n    } catch (e) {\n      /* ignore corrupt state */\n    }\n  }\n  function clearSaved() {\n    try { localStorage.removeItem(cfg.storageKey); } catch (e) {}\n  }\n\n  /* ------------------------------------------------------------ rendering */\n  function el(tag, attrs, children) {\n    const n = document.createElement(tag);\n    if (attrs) {\n      for (const k in attrs) {\n        if (k === \"class\") n.className = attrs[k];\n        else if (k === \"html\") n.innerHTML = attrs[k];\n        else if (k.startsWith(\"on\") && typeof attrs[k] === \"function\")\n          n.addEventListener(k.slice(2).toLowerCase(), attrs[k]);\n        else if (attrs[k] != null) n.setAttribute(k, attrs[k]);\n      }\n    }\n    (children || []).forEach((c) => {\n      if (c == null) return;\n      n.appendChild(typeof c === \"string\" ? document.createTextNode(c) : c);\n    });\n    return n;\n  }\n\n  // Once the user has tried to advance (state.showErrors), give live feedback on\n  // text fields without a full re-render (which would steal focus): clear the\n  // error optimistically as they type, and re-check when they leave the field.\n  function clearQError(target) {\n    if (!state.showErrors || !target.closest) return;\n    const w = target.closest(\".q\"); if (!w) return;\n    w.classList.remove(\"invalid\");\n    const fe = w.querySelector(\".field-error\"); if (fe) fe.textContent = \"\";\n    target.removeAttribute(\"aria-invalid\");\n  }\n  function revalidateQ(q, target) {\n    if (!state.showErrors || !target.closest) return;\n    const w = target.closest(\".q\"); if (!w) return;\n    const err = questionError(q);\n    w.classList.toggle(\"invalid\", !!err);\n    const fe = w.querySelector(\".field-error\"); if (fe) fe.textContent = err || \"\";\n    if (err) target.setAttribute(\"aria-invalid\", \"true\");\n    else target.removeAttribute(\"aria-invalid\");\n  }\n  // Suggest the right mobile keyboard for a given field type.\n  const INPUTMODE = { tel: \"tel\", email: \"email\" };\n\n  function renderField(q) {\n    const set = (val) => { state.answers[q.id] = val; save(); };\n\n    switch (q.type) {\n      case \"text\":\n      case \"tel\":\n      case \"email\": {\n        return el(\"input\", {\n          type: q.type, value: state.answers[q.id] || \"\",\n          placeholder: q.placeholder || \"\",\n          autocomplete: q.autocomplete || null,\n          inputmode: INPUTMODE[q.type] || null,\n          oninput: (e) => { set(e.target.value); clearQError(e.target); },\n          onblur: (e) => revalidateQ(q, e.target),\n        });\n      }\n      case \"textarea\":\n        return el(\"textarea\", {\n          placeholder: q.placeholder || \"\",\n          autocomplete: q.autocomplete || null,\n          oninput: (e) => { set(e.target.value); clearQError(e.target); },\n          onblur: (e) => revalidateQ(q, e.target),\n        }, [state.answers[q.id] || \"\"]);\n\n      case \"date\":\n        return el(\"input\", {\n          type: \"date\", value: state.answers[q.id] || \"\",\n          autocomplete: q.autocomplete || null,\n          oninput: (e) => { set(e.target.value); clearQError(e.target); },\n          onblur: (e) => revalidateQ(q, e.target),\n        });\n\n      case \"select\": {\n        const sel = el(\"select\", { onchange: (e) => set(e.target.value) }, [\n          el(\"option\", { value: \"\" }, [\"Please choose…\"]),\n          ...q.options.map((o) =>\n            el(\"option\", { value: o, selected: state.answers[q.id] === o ? \"selected\" : null }, [o])\n          ),\n        ]);\n        return sel;\n      }\n\n      case \"yesno\": {\n        const wrap = el(\"div\", { class: \"yesno\", role: \"group\" });\n        [\"Yes\", \"No\"].forEach((opt) => {\n          wrap.appendChild(\n            el(\"button\", {\n              type: \"button\",\n              \"aria-pressed\": state.answers[q.id] === opt ? \"true\" : \"false\",\n              onclick: () => { set(opt); renderStep(); },\n            }, [opt])\n          );\n        });\n        return wrap;\n      }\n\n      case \"radio\": {\n        const list = el(\"div\", { class: \"opt-list\" });\n        q.options.forEach((opt) => {\n          const checked = state.answers[q.id] === opt;\n          list.appendChild(\n            el(\"label\", { class: \"opt\" + (checked ? \" checked\" : \"\") }, [\n              el(\"input\", {\n                type: \"radio\", name: q.id, checked: checked ? \"checked\" : null,\n                onchange: () => { set(opt); renderStep(); },\n              }),\n              el(\"span\", {}, [opt]),\n            ])\n          );\n        });\n        return list;\n      }\n\n      case \"checkboxes\": {\n        const list = el(\"div\", { class: \"opt-list\" });\n        const current = Array.isArray(state.answers[q.id]) ? state.answers[q.id] : [];\n        q.options.forEach((opt) => {\n          const exclusive = /^no thanks$/i.test(opt);\n          const checked = current.includes(opt);\n          const row = el(\"label\", { class: \"opt\" + (checked ? \" checked\" : \"\") }, [\n            el(\"input\", {\n              type: \"checkbox\", checked: checked ? \"checked\" : null,\n              onchange: (e) => {\n                let next = Array.isArray(state.answers[q.id]) ? [...state.answers[q.id]] : [];\n                if (e.target.checked) {\n                  next = exclusive ? [opt] : next.filter((x) => !/^no thanks$/i.test(x));\n                  if (!next.includes(opt)) next.push(opt);\n                } else {\n                  next = next.filter((x) => x !== opt);\n                }\n                set(next); renderStep();\n              },\n            }),\n            el(\"span\", {}, [opt]),\n          ]);\n          list.appendChild(row);\n        });\n        return list;\n      }\n\n      case \"acknowledge\": {\n        const checked = state.answers[q.id] === true;\n        return el(\"label\", { class: \"opt ack\" + (checked ? \" checked\" : \"\") }, [\n          el(\"input\", {\n            type: \"checkbox\", checked: checked ? \"checked\" : null,\n            onchange: (e) => { set(e.target.checked); renderStep(); },\n          }),\n          el(\"span\", {}, [q.label]),\n        ]);\n      }\n\n      case \"bank\": {\n        const v = state.answers[q.id] || {};\n        const upd = (k, val) => { set({ ...(state.answers[q.id] || {}), [k]: val }); };\n        return el(\"div\", { class: \"bank\" }, [\n          el(\"div\", {}, [\n            el(\"label\", {}, [\"BSB\"]),\n            el(\"input\", { type: \"text\", inputmode: \"numeric\", placeholder: \"062-000\",\n              value: v.bsb || \"\", oninput: (e) => upd(\"bsb\", e.target.value) }),\n          ]),\n          el(\"div\", {}, [\n            el(\"label\", {}, [\"Account number\"]),\n            el(\"input\", { type: \"text\", inputmode: \"numeric\", placeholder: \"12345678\",\n              value: v.account_number || \"\", oninput: (e) => upd(\"account_number\", e.target.value) }),\n          ]),\n          el(\"div\", { class: \"full\" }, [\n            el(\"label\", {}, [\"Account name\"]),\n            el(\"input\", { type: \"text\", placeholder: \"Name on the account\",\n              value: v.account_name || \"\", oninput: (e) => upd(\"account_name\", e.target.value) }),\n          ]),\n        ]);\n      }\n\n      case \"file\": {\n        const wrap = el(\"div\");\n        const input = el(\"input\", {\n          type: \"file\", multiple: \"multiple\",\n          onchange: (e) => addFiles(e.target.files),\n        });\n        const drop = el(\"label\", { class: \"file-drop\" }, [\n          \"Tap to choose files, or drag them here\", input,\n        ]);\n        wrap.appendChild(drop);\n        const list = el(\"div\", { class: \"file-list\" });\n        state.files.forEach((f, i) => {\n          list.appendChild(el(\"div\", { class: \"file-chip\" }, [\n            el(\"span\", {}, [`${f.name} · ${(f.size / 1024).toFixed(0)} KB`]),\n            el(\"button\", { type: \"button\", onclick: () => { state.files.splice(i, 1); renderStep(); } }, [\"Remove\"]),\n          ]));\n        });\n        wrap.appendChild(list);\n        return wrap;\n      }\n\n      default:\n        return el(\"div\", {}, [String(state.answers[q.id] || \"\")]);\n    }\n  }\n\n  function addFiles(fileList) {\n    const maxBytes = cfg.maxUploadMb * 1024 * 1024;\n    let total = state.files.reduce((s, f) => s + f.size, 0);\n    const arr = Array.from(fileList);\n    if (arr.length === 0) return;\n    // Only accept files that keep the running total under the cap; tell the user\n    // which were skipped rather than silently bloating the submission.\n    const accepted = [];\n    const skipped = [];\n    arr.forEach((file) => {\n      if (total + file.size > maxBytes) { skipped.push(file.name); return; }\n      total += file.size;\n      accepted.push(file);\n    });\n    let queued = accepted.length;\n    if (queued === 0) {\n      alert(`These files would exceed the ${cfg.maxUploadMb} MB limit, so they weren't added. Please upload smaller files or email them to us.`);\n      return;\n    }\n    accepted.forEach((file) => {\n      const reader = new FileReader();\n      reader.onload = () => {\n        state.files.push({ name: file.name, size: file.size, type: file.type, data: reader.result });\n        if (--queued === 0) {\n          renderStep();\n          if (skipped.length) {\n            alert(`Added ${accepted.length} file(s). Skipped (over ${cfg.maxUploadMb} MB): ${skipped.join(\", \")}.`);\n          }\n        }\n      };\n      reader.readAsDataURL(file);\n    });\n  }\n\n  // Types backed by a single native control we can associate a <label for> with.\n  const SINGLE_CONTROL = [\"text\", \"tel\", \"email\", \"textarea\", \"date\", \"select\"];\n  // Composite controls exposed as an ARIA group/radiogroup.\n  const GROUP_ROLE = { yesno: \"radiogroup\", radio: \"radiogroup\", checkboxes: \"group\", bank: \"group\", file: \"group\" };\n\n  function renderQuestion(q) {\n    const err = state.showErrors ? questionError(q) : null;\n    const labelId = \"lbl_\" + q.id, errId = \"err_\" + q.id, helpId = \"help_\" + q.id, fieldId = \"f_\" + q.id;\n    const wrap = el(\"div\", { class: \"q\" + (err ? \" invalid\" : \"\"), \"data-qid\": q.id });\n\n    if (q.type !== \"acknowledge\") {\n      wrap.appendChild(\n        el(\"label\", {\n          class: \"q-label\", id: labelId,\n          for: SINGLE_CONTROL.includes(q.type) ? fieldId : null,\n        }, [q.label, q.required ? el(\"span\", { class: \"req\", title: \"Required\" }, [\"*\"]) : null])\n      );\n    }\n    if (q.help) wrap.appendChild(el(\"p\", { class: \"q-help\", id: helpId }, [q.help]));\n\n    const field = renderField(q);\n    const describedBy = [q.help ? helpId : null, err ? errId : null].filter(Boolean).join(\" \") || null;\n\n    // Wire ARIA: associate the control(s) with the label, help and error text.\n    if (SINGLE_CONTROL.includes(q.type)) {\n      const ctrl = field.matches && field.matches(\"input,select,textarea\") ? field : field.querySelector(\"input,select,textarea\");\n      if (ctrl) {\n        ctrl.id = fieldId;\n        if (q.required) ctrl.setAttribute(\"aria-required\", \"true\");\n        if (err) ctrl.setAttribute(\"aria-invalid\", \"true\");\n        if (describedBy) ctrl.setAttribute(\"aria-describedby\", describedBy);\n      }\n    } else if (GROUP_ROLE[q.type]) {\n      field.setAttribute(\"role\", GROUP_ROLE[q.type]);\n      field.setAttribute(\"aria-labelledby\", labelId);\n      if (q.required) field.setAttribute(\"aria-required\", \"true\");\n      if (err) field.setAttribute(\"aria-invalid\", \"true\");\n      if (describedBy) field.setAttribute(\"aria-describedby\", describedBy);\n    }\n\n    wrap.appendChild(field);\n    wrap.appendChild(el(\"div\", { class: \"field-error\", id: errId, role: \"alert\" }, [err || \"\"]));\n    return wrap;\n  }\n\n  /* --------------------------------------------------------- review page */\n  function answerText(q) {\n    const v = state.answers[q.id];\n    if (q.type === \"bank\" && v) {\n      const bsb = String(v.bsb || \"\").replace(/\\D/g, \"\").replace(/(\\d{3})(\\d{3})/, \"$1-$2\");\n      return `BSB ${bsb}  Acc ${v.account_number}\\n${v.account_name}`;\n    }\n    if (q.type === \"checkboxes\" && Array.isArray(v)) return v.join(\", \");\n    if (q.type === \"acknowledge\") return v ? \"Agreed\" : \"—\";\n    if (q.type === \"file\") return state.files.length ? `${state.files.length} file(s) attached` : \"—\";\n    return v ? String(v) : \"—\";\n  }\n\n  function renderReview() {\n    const card = el(\"div\", { class: \"card\" });\n    card.appendChild(el(\"div\", { class: \"step-head\" }, [\n      el(\"h2\", {}, [\"Review your answers\"]),\n      el(\"p\", {}, [\"Please check everything below, then submit. You can jump back to edit any section.\"]),\n    ]));\n    schema.steps.forEach((step, i) => {\n      activeQuestions(step).forEach((q) => {\n        if (q.type === \"info\") return;\n        card.appendChild(el(\"div\", { class: \"review-item\" }, [\n          el(\"button\", { class: \"review-edit\", type: \"button\",\n            onclick: () => { state.stepIndex = i; state.showErrors = false; render(); } }, [\"Edit\"]),\n          el(\"div\", { class: \"review-q\" }, [q.label]),\n          el(\"div\", { class: \"review-a\" }, [answerText(q)]),\n        ]));\n      });\n    });\n\n    // Privacy / consent — required immediately before submitting.\n    if (cfg.requireConsent) {\n      const checked = state.consent === true;\n      const consentRow = el(\"div\", { class: \"consent-row\" + (state.consentError ? \" invalid\" : \"\") }, [\n        el(\"label\", { class: \"opt ack\" + (checked ? \" checked\" : \"\") }, [\n          el(\"input\", {\n            type: \"checkbox\", checked: checked ? \"checked\" : null,\n            onchange: (e) => { state.consent = e.target.checked; state.consentError = false; render(); },\n          }),\n          el(\"span\", {}, [\n            \"I consent to LMS Advisory collecting and handling the information in this form to \" +\n            \"prepare my tax return, in line with the \",\n            el(\"a\", { href: cfg.privacyPolicyUrl, target: \"_blank\", rel: \"noopener\" }, [\"Privacy Policy\"]),\n            \".\",\n          ]),\n        ]),\n        state.consentError\n          ? el(\"div\", { class: \"field-error\", role: \"alert\", style: \"display:block\" },\n              [\"Please confirm your consent to continue.\"])\n          : null,\n      ]);\n      card.appendChild(consentRow);\n    }\n\n    if (state.errorBanner) {\n      card.appendChild(el(\"div\", { class: \"banner banner-error\" }, [state.errorBanner]));\n    }\n\n    const nav = el(\"div\", { class: \"nav\" }, [\n      el(\"button\", { class: \"btn btn-ghost\", type: \"button\",\n        onclick: () => { state.stepIndex = schema.steps.length - 1; render(); } }, [\"Back\"]),\n      el(\"div\", { class: \"spacer\" }),\n      el(\"button\", {\n        class: \"btn btn-primary\", type: \"button\",\n        disabled: state.submitting ? \"disabled\" : null,\n        onclick: submit,\n      }, [state.submitting ? \"Submitting…\" : \"Submit questionnaire\"]),\n    ]);\n    card.appendChild(nav);\n    return card;\n  }\n\n  /* ------------------------------------------------------------ step view */\n  function renderStep() { render(); }\n\n  function render() {\n    root.innerHTML = \"\";\n    root.appendChild(renderProgress());\n\n    if (state.done) { root.appendChild(renderSuccess()); postHeight(); return; }\n    if (state.stepIndex === REVIEW) { root.appendChild(renderReview()); postHeight(); return; }\n\n    const step = schema.steps[state.stepIndex];\n    const card = el(\"div\", { class: \"card\" });\n    // Welcome note on the first step (uses the schema intro if present).\n    if (state.stepIndex === 0 && schema.intro) {\n      card.appendChild(el(\"p\", { class: \"intro-note\" }, [schema.intro]));\n    }\n    card.appendChild(el(\"div\", { class: \"step-head\" }, [\n      el(\"h2\", {}, [step.title]),\n      step.subtitle ? el(\"p\", {}, [step.subtitle]) : null,\n    ]));\n\n    activeQuestions(step).forEach((q) => card.appendChild(renderQuestion(q)));\n\n    if (state.showErrors && stepHasErrors(step)) {\n      card.appendChild(el(\"div\", { class: \"banner banner-error\" }, [\n        \"Please complete the highlighted questions above.\",\n      ]));\n    }\n\n    const isFirst = state.stepIndex === 0;\n    const nav = el(\"div\", { class: \"nav\" }, [\n      el(\"button\", { class: \"btn btn-ghost\", type: \"button\", disabled: isFirst ? \"disabled\" : null,\n        onclick: prev }, [\"Back\"]),\n      el(\"div\", { class: \"spacer\" }),\n      el(\"button\", { class: \"btn btn-primary\", type: \"button\", onclick: next },\n        [state.stepIndex === schema.steps.length - 1 ? \"Review\" : \"Continue\"]),\n    ]);\n    card.appendChild(nav);\n    root.appendChild(card);\n    window.scrollTo({ top: 0, behavior: \"smooth\" });\n    postHeight();\n  }\n\n  // When embedded in an iframe, tell the parent page our height so it can size\n  // the iframe with no inner scrollbar. The parent listens for this message\n  // (see the embed snippet in README.md). Harmless when not embedded.\n  function postHeight() {\n    if (window.parent === window) return;\n    requestAnimationFrame(() => {\n      const h = document.body.scrollHeight;\n      window.parent.postMessage({ type: \"lms-form-height\", height: h }, \"*\");\n    });\n  }\n\n  function renderProgress() {\n    const total = schema.steps.length + 1; // + review\n    const current = Math.min(state.stepIndex, schema.steps.length) + 1;\n    const pct = state.done ? 100 : ((current - 1) / total) * 100 + 8;\n    const label = state.done\n      ? \"Complete\"\n      : state.stepIndex === REVIEW\n        ? \"Final step · Review & submit\"\n        : `Step ${current} of ${total} · ${schema.steps[state.stepIndex].title}`;\n    const pctClamped = Math.round(Math.min(pct, 100));\n    return el(\"div\", { class: \"progress\" }, [\n      el(\"div\", {\n        class: \"progress-track\", role: \"progressbar\",\n        \"aria-valuemin\": \"0\", \"aria-valuemax\": \"100\", \"aria-valuenow\": String(pctClamped),\n        \"aria-label\": label,\n      }, [\n        el(\"div\", { class: \"progress-fill\", style: `width:${Math.min(pct, 100)}%` }),\n      ]),\n      el(\"div\", { class: \"progress-label\" }, [label]),\n    ]);\n  }\n\n  function stepHasErrors(step) {\n    return activeQuestions(step).some((q) => questionError(q));\n  }\n\n  // After a failed validation, move keyboard focus to the first problem field\n  // and bring it into view — clearer than a generic banner alone.\n  function focusFirstInvalid() {\n    const bad = root.querySelector(\".q.invalid\");\n    if (!bad) return;\n    const ctrl = bad.querySelector(\"input,select,textarea,button\");\n    if (ctrl) {\n      ctrl.focus({ preventScroll: true });\n      bad.scrollIntoView({ behavior: \"smooth\", block: \"center\" });\n    }\n  }\n\n  function prev() {\n    state.showErrors = false;\n    state.errorBanner = null;\n    if (state.stepIndex > 0) state.stepIndex -= 1;\n    save();\n    render();\n  }\n\n  function next() {\n    const step = schema.steps[state.stepIndex];\n    if (stepHasErrors(step)) {\n      state.showErrors = true;\n      render();\n      focusFirstInvalid();\n      return;\n    }\n    state.showErrors = false;\n    state.stepIndex += 1;\n    save();\n    render();\n  }\n\n  /* -------------------------------------------------------------- submit */\n  function buildPayload() {\n    const answers = {};\n    flatQuestions.forEach((q) => {\n      if (!isActive(q)) return;\n      if (q.type === \"file\") return; // handled separately\n      answers[q.id] = state.answers[q.id] ?? null;\n    });\n    if (answers.mobile) answers.mobile = normalizeMobile(answers.mobile);\n    const hp = document.getElementById(\"hp_field\");\n    const turnstile = document.querySelector('[name=\"cf-turnstile-response\"]');\n    return {\n      form: schema.title,\n      submitted_at: new Date().toISOString(),\n      answers,\n      files: state.files.map((f) => ({ name: f.name, type: f.type, size: f.size, data: f.data })),\n      consent: state.consent === true,\n      // Anti-spam signals the backend checks (never shown to the client).\n      _meta: {\n        hp: hp ? hp.value : \"\",\n        elapsed_ms: Date.now() - state.startTime,\n        turnstile_token: turnstile ? turnstile.value : \"\",\n      },\n    };\n  }\n\n  // Stash the most recent submission so the staff results view (results.html)\n  // can open it locally. Files can be large, so retry without their data if the\n  // browser's storage quota is exceeded.\n  function saveLastSubmission(payload) {\n    try {\n      localStorage.setItem(\"lms_last_submission\", JSON.stringify(payload));\n    } catch (e) {\n      try {\n        const slim = { ...payload, files: (payload.files || []).map((f) => ({ name: f.name, type: f.type, size: f.size })) };\n        localStorage.setItem(\"lms_last_submission\", JSON.stringify(slim));\n      } catch (_) {}\n    }\n  }\n\n  async function submit() {\n    // Consent is required and sits on this review step — check it first.\n    if (cfg.requireConsent && !state.consent) {\n      state.consentError = true;\n      render();\n      const c = root.querySelector(\".consent-row\");\n      if (c) c.scrollIntoView({ behavior: \"smooth\", block: \"center\" });\n      return;\n    }\n\n    // Final full validation across all steps.\n    const firstBadStep = schema.steps.findIndex((s) => stepHasErrors(s));\n    if (firstBadStep !== -1) {\n      state.stepIndex = firstBadStep;\n      state.showErrors = true;\n      state.errorBanner = null;\n      render();\n      focusFirstInvalid();\n      return;\n    }\n\n    const payload = buildPayload();\n\n    if (!cfg.submitEndpoint) {\n      // DEMO mode — no backend configured.\n      console.log(\"Submission payload (demo mode):\", payload);\n      saveLastSubmission(payload);\n      state.reference = \"DEMO-\" + Date.now().toString(36).toUpperCase();\n      state.done = true;\n      clearSaved();\n      render();\n      return;\n    }\n\n    state.submitting = true;\n    state.errorBanner = null;\n    render();\n    try {\n      const res = await fetch(cfg.submitEndpoint, {\n        method: \"POST\",\n        headers: { \"Content-Type\": \"application/json\" },\n        body: JSON.stringify(payload),\n      });\n      if (!res.ok) throw new Error(\"HTTP \" + res.status);\n      const data = await res.json().catch(() => ({}));\n      saveLastSubmission(payload);\n      state.reference = data.reference || \"LMS-\" + Date.now().toString(36).toUpperCase();\n      state.done = true;\n      clearSaved();\n    } catch (err) {\n      state.errorBanner =\n        \"Sorry — we couldn't submit your questionnaire just now. Please try again, \" +\n        \"or email us and we'll help. (\" + err.message + \")\";\n    } finally {\n      state.submitting = false;\n      render();\n    }\n  }\n\n  function renderSuccess() {\n    return el(\"div\", { class: \"card success\" }, [\n      el(\"div\", { class: \"check\" }, [\"✓\"]),\n      el(\"h2\", {}, [\"Thanks — we've got what we need to get started\"]),\n      el(\"p\", {}, [\n        \"One of our team will be in touch shortly to begin preparing your return. A quick \" +\n        \"reminder: we can only start once your income shows as 'Tax Ready' in myGov and we \" +\n        \"have all of your information.\",\n      ]),\n      el(\"div\", { class: \"ref\" }, [\"Reference: \" + state.reference]),\n      // In demo mode (no backend) offer a quick link to preview the staff\n      // copy-paste results view. This block does not appear once an endpoint\n      // is configured, so clients never see it in production.\n      !cfg.submitEndpoint\n        ? el(\"p\", { style: \"margin-top:18px\" }, [\n            el(\"a\", { href: \"results.html\", class: \"review-edit\", style: \"float:none\" },\n              [\"Staff preview: open copy-paste results →\"]),\n          ])\n        : null,\n    ]);\n  }\n\n  /* ---------------------------------------------------------------- init */\n  document.getElementById(\"brand-name\").textContent = cfg.brandName;\n  document.getElementById(\"brand-tag\").textContent = cfg.brandTagline;\n  restore();\n  render();\n})();\n";
+    var FORM_SHELL = "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\" />\n  <meta name=\"theme-color\" content=\"#002555\" />\n  <title>LMS Advisory — New Client Tax Questionnaire<\/title>\n  <link rel=\"stylesheet\" href=\"styles.css\" />\n<\/head>\n<body>\n  <main class=\"app\">\n    <header class=\"top\">\n      <div class=\"brand\">\n        <div class=\"logo-mark\" aria-hidden=\"true\">\n          <div class=\"lm-stack\">\n            <span class=\"lm-l\">LMS<\/span>\n            <span class=\"lm-s\">ADVISORY<\/span>\n          <\/div>\n        <\/div>\n        <div class=\"titles\">\n          <h1 id=\"brand-name\">LMS Advisory<\/h1>\n          <span class=\"tag\" id=\"brand-tag\">New Client Questionnaire — Tax Preparation<\/span>\n        <\/div>\n      <\/div>\n    <\/header>\n\n    <!-- Honeypot: hidden from people, but bots tend to fill it. If it arrives\n         with a value, the submission is treated as spam. Do not remove. -->\n    <div class=\"hp-field\" aria-hidden=\"true\">\n      <label>Company website (leave this field blank)\n        <input type=\"text\" id=\"hp_field\" name=\"company_website\" tabindex=\"-1\" autocomplete=\"off\" />\n      <\/label>\n    <\/div>\n\n    <div id=\"form-root\" aria-live=\"polite\"><\/div>\n\n    <p class=\"footnote\">\n      Your answers are saved on this device as you go. Need a hand? Call our office on 02 9891 9333.\n    <\/p>\n    <p class=\"footnote firm\">\n      LMS Advisory Pty Ltd — Certified Practising Accountants | Registered Tax Agent | ABN 65 302 567 149\n    <\/p>\n  <\/main>\n\n  <!-- Configuration & questions are kept separate so non-developers can edit them. -->\n  <script src=\"config.js\"><\/script>\n  <script src=\"schema.js\"><\/script>\n  <script src=\"app.js\"><\/script>\n<\/body>\n<\/html>\n";
+
+    var TYPES = ["text","textarea","tel","email","date","select","radio","yesno","checkboxes","acknowledge","file","bank"];
+    var CHOICE = ["select","radio","checkboxes"];
+
+    // Working model — a deep copy of the defaults so edits don't touch the originals.
+    var model = {
+      schema: JSON.parse(JSON.stringify(window.FORM_SCHEMA)),
+      config: JSON.parse(JSON.stringify(window.FORM_CONFIG)),
+    };
+
+    var $ = function (id) { return document.getElementById(id); };
+    function elem(tag, attrs, kids) {
+      var n = document.createElement(tag);
+      if (attrs) for (var k in attrs) {
+        if (k === "class") n.className = attrs[k];
+        else if (k.slice(0,2) === "on" && typeof attrs[k] === "function") n.addEventListener(k.slice(2), attrs[k]);
+        else if (attrs[k] != null) n.setAttribute(k, attrs[k]);
+      }
+      (kids||[]).forEach(function(c){ if(c!=null) n.appendChild(typeof c==="string"?document.createTextNode(c):c); });
+      return n;
+    }
+    var debounce = function (fn, ms) { var t; return function(){ clearTimeout(t); t=setTimeout(fn, ms); }; };
+
+    /* ---- generate the standalone form from the current model ---- */
+    function generate() {
+      var html = FORM_SHELL;
+      html = html.replace(/[ \t]*<link[^>]*styles\.css[^>]*>\s*/i, "<style>\n" + ENGINE_CSS + "\n</style>\n");
+      html = html.replace(/[ \t]*<script[^>]*src=["']config\.js["'][^>]*>\s*<\/script>\s*/i,
+        "<script>window.FORM_CONFIG = " + JSON.stringify(model.config) + ";</" + "script>\n");
+      html = html.replace(/[ \t]*<script[^>]*src=["']schema\.js["'][^>]*>\s*<\/script>\s*/i,
+        "<script>window.FORM_SCHEMA = " + JSON.stringify(model.schema) + ";</" + "script>\n");
+      html = html.replace(/[ \t]*<script[^>]*src=["']app\.js["'][^>]*>\s*<\/script>\s*/i,
+        "<script>\n" + ENGINE_APP.replace(/<\/script>/gi, "<\\/script>") + "\n</" + "script>\n");
+      return html;
+    }
+
+    var refreshPreview = debounce(function () { $("preview").srcdoc = generate(); }, 250);
+
+    /* ---- settings panel ---- */
+    function textField(labelText, value, oninput, type) {
+      var inp = elem("input", { type: type || "text", value: value || "" });
+      inp.addEventListener("input", function (e) { oninput(e.target.value); refreshPreview(); });
+      return elem("div", { class: "field" }, [ elem("label", {}, [labelText]), inp ]);
+    }
+
+    function renderSettings() {
+      var c = model.config, host = $("settings"); host.innerHTML = "";
+      host.appendChild(textField("Firm name (header)", c.brandName, function(v){ c.brandName=v; }));
+      host.appendChild(textField("Subtitle (header)", c.brandTagline, function(v){ c.brandTagline=v; }));
+      host.appendChild(textField("Privacy Policy link", c.privacyPolicyUrl, function(v){ c.privacyPolicyUrl=v; }, "url"));
+      host.appendChild(textField("Where answers are sent (submit endpoint) — leave blank for demo", c.submitEndpoint, function(v){ c.submitEndpoint=v; }, "url"));
+      var consent = elem("input", { type: "checkbox" }); consent.checked = c.requireConsent !== false;
+      consent.addEventListener("change", function(){ c.requireConsent = consent.checked; refreshPreview(); });
+      host.appendChild(elem("label", { class:"chk" }, [consent, "Require a privacy/consent tick before submitting"]));
+    }
+
+    /* ---- questions ---- */
+    function slug(s){ return (s||"question").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,40) || "question"; }
+    function uniqueId(base){ var ids={}; model.schema.steps.forEach(function(st){st.questions.forEach(function(q){ids[q.id]=1;});});
+      var id=base, i=2; while(ids[id]){ id=base+"_"+i; i++; } return id; }
+
+    function questionCard(step, q, qi) {
+      var card = elem("div", { class: "q-card" });
+      var top = elem("div", { class: "q-top" }, [
+        elem("span", { class: "badge" + (q.showIf ? " cond" : "") }, [q.type + (q.showIf ? " · conditional" : "")]),
+        elem("span", { class: "grow" }),
+        elem("button", { class: "iconbtn", title: "Move up", onclick: function(){ moveQ(step, qi, -1); } }, ["↑"]),
+        elem("button", { class: "iconbtn", title: "Move down", onclick: function(){ moveQ(step, qi, 1); } }, ["↓"]),
+        elem("button", { class: "iconbtn danger", title: "Delete", onclick: function(){ if(confirm("Delete this question?")){ step.questions.splice(qi,1); renderSteps(); refreshPreview(); } } }, ["✕"]),
+      ]);
+      card.appendChild(top);
+
+      // Label
+      var lab = elem("textarea", {}); lab.value = q.label || "";
+      lab.addEventListener("input", function(){ q.label = lab.value; refreshPreview(); });
+      card.appendChild(elem("div", { class:"field" }, [ elem("label", {}, ["Question text"]), lab ]));
+
+      // Help
+      var help = elem("input", { type:"text", value: q.help || "" });
+      help.addEventListener("input", function(){ q.help = help.value; refreshPreview(); });
+      card.appendChild(elem("div", { class:"field" }, [ elem("label", {}, ["Help text (optional)"]), help ]));
+
+      // Options for choice types
+      if (CHOICE.indexOf(q.type) !== -1) {
+        var opts = elem("textarea", {}); opts.value = (q.options || []).join("\n");
+        opts.addEventListener("input", function(){ q.options = opts.value.split("\n").map(function(s){return s.trim();}).filter(Boolean); refreshPreview(); });
+        card.appendChild(elem("div", { class:"field" }, [ elem("label", {}, ["Options (one per line)"]), opts ]));
+      }
+
+      // Required
+      if (q.type !== "acknowledge") {
+        var req = elem("input", { type:"checkbox" }); req.checked = !!q.required;
+        req.addEventListener("change", function(){ q.required = req.checked; refreshPreview(); });
+        card.appendChild(elem("label", { class:"chk" }, [req, "Required"]));
+      }
+      return card;
+    }
+
+    function moveQ(step, qi, dir) {
+      var ni = qi + dir; if (ni < 0 || ni >= step.questions.length) return;
+      var tmp = step.questions[qi]; step.questions[qi] = step.questions[ni]; step.questions[ni] = tmp;
+      renderSteps(); refreshPreview();
+    }
+    function moveStep(si, dir) {
+      var ni = si + dir; if (ni < 0 || ni >= model.schema.steps.length) return;
+      var s = model.schema.steps; var t = s[si]; s[si] = s[ni]; s[ni] = t; renderSteps(); refreshPreview();
+    }
+
+    function renderSteps() {
+      var host = $("steps"); host.innerHTML = "";
+      model.schema.steps.forEach(function (step, si) {
+        var card = elem("div", { class: "step-card" });
+        var title = elem("input", { type:"text", value: step.title || "" });
+        title.addEventListener("input", function(){ step.title = title.value; refreshPreview(); });
+        var sub = elem("input", { type:"text", value: step.subtitle || "" });
+        sub.addEventListener("input", function(){ step.subtitle = sub.value; refreshPreview(); });
+
+        card.appendChild(elem("div", { class:"step-head" }, [
+          elem("span", { class:"badge" }, ["Section " + (si+1)]),
+          elem("span", { class:"grow" }),
+          elem("button", { class:"iconbtn", title:"Move section up", onclick:function(){ moveStep(si,-1); } }, ["↑"]),
+          elem("button", { class:"iconbtn", title:"Move section down", onclick:function(){ moveStep(si,1); } }, ["↓"]),
+          elem("button", { class:"iconbtn danger", title:"Delete section", onclick:function(){ if(confirm("Delete this whole section and its questions?")){ model.schema.steps.splice(si,1); renderSteps(); refreshPreview(); } } }, ["✕"]),
+        ]));
+        card.appendChild(elem("div", { class:"field" }, [ elem("label", {}, ["Section title"]), title ]));
+        card.appendChild(elem("div", { class:"field" }, [ elem("label", {}, ["Section subtitle"]), sub ]));
+
+        step.questions.forEach(function (q, qi) { card.appendChild(questionCard(step, q, qi)); });
+
+        // add question
+        var typeSel = elem("select", {}, TYPES.map(function(t){ return elem("option", { value:t }, [t]); }));
+        var addBtn = elem("button", { class:"btn btn-light btn-sm", onclick: function(){
+          var t = typeSel.value;
+          var nq = { id: uniqueId(slug("question")), type: t, label: "New question", required: false };
+          if (CHOICE.indexOf(t) !== -1) nq.options = ["Option 1", "Option 2"];
+          step.questions.push(nq); renderSteps(); refreshPreview();
+        } }, ["+ Add question"]);
+        card.appendChild(elem("div", { class:"add-row" }, [typeSel, addBtn]));
+
+        host.appendChild(card);
+      });
+    }
+
+    /* ---- toolbar actions ---- */
+    function download(filename, text, mime) {
+      var blob = new Blob([text], { type: mime || "text/html" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = filename;
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    }
+    function note(msg){ var n=$("savedNote"); n.textContent=msg; setTimeout(function(){ if(n.textContent===msg) n.textContent=""; }, 2500); }
+
+    $("downloadBtn").addEventListener("click", function(){ download("lms-new-client-questionnaire.html", generate()); note("Downloaded the form."); });
+    $("saveBtn").addEventListener("click", function(){ download("lms-questionnaire-working-copy.json", JSON.stringify(model, null, 2), "application/json"); note("Saved working copy."); });
+    $("loadBtn").addEventListener("click", function(){ $("loadFile").click(); });
+    $("loadFile").addEventListener("change", function(e){
+      var f = e.target.files[0]; if(!f) return;
+      var r = new FileReader();
+      r.onload = function(){ try { var d = JSON.parse(r.result); if(!d.schema||!d.config) throw 0; model = d; renderSettings(); renderSteps(); refreshPreview(); note("Loaded saved copy."); }
+        catch(err){ alert("That doesn't look like a saved working copy."); } };
+      r.readAsText(f); e.target.value = "";
+    });
+    $("refreshBtn").addEventListener("click", function(){ $("preview").srcdoc = generate(); });
+    $("addStep").addEventListener("click", function(){ model.schema.steps.push({ id: uniqueId("section"), title:"New section", subtitle:"", questions:[] }); renderSteps(); refreshPreview(); });
+
+    /* ---- init ---- */
+    renderSettings(); renderSteps(); $("preview").srcdoc = generate();
+  })();
+  </script>
+</body>
+</html>
