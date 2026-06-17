@@ -24,6 +24,14 @@
       </div>
     </header>
 
+    <!-- Honeypot: hidden from people, but bots tend to fill it. If it arrives
+         with a value, the submission is treated as spam. Do not remove. -->
+    <div class="hp-field" aria-hidden="true">
+      <label>Company website (leave this field blank)
+        <input type="text" id="hp_field" name="company_website" tabindex="-1" autocomplete="off" />
+      </label>
+    </div>
+
     <div id="form-root" aria-live="polite"></div>
 
     <p class="footnote">

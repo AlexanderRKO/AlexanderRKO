@@ -16,6 +16,8 @@
     answers: {}, // id -> value
     files: [], // {name, size, type, data} for the 'documents' question
     submitting: false,
+    startTime: Date.now(), // for the timing-based spam trap
+    consent: false,
   };
 
   /* ---------------------------------------------------------------- utils */
@@ -418,6 +420,30 @@
       });
     });
 
+    // Privacy / consent — required immediately before submitting.
+    if (cfg.requireConsent) {
+      const checked = state.consent === true;
+      const consentRow = el("div", { class: "consent-row" + (state.consentError ? " invalid" : "") }, [
+        el("label", { class: "opt ack" + (checked ? " checked" : "") }, [
+          el("input", {
+            type: "checkbox", checked: checked ? "checked" : null,
+            onchange: (e) => { state.consent = e.target.checked; state.consentError = false; render(); },
+          }),
+          el("span", {}, [
+            "I consent to LMS Advisory collecting and handling the information in this form to " +
+            "prepare my tax return, in line with the ",
+            el("a", { href: cfg.privacyPolicyUrl, target: "_blank", rel: "noopener" }, ["Privacy Policy"]),
+            ".",
+          ]),
+        ]),
+        state.consentError
+          ? el("div", { class: "field-error", role: "alert", style: "display:block" },
+              ["Please confirm your consent to continue."])
+          : null,
+      ]);
+      card.appendChild(consentRow);
+    }
+
     if (state.errorBanner) {
       card.appendChild(el("div", { class: "banner banner-error" }, [state.errorBanner]));
     }
@@ -559,11 +585,20 @@
       answers[q.id] = state.answers[q.id] ?? null;
     });
     if (answers.mobile) answers.mobile = normalizeMobile(answers.mobile);
+    const hp = document.getElementById("hp_field");
+    const turnstile = document.querySelector('[name="cf-turnstile-response"]');
     return {
       form: schema.title,
       submitted_at: new Date().toISOString(),
       answers,
       files: state.files.map((f) => ({ name: f.name, type: f.type, size: f.size, data: f.data })),
+      consent: state.consent === true,
+      // Anti-spam signals the backend checks (never shown to the client).
+      _meta: {
+        hp: hp ? hp.value : "",
+        elapsed_ms: Date.now() - state.startTime,
+        turnstile_token: turnstile ? turnstile.value : "",
+      },
     };
   }
 
@@ -582,6 +617,15 @@
   }
 
   async function submit() {
+    // Consent is required and sits on this review step — check it first.
+    if (cfg.requireConsent && !state.consent) {
+      state.consentError = true;
+      render();
+      const c = root.querySelector(".consent-row");
+      if (c) c.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
     // Final full validation across all steps.
     const firstBadStep = schema.steps.findIndex((s) => stepHasErrors(s));
     if (firstBadStep !== -1) {

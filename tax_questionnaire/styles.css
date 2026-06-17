@@ -80,6 +80,15 @@ header.top { padding: 4px 4px 18px; }
   border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 24px; margin-top: 16px;
 }
+/* Honeypot — pushed off-screen, never shown to real users */
+.hp-field { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+/* Consent row on the review step */
+.consent-row { margin: 18px 0 4px; }
+.consent-row .opt { align-items: flex-start; }
+.consent-row a { color: var(--navy); font-weight: 700; }
+.consent-row.invalid .opt { border-color: var(--error); }
+
 .intro-note {
   margin: 0 0 18px; padding: 14px 16px; font-size: 14.5px; line-height: 1.55;
   color: var(--navy); background: var(--navy-soft); border-radius: var(--radius-sm);

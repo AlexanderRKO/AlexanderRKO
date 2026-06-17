@@ -50,6 +50,10 @@ const ENV = {
   XERO_REFRESH_TOKEN: process.env.XERO_REFRESH_TOKEN, // rotate & persist (see note)
   XERO_ENABLED: process.env.XERO_ENABLED === "true",
 
+  // Anti-spam.
+  MIN_SECONDS: Number(process.env.MIN_SECONDS || 3), // submissions faster than this look automated
+  TURNSTILE_SECRET: process.env.TURNSTILE_SECRET,    // optional Cloudflare Turnstile secret key
+
   // CORS — set to your website origin in production (e.g. https://lmsadvisory.com.au).
   ALLOW_ORIGIN: process.env.ALLOW_ORIGIN || "*",
   MAX_BYTES: Number(process.env.MAX_BYTES || 20 * 1024 * 1024),
@@ -186,12 +190,48 @@ async function upsertXeroContact(payload) {
   return data.Contacts && data.Contacts[0] ? data.Contacts[0].ContactID : null;
 }
 
+/* ----------------------------------------------------------------- spam */
+// Cheap, no-dependency checks: a filled honeypot or an implausibly fast
+// completion almost always means a bot.
+function isLikelySpam(payload) {
+  const meta = payload._meta || {};
+  if (meta.hp && String(meta.hp).trim() !== "") return "honeypot";
+  if (typeof meta.elapsed_ms === "number" && meta.elapsed_ms < ENV.MIN_SECONDS * 1000) return "too-fast";
+  return null;
+}
+
+// Optional second layer: verify a Cloudflare Turnstile token if you've enabled it.
+async function verifyTurnstile(token, ip) {
+  if (!ENV.TURNSTILE_SECRET) return true; // not configured — skip
+  if (!token) return false;
+  const body = new URLSearchParams({ secret: ENV.TURNSTILE_SECRET, response: token });
+  if (ip) body.set("remoteip", ip);
+  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body,
+  });
+  const data = await res.json().catch(() => ({}));
+  return data.success === true;
+}
+
 /* ------------------------------------------------------------- core flow */
-async function processSubmission(payload) {
+async function processSubmission(payload, ip) {
   if (!payload || !payload.answers || !payload.answers.full_name) {
     throw new Error("Invalid submission: missing answers.");
   }
   const reference = "LMS-" + Date.now().toString(36).toUpperCase();
+
+  // Drop spam silently: return a normal-looking response so bots get no signal,
+  // but don't email or touch Xero.
+  const spam = isLikelySpam(payload);
+  if (spam) {
+    console.warn("[spam] dropped submission:", spam);
+    return { reference };
+  }
+  if (!(await verifyTurnstile((payload._meta || {}).turnstile_token, ip))) {
+    const err = new Error("Verification failed. Please try again.");
+    err.statusCode = 400;
+    throw err;
+  }
 
   // Email is the source of truth and must succeed; Xero is best-effort so a
   // Xero outage never blocks a client from submitting.
@@ -215,11 +255,13 @@ async function handler(req, res) {
 
   try {
     const body = req.body && typeof req.body === "object" ? req.body : JSON.parse(req.body || "{}");
-    const result = await processSubmission(body);
+    const ip = (req.headers["cf-connecting-ip"] || req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+    const result = await processSubmission(body, ip);
     return res.status(200).json(result);
   } catch (err) {
     console.error("Submission error:", err);
-    return res.status(500).json({ error: "Could not process submission." });
+    const code = err.statusCode || 500;
+    return res.status(code).json({ error: code === 400 ? err.message : "Could not process submission." });
   }
 }
 

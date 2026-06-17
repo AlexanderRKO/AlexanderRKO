@@ -34,7 +34,11 @@ same engine can host the Existing Client questionnaire too — just swap `schema
 - **Accessibility** — proper `<label for>` associations, `aria-required`,
   `aria-invalid`, `aria-describedby`, and `role="radiogroup"` on choice groups.
 - **Autosave** — progress is kept in the browser so clients can finish later.
-- **Review step** before submitting.
+- **Review step** before submitting, with a required **privacy/consent** tick
+  (links your Privacy Policy; set `privacyPolicyUrl` in `config.js`).
+- **Spam protection** — a hidden honeypot field and a timing trap reject bots
+  server-side with no friction for real clients. Optional Cloudflare Turnstile is
+  supported via `turnstileSiteKey` (config) + `TURNSTILE_SECRET` (backend).
 - **LMS branding** — official navy (`#002555`, PMS 7463) and orange (`#ED8B00`,
   PMS 144C), Georgia typeface, logo mark, and the firm-name footer applied per the
   LMS brand guidelines. Voice/spelling follows the LMS brand-voice skill (AU English).

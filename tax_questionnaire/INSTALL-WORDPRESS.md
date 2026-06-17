@@ -140,6 +140,16 @@ This part needs a developer or your IT person — it's ~30 minutes for them:
 
 ---
 
+## Spam protection & consent (already built in)
+
+- The form includes a hidden **honeypot** field and a **timing trap**. Genuine
+  clients never see them; automated spam is dropped server-side. No setup needed.
+- A required **privacy/consent** tick sits just above the Submit button. Point it
+  at your policy by editing `privacyPolicyUrl` in `config.js`.
+- Want a visible CAPTCHA as well? Add a free **Cloudflare Turnstile** site key to
+  `turnstileSiteKey` in `config.js`, drop the Turnstile script into `index.html`
+  (one line, noted in `config.js`), and set `TURNSTILE_SECRET` on the backend.
+
 ## Step 5 — Test it end to end
 
 1. Open the page with the form and fill it in as a test client.

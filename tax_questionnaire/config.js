@@ -18,6 +18,17 @@ const FORM_CONFIG = {
   // Maximum total size of uploaded files (MB). Keep modest for email/JSON.
   maxUploadMb: 15,
 
+  // Require a privacy/consent tick before the client can submit.
+  requireConsent: true,
+  privacyPolicyUrl: "https://www.lmsadvisory.com.au/privacy-policy/",
+
+  // Optional Cloudflare Turnstile (free, privacy-friendly CAPTCHA). Leave blank
+  // to rely on the built-in honeypot + timing trap only. If you paste a site key
+  // here, also add this once to index.html's <head>:
+  //   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  // and verify the token server-side (see server/submit-handler.js).
+  turnstileSiteKey: "",
+
   // Key used to autosave progress in the browser (localStorage).
   storageKey: "lms_tax_questionnaire_v1",
 };
