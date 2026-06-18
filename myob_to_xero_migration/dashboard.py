@@ -34,6 +34,7 @@ from migration import (  # type: ignore[import-not-found]
     STATUS_SYMBOLS,
     parse_index,
 )
+from _paste_parser import parse_pasted_table, to_csv_bytes
 
 
 # --------------------------------------------------------------------------- #
@@ -278,6 +279,7 @@ with st.sidebar:
             "Stage 02 — Cleansed",
             "Stage 03 — Reports",
             "Stage 04 — Verification",
+            "Paste from MYOB Business",
             "Exceptions",
             "Action Checklist",
             "Downloads",
@@ -767,6 +769,149 @@ def page_downloads() -> None:
 # --------------------------------------------------------------------------- #
 
 
+def page_paste_myob() -> None:
+    st.title("📋 Paste from MYOB Business")
+    st.caption(
+        "MYOB Business has no CSV export for chart of accounts, customers, "
+        "suppliers, or items — you copy from the screen and the clipboard "
+        "pastes one cell per line into Excel. Paste that mess here and we "
+        "reshape it into a clean table you can fix in-place, then save."
+    )
+
+    with st.expander("How to copy from MYOB Business", expanded=False):
+        st.markdown(
+            "1. Open the screen you want (e.g. **Accounting ▸ Chart of accounts**).\n"
+            "2. Click into the table, press **Ctrl+A** then **Ctrl+C** "
+            "(macOS: **⌘+A** / **⌘+C**).\n"
+            "3. Paste into the box below. The parser handles three layouts:\n"
+            "   - tab-separated rows (best case),\n"
+            "   - multi-space-separated rows,\n"
+            "   - and the MYOB Business one-cell-per-line case (it detects "
+            "the column stride from the account-code pattern).\n"
+            "4. Fix any misparsed cells in the editor that appears.\n"
+            "5. Save to a Stage 01 sub-folder."
+        )
+
+    if "paste_text" not in st.session_state:
+        st.session_state["paste_text"] = ""
+    if "paste_df" not in st.session_state:
+        st.session_state["paste_df"] = None
+
+    text = st.text_area(
+        "Paste here",
+        value=st.session_state["paste_text"],
+        height=240,
+        placeholder="Paste the copied table here — header row + data, "
+        "or one cell per line if you copied from MYOB Business.",
+        key="paste_input",
+    )
+
+    c1, c2 = st.columns([1, 5])
+    if c1.button("Parse", type="primary"):
+        st.session_state["paste_text"] = text
+        df, meta = parse_pasted_table(text)
+        st.session_state["paste_df"] = df
+        st.session_state["paste_meta"] = meta
+
+    if c2.button("Clear"):
+        st.session_state["paste_text"] = ""
+        st.session_state["paste_df"] = None
+        st.session_state.pop("paste_meta", None)
+        st.rerun()
+
+    df = st.session_state.get("paste_df")
+    if df is None or df.empty:
+        if df is not None and df.empty and st.session_state.get("paste_meta"):
+            st.warning(
+                "Could not detect a tabular structure. Try copying again "
+                "with all rows selected, or paste a header row above the "
+                "data."
+            )
+        return
+
+    meta = st.session_state.get("paste_meta", {})
+    strat = meta.get("strategy", "?")
+    stride = meta.get("stride")
+    label = {
+        "tab": "tab-separated",
+        "pipe": "pipe-separated",
+        "multispace": "multi-space-separated",
+        "single_column_reshape": f"single-column → reshaped to {stride} columns",
+    }.get(strat, strat)
+    dropped = meta.get("dropped", 0)
+    note = f"Detected layout: **{label}** · {len(df)} row(s) parsed"
+    if dropped:
+        note += f" · {dropped} group-heading row(s) dropped"
+    st.info(note)
+
+    st.subheader("Review & fix")
+    st.caption(
+        "Edit any cell directly. Click a column header to rename it — "
+        "Xero is picky about column names later, so set them now."
+    )
+    edited = st.data_editor(
+        df,
+        width="stretch",
+        num_rows="dynamic",
+        key="paste_editor",
+    )
+
+    st.subheader("Save")
+    save_choice = st.radio(
+        "Where should this go?",
+        options=[
+            "Download CSV (don't save to the project)",
+            "Save into a Stage 01 sub-folder",
+        ],
+        horizontal=False,
+        key="paste_save_choice",
+    )
+
+    if save_choice.startswith("Download"):
+        filename = st.text_input(
+            "File name", value="chart_of_accounts_pasted.csv", key="paste_dl_name"
+        )
+        st.download_button(
+            "⬇ Download CSV",
+            data=to_csv_bytes(edited),
+            file_name=filename or "pasted.csv",
+            mime="text/csv",
+        )
+    else:
+        stage_dir = ROOT / "01_exports_from_myob"
+        subfolders = sorted(
+            p.name for p in stage_dir.iterdir() if p.is_dir() and not p.name.startswith(".")
+        )
+        default_idx = (
+            subfolders.index("01_chart_of_accounts")
+            if "01_chart_of_accounts" in subfolders
+            else 0
+        )
+        sub = st.selectbox(
+            "Sub-folder", options=subfolders, index=default_idx, key="paste_subdir"
+        )
+        default_name = (
+            "chart_of_accounts_pasted.csv"
+            if sub == "01_chart_of_accounts"
+            else f"{sub}_pasted.csv"
+        )
+        filename = st.text_input(
+            "File name", value=default_name, key="paste_save_name"
+        )
+        if st.button("💾 Save to project", type="primary", key="paste_save_btn"):
+            target = safe_subpath(stage_dir, sub, filename or "pasted.csv")
+            if target is None:
+                st.error(f"Refused unsafe path: {filename}")
+            else:
+                target.write_bytes(to_csv_bytes(edited))
+                rel = target.relative_to(ROOT)
+                st.success(f"Saved → `{rel}`")
+                st.caption(
+                    "Don't forget to tick the corresponding row on the "
+                    "**Stage 01 — Exports** page."
+                )
+
+
 def page_about() -> None:
     st.title("About this workspace")
     st.markdown(
@@ -807,6 +952,7 @@ PAGES = {
     "Stage 02 — Cleansed": lambda: page_stage("02", "Cleansed for Xero"),
     "Stage 03 — Reports": lambda: page_stage("03", "Finalized reports"),
     "Stage 04 — Verification": lambda: page_stage("04", "Xero post-upload checks"),
+    "Paste from MYOB Business": page_paste_myob,
     "Exceptions": page_exceptions,
     "Action Checklist": page_action_checklist,
     "Downloads": page_downloads,
