@@ -541,6 +541,12 @@ def page_troubleshooting(s: dict, story: list) -> None:
     )
 
     items = [
+        ("CoA shows dates (1950-01-01) where codes should be",
+         "Pasted through Excel; Excel turned 1-9000 into a date",
+         "Re-copy from MYOB Business, paste DIRECTLY into the dashboard."),
+        ("MYOB Business has no export button",
+         "MYOB Business is cloud-only; list screens lack CSV export",
+         "Use the dashboard's 'Paste from MYOB Business' page."),
         ("validate fails on header mismatch",
          "CSV saved with semicolons or BOM",
          "Re-save as UTF-8, comma-delimited."),

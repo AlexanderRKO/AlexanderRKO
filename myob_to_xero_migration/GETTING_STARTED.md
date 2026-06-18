@@ -136,6 +136,26 @@ Then pull every export listed in `PLAN.md §2` into its matching
 sub-folder. Naming convention: `<entity>_<scope>_<YYYYMMDD>.<ext>`.
 Tick each row in `INDEX.md §01` as files land.
 
+⚠ **MYOB Business has no CSV export.** If the client is on MYOB
+Business (cloud, not AccountRight), you have to copy from each list
+screen — chart of accounts, contacts, items. **Do not paste into
+Excel as an intermediate step.** Excel auto-converts MYOB codes
+like `1-9000` into the date `January 9000` and silently rewrites
+them as date serials (in testing this corrupted 157 of 340 codes
+in one paste). Instead:
+
+1. Double-click the dashboard launcher.
+2. Open the **Paste from MYOB Business** page.
+3. Copy from the MYOB Business screen (`Ctrl+A` → `Ctrl+C`).
+4. Paste **directly into the textarea** — the dashboard reads the
+   clipboard as plain text, so no auto-conversion happens.
+5. Click **Parse**, review in the editor, **Save to project**.
+
+The parser handles the MYOB Business "Select row N" clipboard format
+natively. If the dashboard flags any codes as date-corrupted, you've
+gone through Excel somewhere along the way — re-paste from MYOB
+Business directly.
+
 Payroll exports (`04_employees/`, `12_payroll_history/`) need
 `PRIVACY.md §8` complete first.
 
@@ -227,6 +247,8 @@ A simple loop that keeps `INDEX.md` truthful:
 
 | Symptom | Likely cause | Fix |
 | ------- | ------------ | --- |
+| Chart of accounts shows dates (`1950-01-01`) where codes should be | The CoA was pasted through Excel; Excel turned codes like `1-9000` into dates | Re-copy from MYOB Business and paste **directly** into the dashboard's "Paste from MYOB Business" page (bypass Excel). The dashboard will refuse to silently ship date-corrupted codes |
+| MYOB Business won't let you export the chart of accounts / contacts / items | There is no export button on MYOB Business list screens | Use the dashboard's "Paste from MYOB Business" page — `Ctrl+A` `Ctrl+C` from the MYOB screen, paste straight into the textarea, click Parse, Save to project |
 | `validate` fails on header mismatch | Saved as Excel-flavoured CSV with semicolons or BOM | Re-save as UTF-8, comma-delimited |
 | Xero rejects the CoA upload | Account `Type` value not in Xero's accepted list | Check `templates/checklists/account_type_mapping.md` |
 | Xero rejects an invoice import | Contact name not present in Xero | Upload contacts first; check exact name spelling |
