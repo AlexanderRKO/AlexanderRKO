@@ -778,18 +778,33 @@ def page_paste_myob() -> None:
         "reshape it into a clean table you can fix in-place, then save."
     )
 
+    st.warning(
+        "**Paste directly into the box below — do not paste into Excel first.** "
+        "Excel auto-converts MYOB codes like `1-9000` into dates "
+        "(`1950-01-01`), silently corrupting your chart of accounts. "
+        "This dashboard reads the clipboard as text and preserves the "
+        "original codes."
+    )
+
     with st.expander("How to copy from MYOB Business", expanded=False):
         st.markdown(
             "1. Open the screen you want (e.g. **Accounting ▸ Chart of accounts**).\n"
             "2. Click into the table, press **Ctrl+A** then **Ctrl+C** "
             "(macOS: **⌘+A** / **⌘+C**).\n"
-            "3. Paste into the box below. The parser handles three layouts:\n"
-            "   - tab-separated rows (best case),\n"
+            "3. Paste **directly into the box below** — not into Excel.\n"
+            "4. The parser auto-detects the layout:\n"
+            "   - the MYOB Business 'Select row N' format (chart of accounts, "
+            "contacts, items — every list screen),\n"
+            "   - tab-separated rows,\n"
             "   - multi-space-separated rows,\n"
-            "   - and the MYOB Business one-cell-per-line case (it detects "
-            "the column stride from the account-code pattern).\n"
-            "4. Fix any misparsed cells in the editor that appears.\n"
-            "5. Save to a Stage 01 sub-folder."
+            "   - or generic single-column reshape from account-code pattern.\n"
+            "5. Fix any misparsed cells in the editor that appears.\n"
+            "6. Save to a Stage 01 sub-folder.\n"
+            "\n"
+            "**If you've already pasted into Excel** and want to recover what "
+            "you can: copy column A from Excel and paste it here. The parser "
+            "will still align the columns correctly and flag every code "
+            "Excel turned into a date so you can fix them manually."
         )
 
     if "paste_text" not in st.session_state:
@@ -837,12 +852,24 @@ def page_paste_myob() -> None:
         "pipe": "pipe-separated",
         "multispace": "multi-space-separated",
         "single_column_reshape": f"single-column → reshaped to {stride} columns",
+        "myob_business": "MYOB Business 'Select row N' format",
     }.get(strat, strat)
     dropped = meta.get("dropped", 0)
     note = f"Detected layout: **{label}** · {len(df)} row(s) parsed"
     if dropped:
         note += f" · {dropped} group-heading row(s) dropped"
     st.info(note)
+
+    corrupted = meta.get("date_corrupted_codes", 0)
+    if corrupted:
+        st.error(
+            f"⚠ Excel date-corruption detected: **{corrupted}** account code(s) "
+            "look like dates (e.g. `1950-01-01`). This happens when "
+            "MYOB codes like `1-9000` are pasted through Excel — Excel "
+            "interprets them as January 9000 and rewrites them as date "
+            "serials. Fix these in the **Code** column below before "
+            "saving, or re-copy from MYOB Business and paste directly here."
+        )
 
     st.subheader("Review & fix")
     st.caption(

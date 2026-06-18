@@ -61,6 +61,124 @@ _GROUP_HEADINGS = {
 # Patterns that look like an MYOB account number (with optional dash).
 _ACCT_CODE_RE = re.compile(r"^\d[\d-]{1,7}$")
 
+# Distinctive markers in an MYOB Business "copy from screen" paste.
+_SELECT_ROW_RE = re.compile(r"^Select row \d+$", re.IGNORECASE)
+_LEVEL_RE = re.compile(r"^Level\s+\d+$", re.IGNORECASE)
+
+
+def _parse_myob_business(lines: list[str]) -> tuple[list[str], list[list[str]]] | None:
+    """Special-case parser for the MYOB Business 'Select row N' paste.
+
+    A paste copied from any MYOB Business list screen (Chart of accounts,
+    Customers, …) and pasted into Excel produces:
+
+        Bulk select        <- header column for the row checkboxes
+        Code
+        Name
+        Status
+        Type
+        Tax code
+        Linked
+        Level
+        Current balance ($)
+        Select row 0       <- row delimiter, then 5-7 data cells follow
+        1-0000
+        Assets
+        ...
+
+    Optional columns (Status, Tax code, Linked) are *omitted entirely*
+    when the cell would be empty, so row widths vary. We classify cells
+    by content — Level matches "Level N", Linked is the literal
+    "Linked", Balance is numeric — then fill Code / Name / Type / Tax
+    code by position in what's left.
+    """
+    stripped = [str(ln).strip() for ln in lines]
+    boundaries = [i for i, ln in enumerate(stripped) if _SELECT_ROW_RE.match(ln)]
+    if len(boundaries) < 2:
+        return None
+
+    # Header: cells before the first "Select row 0".
+    header_block = [c for c in stripped[: boundaries[0]] if c]
+    # Drop the row-checkbox column and "Status" (always omitted from each row).
+    header_block = [
+        h for h in header_block if h.lower() not in {"bulk select", "status"}
+    ]
+    schema = header_block or [
+        "Code",
+        "Name",
+        "Type",
+        "Tax code",
+        "Linked",
+        "Level",
+        "Current balance ($)",
+    ]
+
+    rows: list[list[str]] = []
+    for i, start in enumerate(boundaries):
+        end = boundaries[i + 1] if i + 1 < len(boundaries) else len(stripped)
+        cells = [c for c in stripped[start + 1 : end] if c]
+        if not cells:
+            continue
+        rows.append(_align_myob_row(cells, schema))
+
+    return schema, rows
+
+
+def _align_myob_row(cells: list[str], schema: list[str]) -> list[str]:
+    """Place cells into schema slots by content classification.
+
+    Anchors from the right: Balance is the last cell, Level matches
+    "Level N", Linked is the literal "Linked". Anything between the
+    Type slot and those anchors is Tax code.
+    """
+    n = len(cells)
+    out = {c: "" for c in schema}
+    balance_idx = n - 1 if n >= 1 else None
+    level_idx = (
+        n - 2 if n >= 2 and _LEVEL_RE.match(cells[n - 2]) else None
+    )
+    linked_idx = (
+        level_idx - 1
+        if level_idx is not None
+        and level_idx >= 1
+        and cells[level_idx - 1].lower() == "linked"
+        else None
+    )
+    right_limit = (
+        linked_idx
+        if linked_idx is not None
+        else (level_idx if level_idx is not None else balance_idx)
+    )
+    if right_limit is None:
+        right_limit = n
+
+    # Always treat the leftmost cell as Code, even if it doesn't match the
+    # account-number regex. Excel routinely corrupts codes like "1-9000"
+    # into dates ("1950-01-01") on paste; keeping them in the Code column
+    # preserves row alignment so the user can spot and fix them in the
+    # data editor, instead of shifting every downstream column.
+    left = 0
+    if left < right_limit:
+        out["Code"] = cells[left]
+        left += 1
+    if left < right_limit:
+        out["Name"] = cells[left]
+        left += 1
+    if left < right_limit:
+        out["Type"] = cells[left]
+        left += 1
+    if left < right_limit:
+        out["Tax code"] = cells[left]
+
+    if linked_idx is not None:
+        out["Linked"] = cells[linked_idx]
+    if level_idx is not None:
+        out["Level"] = cells[level_idx]
+    if balance_idx is not None:
+        out["Current balance ($)"] = cells[balance_idx]
+
+    return [out.get(c, "") for c in schema]
+
 
 def _split_tab(line: str) -> list[str]:
     return [c.strip() for c in line.split("\t")]
@@ -161,6 +279,31 @@ def parse_pasted_table(text: str) -> tuple[pd.DataFrame, dict]:
     raw_lines = [ln for ln in text.splitlines() if ln.strip()]
     if not raw_lines:
         return pd.DataFrame(), {"strategy": None, "header_row": -1, "dropped": 0}
+
+    # Try the MYOB-Business-specific path first. It has unmistakable
+    # "Select row N" delimiters, so if they're present this is unambiguous.
+    myob = _parse_myob_business(raw_lines)
+    if myob is not None:
+        header, rows = myob
+        df = pd.DataFrame(rows, columns=_dedup_headers(header))
+        for col in df.columns:
+            if "balance" in col.lower() or "amount" in col.lower():
+                df[col] = df[col].map(_strip_currency)
+        # Detect Excel date-corruption of account codes ("1-9000" → "1950-01-01")
+        code_col = next((c for c in df.columns if c.lower() == "code"), None)
+        date_like_codes = 0
+        if code_col is not None:
+            for v in df[code_col]:
+                s = str(v).strip()
+                if re.fullmatch(r"\d{4}-\d{2}-\d{2}( 00:00:00)?", s):
+                    date_like_codes += 1
+        return df, {
+            "strategy": "myob_business",
+            "header_row": 0,
+            "rows": len(rows),
+            "dropped": 0,
+            "date_corrupted_codes": date_like_codes,
+        }
 
     best: tuple[str, list[list[str]], int] | None = None
     for name, splitter in _STRATEGIES:
