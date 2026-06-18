@@ -45,7 +45,10 @@ echo Starting dashboard at %URL%
 echo (Close this window to stop the dashboard.)
 echo.
 
-start "" "%URL%"
+REM Open the browser ~3s after Streamlit binds, in a backgrounded shell so
+REM it doesn't block the streamlit run. Firing it immediately races the
+REM server and lands on "site can't be reached".
+start "" /min cmd /c "timeout /t 3 /nobreak >nul & start """" %URL%"
 
 streamlit run dashboard.py ^
     --server.port %PORT% ^

@@ -20,6 +20,7 @@ import io
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, date
 from pathlib import Path
 
@@ -40,6 +41,12 @@ from _paste_parser import parse_pasted_table, to_csv_bytes
 # --------------------------------------------------------------------------- #
 # Page config                                                                 #
 # --------------------------------------------------------------------------- #
+
+# Cross-platform scratch dir. Resolves to /tmp on Linux/macOS, %TEMP% (e.g.
+# C:\Users\<u>\AppData\Local\Temp) on Windows. Hard-coding "/tmp" broke the
+# dashboard on Windows — PDF generation and the preflight validators both
+# write here.
+TMPDIR = Path(tempfile.gettempdir())
 
 st.set_page_config(
     page_title="MYOB → Xero migration",
@@ -533,7 +540,7 @@ def page_stage(stage_num: str, title: str) -> None:
         )
         if cleansed and st.button("Run validator", key="val_run"):
             with st.spinner("Running preflight validation..."):
-                tmp = Path("/tmp") / f"_validate_{cleansed.name}"
+                tmp = TMPDIR / f"_validate_{cleansed.name}"
                 tmp.write_bytes(cleansed.getbuffer())
                 tmpl_path = ROOT / "templates" / "xero_csv_templates" / tmpl_name
                 result = subprocess.run(
@@ -567,8 +574,8 @@ def page_stage(stage_num: str, title: str) -> None:
         tolerance = c3.text_input("Tolerance ($)", value="1.00", key="gate_tol")
         if myob_csv and xero_csv and st.button("Run acceptance gate", key="gate_run"):
             with st.spinner("Diffing trial balances..."):
-                m_tmp = Path("/tmp") / "_gate_myob.csv"
-                x_tmp = Path("/tmp") / "_gate_xero.csv"
+                m_tmp = TMPDIR / "_gate_myob.csv"
+                x_tmp = TMPDIR / "_gate_xero.csv"
                 m_tmp.write_bytes(myob_csv.getbuffer())
                 x_tmp.write_bytes(xero_csv.getbuffer())
                 out_dir = (
@@ -691,8 +698,8 @@ def page_action_checklist() -> None:
 
 
 def _generate_pdf(subcommand: str, output_name: str) -> bytes | None:
-    """Run `python migration.py <subcommand> -o /tmp/<output_name>` and return bytes."""
-    out = Path("/tmp") / output_name
+    """Run `python migration.py <subcommand>` into the OS scratch dir, return bytes."""
+    out = TMPDIR / output_name
     result = subprocess.run(
         [sys.executable, str(ROOT / "migration.py"), subcommand, "-o", str(out)],
         capture_output=True,
