@@ -69,8 +69,11 @@ python -m mye_tool trial-balance ledger.mye
 # Sanity-check before sending to your accountant
 python -m mye_tool check ledger.mye
 
-# Convert: CSV + Excel + JSON + QuickBooks IIF
+# Convert: CSV + Excel + JSON + QuickBooks IIF + Xero chart of accounts
 python -m mye_tool export ledger.mye -o exported/ --format all
+
+# Just the Xero (AU) chart-of-accounts import file
+python -m mye_tool export ledger.mye -o exported/ --format xero-coa
 
 # Edit workflow: unpack -> edit CSVs in Excel -> repack
 python -m mye_tool unpack ledger.mye -o work/
@@ -80,6 +83,30 @@ python -m mye_tool pack work/ -o edited.mye
 
 `pack` re-validates everything and refuses to write a `.MYE` whose
 entries don't balance (override with `--force`).
+
+### Xero chart-of-accounts import
+
+A `.mye` only stores each account's **code and name** — Xero's importer
+also requires **Type** and **Tax Code**, so importing a bare code/name
+file fails with *"the first row does not contain the mandatory fields -
+Code, Name, Type, Tax Code"*. The `xero-coa` export writes
+`xero_chart_of_accounts.csv` (header `*Code,*Name,*Type,*Tax Code,...`)
+plus a `xero_chart_of_accounts_REVIEW.csv` companion, and fills the
+missing fields:
+
+- **Type** is inferred, mostly from the account name (e.g. "Bank Fees" →
+  `EXPENSE`, "Accounts Receivable" → `CURRENT`, "GST" → `CURRLIAB`,
+  "Depreciation" → `DEPRECIATN`), with the code range as a fallback.
+  Types are best-effort — rows flagged `REVIEW` in the companion file
+  were guessed; check them before importing.
+- **Tax Code** defaults to `BAS Excluded` on every account so the import
+  succeeds cleanly; set GST on the income/expense accounts inside Xero
+  afterwards.
+- **Bank** accounts are mapped to `CURRENT` (current asset), not `BANK`,
+  because Xero's CSV import rejects `BANK` accounts without a bank
+  account number (which a `.mye` doesn't contain). Switch them to the
+  Bank type in Xero after import — that's also where the BSB/account
+  number is entered.
 
 ### Editing notes
 

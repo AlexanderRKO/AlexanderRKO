@@ -251,3 +251,60 @@ def test_not_a_zip(tmp_path):
     bad.write_bytes(b"StuffIt (c)1997")
     with pytest.raises(ValueError):
         mye_tool.load(str(bad))
+
+
+def test_xero_coa_header_and_taxcode(sample_mye, tmp_path):
+    from mye_tool import xero_coa
+
+    mye = mye_tool.load(sample_mye)
+    out = str(tmp_path / "coa.csv")
+    xero_coa.export_xero_coa(mye, out)
+    import csv
+
+    rows = list(csv.reader(open(out, encoding="utf-8-sig")))
+    assert rows[0] == [
+        "*Code", "*Name", "*Type", "*Tax Code",
+        "Description", "Dashboard", "Expense Claims", "Enable Payments",
+    ]
+    body = rows[1:]
+    assert len(body) == len(mye.accounts)
+    # every account gets the BAS Excluded default tax code
+    assert all(r[3] == "BAS Excluded" for r in body)
+    # every type is one of Xero's valid import codes
+    valid = {
+        "CURRENT", "FIXED", "INVENTORY", "NONCURRENT", "PREPAYMENT", "CURRLIAB",
+        "TERMLIAB", "EQUITY", "REVENUE", "SALES", "OTHERINCOME", "DIRECTCOSTS",
+        "EXPENSE", "OVERHEADS", "DEPRECIATN", "OTHEREXPENSE",
+    }
+    assert all(r[2] in valid for r in body)
+
+
+def test_xero_coa_type_inference():
+    from mye_tool.core import Account
+    from mye_tool.xero_coa import infer_xero_type
+
+    def t(code, name):
+        return infer_xero_type(Account(code=code, name=name))[0]
+
+    assert t("200", "Sales") == "REVENUE"
+    assert t("210", "Service Income") == "REVENUE"
+    assert t("680", "Westpac Bank Account - Trading") == "CURRENT"
+    assert t("406", "Bank Fees") == "EXPENSE"  # not CURRENT despite "bank"
+    assert t("820", "GST") == "CURRLIAB"
+    assert t("610", "Accounts Receivable") == "CURRENT"
+    assert t("416", "Depreciation") == "DEPRECIATN"
+    assert t("505", "Income Tax Expense") == "EXPENSE"  # not REVENUE
+    assert t("477", "Wages & Salaries") == "EXPENSE"
+    assert t("270", "Interest Income") == "OTHERINCOME"
+    # 5-digit MYOB-native fallback (name gives no signal)
+    assert t("11100", "Zxqv Holding") == "CURRENT"
+    assert t("21999", "Zxqv Suspense") == "CURRLIAB"
+
+
+def test_cli_export_xero_coa(sample_mye, tmp_path):
+    from mye_tool.cli import main
+
+    out_dir = str(tmp_path / "x")
+    assert main(["export", sample_mye, "-o", out_dir, "--format", "xero-coa"]) == 0
+    assert os.path.exists(os.path.join(out_dir, "xero_chart_of_accounts.csv"))
+    assert os.path.exists(os.path.join(out_dir, "xero_chart_of_accounts_REVIEW.csv"))

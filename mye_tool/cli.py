@@ -130,7 +130,9 @@ def cmd_export(args) -> int:
     base = os.path.splitext(os.path.basename(args.file))[0]
     os.makedirs(args.out, exist_ok=True)
     written = []
-    formats = {"all": ("csv", "xlsx", "json", "iif")}.get(args.format, (args.format,))
+    formats = {"all": ("csv", "xlsx", "json", "iif", "xero-coa")}.get(
+        args.format, (args.format,)
+    )
     if "csv" in formats:
         written += exporters.export_csv(mye, args.out)
     if "xlsx" in formats:
@@ -139,6 +141,17 @@ def cmd_export(args) -> int:
         written.append(exporters.export_json(mye, os.path.join(args.out, base + ".json")))
     if "iif" in formats:
         written.append(exporters.export_iif(mye, os.path.join(args.out, base + ".iif")))
+    if "xero-coa" in formats:
+        written.append(
+            exporters.export_xero_coa(
+                mye, os.path.join(args.out, "xero_chart_of_accounts.csv")
+            )
+        )
+        written.append(
+            exporters.export_xero_coa_review(
+                mye, os.path.join(args.out, "xero_chart_of_accounts_REVIEW.csv")
+            )
+        )
     for path in written:
         print(f"wrote {path}")
     return 0
@@ -216,9 +229,10 @@ def main(argv=None) -> int:
     p.add_argument("-o", "--out", default="mye_export", help="output directory")
     p.add_argument(
         "--format",
-        choices=["csv", "xlsx", "json", "iif", "all"],
+        choices=["csv", "xlsx", "json", "iif", "xero-coa", "all"],
         default="all",
-        help="which format(s) to write (default: all)",
+        help="which format(s) to write (default: all). 'xero-coa' writes a "
+        "Xero (AU) chart-of-accounts import CSV plus a review file.",
     )
     p.set_defaults(func=cmd_export)
 
