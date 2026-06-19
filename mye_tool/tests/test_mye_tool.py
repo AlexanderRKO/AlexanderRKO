@@ -58,6 +58,77 @@ def sample_mye(tmp_path):
     return str(path)
 
 
+# A second variant mirroring a MYOB Premier / BASLink export: journal
+# lines end with a single "\r\n", there is NO trailing blank line after
+# the last entry, the company line carries an ABN in field 3, member
+# names are uppercase, and a BASLINK.TXT side file is present.
+MYOBAO_PREMIER = (
+    b"[MYOB2000.05]\r\n"
+    b"Premier Co Pty Ltd\t1 Test St\t12345678901\t\t01/06/2026\t30/06/2026\r\n"
+    b"[ACCOUNTS]\r\n"
+    b"11100\t\tCash On Hand\t\r\n"
+    b"21430\t\tWages Payable\t\r\n"
+    b"63971\t\tWages\t\r\n"
+    b"[JOURNAL]\r\n"
+    b"01/06/2026\t555\t21430\t-372.79\tWages\r\n"
+    b"01/06/2026\t555\t63971\t372.79\tWages\r\n"
+    b"\r\n"
+    b"02/06/2026\t556\t11100\t-80.00\tPurchase\r\n"
+    b"02/06/2026\t556\t63971\t80.00\tPurchase\r\n"
+)  # note: ends right after the last line, no trailing blank
+
+BASLINK = b"H0\tMYOB BASLink V5.0.0\tPREMIER\r\nD0\tGST\tGoods & Services Tax\r\n"
+
+
+@pytest.fixture
+def premier_mye(tmp_path):
+    path = tmp_path / "premier.MYE"
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("MYOBAO.TXT", MYOBAO_PREMIER)
+        z.writestr("BASLINK.TXT", BASLINK)
+        z.writestr("EXTRACT.INF", EXTRACT_INF)
+    return str(path)
+
+
+def test_premier_variant_parse(premier_mye):
+    mye = mye_tool.load(premier_mye)
+    assert mye.company_name == "Premier Co Pty Ltd"
+    assert mye.company_fields[2] == "12345678901"  # ABN preserved
+    assert mye.journal_line_terminator == "\r\n"
+    assert mye.trailing_blank is False
+    assert "BASLINK.TXT" in mye.extra_members
+    assert len(mye.entries) == 2
+    # 2-decimal amounts keep their precision
+    assert mye.entries[0].lines[0].amount_text == "-372.79"
+    assert mye.validate() == []
+
+
+def test_premier_roundtrip_byte_exact(premier_mye):
+    mye = mye_tool.load(premier_mye)
+    assert mye.data_text_bytes() == MYOBAO_PREMIER
+
+
+def test_premier_save_preserves_baslink(premier_mye, tmp_path):
+    mye = mye_tool.load(premier_mye)
+    out = str(tmp_path / "resaved.MYE")
+    mye.save(out)
+    z = zipfile.ZipFile(out)
+    assert z.read("BASLINK.TXT") == BASLINK
+    assert z.read("MYOBAO.TXT") == MYOBAO_PREMIER
+    assert z.read("EXTRACT.INF") == EXTRACT_INF
+
+
+def test_premier_unpack_pack_lossless(premier_mye, tmp_path):
+    mye = mye_tool.load(premier_mye)
+    work = str(tmp_path / "work")
+    exporters.unpack(mye, work)
+    assert os.path.exists(os.path.join(work, "BASLINK.TXT"))
+    rebuilt = exporters.pack_dir(work)
+    assert rebuilt.data_text_bytes() == MYOBAO_PREMIER
+    assert rebuilt.extra_members["BASLINK.TXT"] == BASLINK
+    assert rebuilt.company_fields[2] == "12345678901"
+
+
 def test_parse(sample_mye):
     mye = mye_tool.load(sample_mye)
     assert mye.company_name == "Test Company Pty Ltd"

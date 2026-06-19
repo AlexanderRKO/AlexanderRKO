@@ -37,15 +37,31 @@ def _writer(path: str):
 # ----- CSV ---------------------------------------------------------------
 
 
+# Friendly names for the six fields of the [MYOB2000.05] company line,
+# by position. Used so the editable company.csv preserves every field
+# (including the ABN, which lives in position 2) with no data loss.
+COMPANY_FIELD_NAMES = [
+    "company_name",
+    "address",
+    "abn",
+    "company_field_4",
+    "period_start",
+    "period_end",
+]
+
+
 def export_company_csv(mye: MyeFile, path: str) -> None:
     info = mye.extract_info()
     with _writer(path) as fh:
         w = csv.writer(fh)
         w.writerow(["field", "value"])
-        w.writerow(["company_name", mye.company_name])
-        w.writerow(["address", mye.address])
-        w.writerow(["period_start", mye.period_start])
-        w.writerow(["period_end", mye.period_end])
+        for i, value in enumerate(mye.company_fields):
+            name = COMPANY_FIELD_NAMES[i] if i < len(COMPANY_FIELD_NAMES) else f"company_field_{i}"
+            w.writerow([name, value])
+        # Serialisation quirks, so unpack -> pack is byte-exact too.
+        term = "CRCRLF" if mye.journal_line_terminator == "\r\r\n" else "CRLF"
+        w.writerow(["meta.journal_line_terminator", term])
+        w.writerow(["meta.trailing_blank", "yes" if mye.trailing_blank else "no"])
         for key, value in info.items():
             w.writerow([f"extract.{key}", value])
 
@@ -74,7 +90,7 @@ def export_journal_csv(mye: MyeFile, path: str) -> None:
                         names.get(line.account_code, ""),
                         f"{line.debit:.2f}" if line.debit else "",
                         f"{line.credit:.2f}" if line.credit else "",
-                        f"{line.amount:.4f}",
+                        line.amount_text,
                         line.memo,
                     ]
                 )
@@ -251,13 +267,21 @@ def export_iif(mye: MyeFile, path: str) -> str:
 
 def unpack(mye: MyeFile, out_dir: str) -> List[str]:
     """Write the editable representation: accounts.csv, journal.csv,
-    company.csv and Extract.inf. Edit them in Excel or a text editor,
-    then rebuild a .MYE with pack_dir()."""
+    company.csv, Extract.inf and any extra archive members (e.g.
+    BASLINK.TXT). Edit them in Excel or a text editor, then rebuild a
+    .MYE with pack_dir()."""
     paths = export_csv(mye, out_dir)
     inf_path = os.path.join(out_dir, EXTRACT_INF)
     with open(inf_path, "wb") as fh:
         fh.write(mye.extract_inf)
     paths.append(inf_path)
+    # Carry through extra members (BASLINK.TXT etc.) verbatim so a
+    # round trip never loses BAS/GST or other side-car data.
+    for name, payload in mye.extra_members.items():
+        member_path = os.path.join(out_dir, name)
+        with open(member_path, "wb") as fh:
+            fh.write(payload)
+        paths.append(member_path)
     return paths
 
 
@@ -274,14 +298,19 @@ def pack_dir(in_dir: str) -> MyeFile:
 
     company_path = os.path.join(in_dir, COMPANY_CSV)
     fields = {row["field"]: row["value"] for row in _read_csv(company_path)}
-    mye.company_fields = [
-        fields.get("company_name", ""),
-        fields.get("address", ""),
-        "",
-        "",
-        fields.get("period_start", ""),
-        fields.get("period_end", ""),
-    ]
+    company = ["", "", "", "", "", ""]
+    for i, name in enumerate(COMPANY_FIELD_NAMES):
+        company[i] = fields.get(name, "")
+    # Any further positional fields (company_field_6, ...) if present.
+    i = len(COMPANY_FIELD_NAMES)
+    while f"company_field_{i}" in fields:
+        company.append(fields[f"company_field_{i}"])
+        i += 1
+    mye.company_fields = company
+
+    term = fields.get("meta.journal_line_terminator", "CRCRLF")
+    mye.journal_line_terminator = "\r\n" if term == "CRLF" else "\r\r\n"
+    mye.trailing_blank = fields.get("meta.trailing_blank", "yes").lower() != "no"
 
     for row in _read_csv(os.path.join(in_dir, ACCOUNTS_CSV)):
         mye.accounts.append(
@@ -295,10 +324,12 @@ def pack_dir(in_dir: str) -> MyeFile:
         try:
             if amount_text:
                 amount = Decimal(amount_text)
+                amount_dp = len(amount_text.split(".", 1)[1]) if "." in amount_text else 0
             else:
                 debit = Decimal((row.get("debit") or "0").strip() or "0")
                 credit = Decimal((row.get("credit") or "0").strip() or "0")
                 amount = debit - credit
+                amount_dp = 4
         except InvalidOperation as exc:
             raise ValueError(f"journal.csv row {lineno}: bad amount") from exc
         key = (row.get("entry") or "").strip() or row.get("reference", "")
@@ -313,6 +344,7 @@ def pack_dir(in_dir: str) -> MyeFile:
                 account_code=row["account_code"].strip(),
                 amount=amount,
                 memo=row.get("memo", ""),
+                amount_dp=amount_dp,
             )
         )
 
@@ -320,4 +352,14 @@ def pack_dir(in_dir: str) -> MyeFile:
     if os.path.exists(inf_path):
         with open(inf_path, "rb") as fh:
             mye.extract_inf = fh.read()
+    # Restore extra members: every file in the dir that isn't one of the
+    # CSVs or Extract.inf (e.g. BASLINK.TXT).
+    known = {COMPANY_CSV, ACCOUNTS_CSV, JOURNAL_CSV, TRIAL_BALANCE_CSV, EXTRACT_INF}
+    for name in sorted(os.listdir(in_dir)):
+        if name in known:
+            continue
+        full = os.path.join(in_dir, name)
+        if os.path.isfile(full):
+            with open(full, "rb") as fh:
+                mye.extra_members[name] = fh.read()
     return mye

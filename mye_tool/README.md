@@ -36,9 +36,26 @@ A `.MYE` file is a ZIP archive containing two members:
 ...                                        (blank line between entries)
 ```
 
-Amounts have four decimal places; **positive = debit, negative =
-credit**, so each journal entry sums to zero. (Quirk: journal lines end
-with `\r\r\n`; the writer reproduces this so a round trip is byte-exact.)
+Amounts are **positive = debit, negative = credit**, so each journal
+entry sums to zero.
+
+### Format variants handled
+
+Different MYOB/Xero products emit slightly different `.MYE` files. The
+tool detects each quirk on load and reproduces it on save, so a round
+trip of the `MYOBAO.TXT` ledger is **byte-exact** in every case:
+
+| Quirk | Accountants Enterprise (MAS) | Premier / BASLink |
+|---|---|---|
+| Journal line ending | `\r\r\n` | `\r\n` |
+| Amount decimals | 4 (`242.0900`) | 2 (`-372.79`) |
+| Trailing blank line | usually present | sometimes absent |
+| Company ABN | often blank | in field 3 |
+| Member name case | `Extract.inf` | `EXTRACT.INF` |
+| Extra members | — | `BASLINK.TXT` (BAS/GST data) |
+
+Any extra archive members (e.g. `BASLINK.TXT`) are carried through
+verbatim, so editing and re-saving never drops BAS/GST side data.
 
 ## Usage
 

@@ -74,6 +74,12 @@ class Account:
         return [self.code, self.extra1, self.name, self.extra2]
 
 
+def _decimals_of(text: str) -> int:
+    """Number of fractional digits in a numeric string ('-372.79' -> 2)."""
+    text = text.strip()
+    return len(text.split(".", 1)[1]) if "." in text else 0
+
+
 @dataclass
 class JournalLine:
     """One debit/credit line of a journal entry."""
@@ -83,6 +89,9 @@ class JournalLine:
     account_code: str
     amount: Decimal  # positive = debit, negative = credit
     memo: str
+    # Decimal places used in the source file (4 in MAS exports, 2 in some
+    # Premier exports). Preserved so a round trip is byte-exact.
+    amount_dp: int = 4
 
     @property
     def debit(self) -> Decimal:
@@ -92,15 +101,21 @@ class JournalLine:
     def credit(self) -> Decimal:
         return -self.amount if self.amount < 0 else Decimal("0")
 
+    @property
+    def amount_text(self) -> str:
+        return f"{self.amount:.{self.amount_dp}f}"
+
     @classmethod
     def from_fields(cls, fields: List[str]) -> "JournalLine":
         fields = fields + [""] * (5 - len(fields))
+        raw_amount = fields[3].strip()
         return cls(
             date=fields[0],
             reference=fields[1],
             account_code=fields[2],
-            amount=Decimal(fields[3]) if fields[3] else Decimal("0"),
+            amount=Decimal(raw_amount) if raw_amount else Decimal("0"),
             memo=fields[4],
+            amount_dp=_decimals_of(raw_amount) if raw_amount else 4,
         )
 
     def to_fields(self) -> List[str]:
@@ -108,7 +123,7 @@ class JournalLine:
             self.date,
             self.reference,
             self.account_code,
-            f"{self.amount:.4f}",
+            self.amount_text,
             self.memo,
         ]
 
@@ -149,6 +164,20 @@ class MyeFile:
     entries: List[JournalEntry] = field(default_factory=list)
     # Raw bytes of Extract.inf, preserved for byte-exact repacking.
     extract_inf: bytes = b""
+    # Any other archive members (e.g. BASLINK.TXT, the BAS/GST link data
+    # in Premier exports) carried through verbatim so saving is lossless.
+    extra_members: "dict" = field(default_factory=dict)
+    # Original member names and order, so a re-saved archive matches the
+    # source's layout (some files use 'Extract.inf', some 'EXTRACT.INF').
+    data_member_name: str = "MYOBAO.TXT"
+    inf_member_name: str = "Extract.inf"
+    member_order: List[str] = field(default_factory=list)
+    # Journal serialisation quirks, detected per file so round trips are
+    # byte-exact. MAS exports end journal lines with "\r\r\n"; some Premier
+    # exports use "\r\n". Most files have a blank line after the final
+    # entry, but not all.
+    journal_line_terminator: str = "\r\r\n"
+    trailing_blank: bool = True
 
     # ----- convenience accessors -------------------------------------
 
@@ -286,18 +315,48 @@ class MyeFile:
         for account in self.accounts:
             w("\t".join(account.to_fields()) + "\r\n")
         w(JOURNAL_SECTION + "\r\n")
-        for entry in self.entries:
+        term = self.journal_line_terminator
+        last = len(self.entries) - 1
+        for i, entry in enumerate(self.entries):
             for line in entry.lines:
-                # Journal lines genuinely end \r\r\n in MYOB's output.
-                w("\t".join(line.to_fields()) + "\r\r\n")
-            w("\r\n")
+                w("\t".join(line.to_fields()) + term)
+            # Blank line separates entries; the final one is optional.
+            if i != last or self.trailing_blank:
+                w("\r\n")
         return out.getvalue()
 
     def save(self, path: str) -> None:
-        """Write a .MYE (ZIP) archive."""
+        """Write a .MYE (ZIP) archive, preserving every original member.
+
+        The data member is regenerated from the parsed model; Extract.inf
+        and any extra members (e.g. BASLINK.TXT) are written verbatim, in
+        the source archive's original order where known.
+        """
+        data_bytes = self.data_text_bytes()
+
+        def bytes_for(name: str):
+            if name == self.data_member_name:
+                return data_bytes
+            if name == self.inf_member_name:
+                return self.extract_inf
+            return self.extra_members.get(name)
+
+        # Determine member order: original order if captured, else a
+        # sensible default (inf first, then data, then extras).
+        order = list(self.member_order)
+        if not order:
+            order = [self.inf_member_name, self.data_member_name]
+            order += [n for n in self.extra_members if n not in order]
+
         with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
-            z.writestr(INF_MEMBER, self.extract_inf)
-            z.writestr(DATA_MEMBER, self.data_text_bytes())
+            for name in order:
+                payload = bytes_for(name)
+                if payload is None:
+                    continue
+                # Skip an empty Extract.inf only when there genuinely is none.
+                if name == self.inf_member_name and not self.extract_inf:
+                    continue
+                z.writestr(name, payload)
 
 
 # ----- parsing ---------------------------------------------------------
@@ -308,6 +367,13 @@ def _parse_data_text(data: bytes) -> MyeFile:
     text = data.decode(ENCODING)
     section = None
     pending_entry: Optional[JournalEntry] = None
+
+    # Detect journal serialisation quirks for a byte-exact round trip.
+    journal_bytes = data[data.find(b"[JOURNAL]") :] if b"[JOURNAL]" in data else b""
+    mye.journal_line_terminator = "\r\r\n" if b"\r\r\n" in journal_bytes else "\r\n"
+    mye.trailing_blank = data.endswith(
+        (mye.journal_line_terminator + "\r\n").encode(ENCODING)
+    )
 
     for raw_line in text.split("\r\n"):
         line = raw_line.rstrip("\r")  # journal lines carry an extra \r
@@ -335,20 +401,34 @@ def _parse_data_text(data: bytes) -> MyeFile:
 def loads(archive_bytes: bytes) -> MyeFile:
     """Parse a .MYE archive from memory."""
     with zipfile.ZipFile(io.BytesIO(archive_bytes)) as z:
-        names = {n.lower(): n for n in z.namelist()}
-        data_name = names.get(DATA_MEMBER.lower())
+        member_names = z.namelist()
+        lower = {n.lower(): n for n in member_names}
+        data_name = lower.get(DATA_MEMBER.lower())
         if data_name is None:
-            txts = [n for n in z.namelist() if n.lower().endswith(".txt")]
+            # MYOBAO.TXT is the ledger; fall back to the largest .txt that
+            # isn't BASLINK.TXT (the BAS/GST link side file).
+            txts = [
+                n
+                for n in member_names
+                if n.lower().endswith(".txt") and n.lower() != "baslink.txt"
+            ]
             if not txts:
                 raise ValueError(
                     f"Not a recognised .MYE file: no {DATA_MEMBER} inside the archive "
-                    f"(members: {', '.join(z.namelist()) or 'none'})"
+                    f"(members: {', '.join(member_names) or 'none'})"
                 )
             data_name = txts[0]
         mye = _parse_data_text(z.read(data_name))
-        inf_name = names.get(INF_MEMBER.lower())
+        mye.data_member_name = data_name
+        mye.member_order = list(member_names)
+        inf_name = lower.get(INF_MEMBER.lower())
         if inf_name:
+            mye.inf_member_name = inf_name
             mye.extract_inf = z.read(inf_name)
+        # Carry through every other member verbatim (e.g. BASLINK.TXT).
+        for name in member_names:
+            if name not in (data_name, inf_name):
+                mye.extra_members[name] = z.read(name)
     return mye
 
 
