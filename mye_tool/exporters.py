@@ -10,7 +10,7 @@ from decimal import Decimal, InvalidOperation
 from typing import List
 
 from .core import Account, JournalEntry, JournalLine, MyeFile
-from .xero_coa import export_xero_coa, export_xero_coa_review
+from .xero_coa import export_code_mapping, export_xero_coa, export_xero_coa_review
 
 ACCOUNTS_CSV = "accounts.csv"
 JOURNAL_CSV = "journal.csv"

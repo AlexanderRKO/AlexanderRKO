@@ -344,3 +344,49 @@ def test_xero_coa_excludes_system_accounts(tmp_path):
     coa2 = str(tmp_path / "coa2.csv")
     xero_coa.export_xero_coa(mye, coa2, exclude_system=False)
     assert len([r for r in csv.reader(open(coa2, encoding="utf-8-sig"))][1:]) == 5
+
+
+def test_xero_coa_renumber_3digit(tmp_path):
+    import re
+    from mye_tool.core import MyeFile, Account
+    from mye_tool import xero_coa
+
+    mye = MyeFile()
+    mye.accounts = [
+        Account("200", "Sales"),                 # valid 3-digit -> kept
+        Account("11100", "Cash On Hand"),         # 5-digit -> CURRENT range
+        Account("63971", "Wages"),                # 5-digit -> EXPENSE range
+        Account("9901", "Dividends Paid - X"),    # 4-digit -> EQUITY range
+        Account("820", "GST"),                    # system -> excluded, no code
+    ]
+    codes = xero_coa.assign_3digit_codes(mye)
+    assert codes[0] == "200"  # existing valid 3-digit kept
+    assert codes[4] is None   # system account excluded
+    kept = [c for c in codes if c]
+    assert all(re.fullmatch(r"\d{3}", c) for c in kept)
+    assert len(kept) == len(set(kept))  # unique
+    # ranges: CURRENT 600-679, EXPENSE 400-579, EQUITY 920-999
+    assert 600 <= int(codes[1]) <= 679
+    assert 400 <= int(codes[2]) <= 579
+    assert 920 <= int(codes[3]) <= 999
+
+
+def test_xero_coa_renumber_files_and_mapping(tmp_path):
+    from mye_tool.core import MyeFile, Account
+    from mye_tool import xero_coa
+    import csv
+
+    mye = MyeFile()
+    mye.accounts = [Account("11100", "Cash On Hand"), Account("820", "GST")]
+    coa = str(tmp_path / "coa.csv")
+    mapping = str(tmp_path / "map.csv")
+    xero_coa.export_xero_coa(mye, coa, renumber=True)
+    xero_coa.export_code_mapping(mye, mapping)
+
+    rows = list(csv.reader(open(coa, encoding="utf-8-sig")))[1:]
+    assert len(rows) == 1  # GST excluded
+    assert 600 <= int(rows[0][0]) <= 679  # Cash renumbered into CURRENT range
+
+    m = {r[0]: r for r in csv.reader(open(mapping, encoding="utf-8-sig"))}
+    assert m["11100"][4] == "renumbered"
+    assert m["820"][1] == "" and "system" in m["820"][4]

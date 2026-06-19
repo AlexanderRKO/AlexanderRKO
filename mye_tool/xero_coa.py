@@ -27,9 +27,33 @@ where the BSB/account number is entered).
 from __future__ import annotations
 
 import csv
-from typing import List, Tuple
+import re
+from typing import Dict, List, Optional, Tuple
 
 from .core import Account, MyeFile
+
+# 3-digit code ranges per Xero type, following the standard AU numbering
+# that the existing KMB/RKO charts use (revenue 2xx, direct costs 3xx,
+# expenses 4xx-5xx, assets 6xx-7xx, liabilities 8xx-9xx, equity 92x-99x).
+# Used by the optional renumber step to assign clean 3-digit codes.
+CODE_RANGES: Dict[str, Tuple[int, int]] = {
+    "REVENUE": (200, 259),
+    "SALES": (200, 259),
+    "OTHERINCOME": (260, 299),
+    "DIRECTCOSTS": (300, 399),
+    "EXPENSE": (400, 579),
+    "OVERHEADS": (400, 579),
+    "DEPRECIATN": (580, 589),
+    "OTHEREXPENSE": (590, 599),
+    "CURRENT": (600, 679),
+    "PREPAYMENT": (680, 689),
+    "INVENTORY": (690, 699),
+    "FIXED": (700, 749),
+    "NONCURRENT": (760, 799),
+    "CURRLIAB": (800, 879),
+    "TERMLIAB": (900, 919),
+    "EQUITY": (920, 999),
+}
 
 XERO_COA_HEADER = [
     "*Code",
@@ -62,6 +86,8 @@ NAME_RULES: List[Tuple[str, str]] = [
     # --- income ---
     ("interest income", "OTHERINCOME"),
     ("interest received", "OTHERINCOME"),
+    ("dividends paid", "EQUITY"),  # distributions to owners, before "dividend"
+    ("dividend paid", "EQUITY"),
     ("dividend", "OTHERINCOME"),
     ("gain on", "OTHERINCOME"),
     ("gain/(loss)", "OTHERINCOME"),
@@ -255,18 +281,76 @@ def infer_xero_type(account: Account) -> Tuple[str, bool]:
     return "EXPENSE", False  # safest catch-all; always a valid Xero type
 
 
-def build_rows(mye: MyeFile):
-    """Yield (account, xero_type, confident, is_system) for each account."""
-    for account in mye.accounts:
+def assign_3digit_codes(
+    mye: MyeFile, exclude_system: bool = True
+) -> List[Optional[str]]:
+    """Return a new 3-digit code per account (parallel to ``mye.accounts``;
+    ``None`` for excluded system accounts).
+
+    Codes that are already a clean, unique 3-digit number are kept as-is so
+    accounts that already match Xero's generic chart stay put; every other
+    account (5-digit MYOB codes, 4-digit 9900-series, suffixed codes) is
+    assigned the next free 3-digit code in its account-type range.
+    """
+    new_codes: List[Optional[str]] = [None] * len(mye.accounts)
+    used = set()
+
+    # Pass 1: keep existing valid, unique 3-digit codes.
+    for i, account in enumerate(mye.accounts):
+        if exclude_system and is_system_account(account):
+            continue
+        code = account.code.strip()
+        if re.fullmatch(r"\d{3}", code) and code not in used:
+            new_codes[i] = code
+            used.add(code)
+
+    # Pass 2: allocate fresh codes for the rest, sequentially within range.
+    range_ptr: Dict[Tuple[int, int], int] = {}
+
+    def allocate(xtype: str) -> str:
+        lo, hi = CODE_RANGES.get(xtype, CODE_RANGES["EXPENSE"])
+        c = max(range_ptr.get((lo, hi), lo), lo)
+        while c <= hi and f"{c:03d}" in used:
+            c += 1
+        if c > hi:
+            raise ValueError(
+                f"Ran out of 3-digit codes for type {xtype} (range {lo}-{hi}). "
+                "Too many accounts of this type to fit in 3 digits."
+            )
+        range_ptr[(lo, hi)] = c + 1
+        code = f"{c:03d}"
+        used.add(code)
+        return code
+
+    for i, account in enumerate(mye.accounts):
+        if exclude_system and is_system_account(account):
+            continue
+        if new_codes[i] is not None:
+            continue
+        xtype, _ = infer_xero_type(account)
+        new_codes[i] = allocate(xtype)
+
+    return new_codes
+
+
+def build_rows(mye: MyeFile, renumber: bool = False, exclude_system: bool = True):
+    """Yield (account, code, xero_type, confident, is_system) for each
+    account. ``code`` is the renumbered 3-digit code when ``renumber`` is
+    set, otherwise the account's original code."""
+    new_codes = (
+        assign_3digit_codes(mye, exclude_system) if renumber else [None] * len(mye.accounts)
+    )
+    for i, account in enumerate(mye.accounts):
         system = is_system_account(account)
         xtype, confident = infer_xero_type(account)
-        yield account, xtype, confident, system
+        code = new_codes[i] if (renumber and new_codes[i] is not None) else account.code
+        yield account, code, xtype, confident, system
 
 
-def _import_row(account: Account, xtype: str) -> list:
+def _import_row(code: str, name: str, xtype: str) -> list:
     return [
-        account.code,
-        account.name,
+        code,
+        name,
         xtype,
         DEFAULT_TAX_CODE,
         "",  # Description
@@ -276,37 +360,74 @@ def _import_row(account: Account, xtype: str) -> list:
     ]
 
 
-def export_xero_coa(mye: MyeFile, path: str, exclude_system: bool = True) -> str:
+def export_xero_coa(
+    mye: MyeFile, path: str, exclude_system: bool = True, renumber: bool = False
+) -> str:
     """Write the Xero (AU) chart-of-accounts import CSV.
 
     Xero-managed system accounts (Accounts Receivable, GST, Retained
     Earnings, ...) are excluded by default because they already exist in
     the target org and cannot be imported. Pass ``exclude_system=False``
-    to include them anyway.
+    to include them anyway. Pass ``renumber=True`` to assign clean 3-digit
+    account codes.
     """
     with open(path, "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh)
         w.writerow(XERO_COA_HEADER)
-        for account, xtype, _confident, system in build_rows(mye):
+        for account, code, xtype, _confident, system in build_rows(
+            mye, renumber, exclude_system
+        ):
             if system and exclude_system:
                 continue
-            w.writerow(_import_row(account, xtype))
+            w.writerow(_import_row(code, account.name, xtype))
     return path
 
 
-def export_xero_coa_review(mye: MyeFile, path: str) -> str:
+def export_xero_coa_review(
+    mye: MyeFile, path: str, exclude_system: bool = True, renumber: bool = False
+) -> str:
     """Write a companion review CSV flagging accounts whose Type was guessed
     (``REVIEW``) and Xero-managed accounts excluded from the import
-    (``SYSTEM - excluded``)."""
+    (``SYSTEM - excluded``). When ``renumber`` is set it also shows the
+    original MYOB code next to the new 3-digit code."""
     with open(path, "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh)
-        w.writerow(["Code", "Name", "Inferred Type", "Tax Code", "status"])
-        for account, xtype, confident, system in build_rows(mye):
+        header = ["Code", "Name", "Inferred Type", "Tax Code", "status"]
+        if renumber:
+            header = ["New Code", "Original Code", "Name", "Inferred Type", "Tax Code", "status"]
+        w.writerow(header)
+        for account, code, xtype, confident, system in build_rows(
+            mye, renumber, exclude_system
+        ):
             if system:
                 status = "SYSTEM - excluded (Xero manages this account)"
             elif not confident:
                 status = "REVIEW - type guessed"
             else:
                 status = ""
-            w.writerow([account.code, account.name, xtype, DEFAULT_TAX_CODE, status])
+            if renumber:
+                shown = "" if system else code
+                w.writerow([shown, account.code, account.name, xtype, DEFAULT_TAX_CODE, status])
+            else:
+                w.writerow([account.code, account.name, xtype, DEFAULT_TAX_CODE, status])
+    return path
+
+
+def export_code_mapping(
+    mye: MyeFile, path: str, exclude_system: bool = True
+) -> str:
+    """Write the old-code -> new-code mapping (for re-coding balances,
+    journals or other data to match the renumbered chart). System accounts
+    are listed with a blank new code and a note."""
+    with open(path, "w", newline="", encoding="utf-8-sig") as fh:
+        w = csv.writer(fh)
+        w.writerow(["original_code", "new_code", "name", "type", "note"])
+        for account, code, xtype, _confident, system in build_rows(
+            mye, renumber=True, exclude_system=exclude_system
+        ):
+            if system and exclude_system:
+                w.writerow([account.code, "", account.name, xtype, "system account - not imported"])
+            else:
+                changed = "" if code == account.code else "renumbered"
+                w.writerow([account.code, code, account.name, xtype, changed])
     return path

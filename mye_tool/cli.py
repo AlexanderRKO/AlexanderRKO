@@ -142,16 +142,27 @@ def cmd_export(args) -> int:
     if "iif" in formats:
         written.append(exporters.export_iif(mye, os.path.join(args.out, base + ".iif")))
     if "xero-coa" in formats:
+        renumber = getattr(args, "renumber", False)
         written.append(
             exporters.export_xero_coa(
-                mye, os.path.join(args.out, "xero_chart_of_accounts.csv")
+                mye,
+                os.path.join(args.out, "xero_chart_of_accounts.csv"),
+                renumber=renumber,
             )
         )
         written.append(
             exporters.export_xero_coa_review(
-                mye, os.path.join(args.out, "xero_chart_of_accounts_REVIEW.csv")
+                mye,
+                os.path.join(args.out, "xero_chart_of_accounts_REVIEW.csv"),
+                renumber=renumber,
             )
         )
+        if renumber:
+            written.append(
+                exporters.export_code_mapping(
+                    mye, os.path.join(args.out, "code_mapping.csv")
+                )
+            )
     for path in written:
         print(f"wrote {path}")
     return 0
@@ -233,6 +244,13 @@ def main(argv=None) -> int:
         default="all",
         help="which format(s) to write (default: all). 'xero-coa' writes a "
         "Xero (AU) chart-of-accounts import CSV plus a review file.",
+    )
+    p.add_argument(
+        "--renumber",
+        action="store_true",
+        help="with xero-coa: assign clean 3-digit account codes (keeps "
+        "existing valid 3-digit codes, renumbers the rest) and write "
+        "code_mapping.csv",
     )
     p.set_defaults(func=cmd_export)
 

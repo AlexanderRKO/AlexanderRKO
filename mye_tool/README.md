@@ -75,6 +75,9 @@ python -m mye_tool export ledger.mye -o exported/ --format all
 # Just the Xero (AU) chart-of-accounts import file
 python -m mye_tool export ledger.mye -o exported/ --format xero-coa
 
+# ...with clean 3-digit account codes (+ a code_mapping.csv)
+python -m mye_tool export ledger.mye -o exported/ --format xero-coa --renumber
+
 # Edit workflow: unpack -> edit CSVs in Excel -> repack
 python -m mye_tool unpack ledger.mye -o work/
 #   ... edit work/journal.csv, work/accounts.csv, work/company.csv ...
@@ -116,6 +119,17 @@ missing fields:
   imported, so importing them makes the whole file fail. They are left
   out of the import file and listed as `SYSTEM - excluded` in the review
   file. (Pass `exclude_system=False` to the Python API to keep them.)
+
+### 3-digit renumbering (`--renumber`)
+
+`--renumber` assigns clean 3-digit account codes following the standard
+AU layout (revenue 2xx, direct costs 3xx, expenses 4xx-5xx, assets
+6xx-7xx, liabilities 8xx-9xx, equity 92x-99x). Codes that are already a
+valid, unique 3-digit number are **kept** (so accounts already matching
+Xero's generic chart stay put); only non-conforming codes (5-digit MYOB
+codes, the 4-digit 9900-series, suffixed codes) are reassigned. It also
+writes **`code_mapping.csv`** (`original_code,new_code,name,type,note`)
+so you can re-code opening balances, journals or other data to match.
 
 ### Editing notes
 
