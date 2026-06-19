@@ -68,3 +68,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# static status site (build artefact, published via GH Actions)
+myob_to_xero_migration/_site/
