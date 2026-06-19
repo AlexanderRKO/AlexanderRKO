@@ -267,7 +267,12 @@ def test_xero_coa_header_and_taxcode(sample_mye, tmp_path):
         "Description", "Dashboard", "Expense Claims", "Enable Payments",
     ]
     body = rows[1:]
-    assert len(body) == len(mye.accounts)
+    # GST is a Xero-managed system account and is excluded from the import
+    from mye_tool.xero_coa import is_system_account
+
+    expected = [a for a in mye.accounts if not is_system_account(a)]
+    assert len(body) == len(expected)
+    assert "GST" not in {r[1] for r in body}  # system account excluded
     # every account gets the BAS Excluded default tax code
     assert all(r[3] == "BAS Excluded" for r in body)
     # every type is one of Xero's valid import codes
@@ -308,3 +313,34 @@ def test_cli_export_xero_coa(sample_mye, tmp_path):
     assert main(["export", sample_mye, "-o", out_dir, "--format", "xero-coa"]) == 0
     assert os.path.exists(os.path.join(out_dir, "xero_chart_of_accounts.csv"))
     assert os.path.exists(os.path.join(out_dir, "xero_chart_of_accounts_REVIEW.csv"))
+
+
+def test_xero_coa_excludes_system_accounts(tmp_path):
+    from mye_tool.core import MyeFile, Account
+    from mye_tool import xero_coa
+    import csv
+
+    mye = MyeFile()
+    mye.accounts = [
+        Account("200", "Sales"),
+        Account("610", "Accounts Receivable"),  # Xero system account
+        Account("820", "GST"),                   # Xero system account
+        Account("960", "Retained Earnings"),     # Xero system account
+        Account("400", "Accounting Fees"),
+    ]
+    coa = str(tmp_path / "coa.csv")
+    rev = str(tmp_path / "rev.csv")
+    xero_coa.export_xero_coa(mye, coa)
+    xero_coa.export_xero_coa_review(mye, rev)
+
+    imported = [r[1] for r in csv.reader(open(coa, encoding="utf-8-sig"))][1:]
+    assert imported == ["Sales", "Accounting Fees"]  # system ones dropped
+
+    review = list(csv.reader(open(rev, encoding="utf-8-sig")))[1:]
+    excluded = [r[1] for r in review if r[4].startswith("SYSTEM")]
+    assert set(excluded) == {"Accounts Receivable", "GST", "Retained Earnings"}
+
+    # opt-in to keep them
+    coa2 = str(tmp_path / "coa2.csv")
+    xero_coa.export_xero_coa(mye, coa2, exclude_system=False)
+    assert len([r for r in csv.reader(open(coa2, encoding="utf-8-sig"))][1:]) == 5

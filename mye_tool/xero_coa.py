@@ -193,6 +193,52 @@ MYOB_CLASS_BY_FIRST_DIGIT = {
 }
 
 
+# Accounts that Xero creates and manages itself. They already exist in
+# every Xero org (including a clean file with the generic chart), are
+# locked, and cannot be created via the chart-of-accounts import - trying
+# to import them makes the whole import fail. They are excluded from the
+# import file (and flagged in the review file) so the import succeeds.
+SYSTEM_ACCOUNT_KEYWORDS = [
+    "accounts receivable",
+    "accounts payable",
+    "retained earning",
+    "current year earning",
+    "rounding",
+    "historical adjustment",
+    "tracking transfer",
+    "unrealised currency",
+    "realised currency",
+    "unrealized currency",
+    "realized currency",
+    "bank revaluation",
+    "wages payable",
+]
+
+# GST control accounts are Xero system accounts too, but "gst" is too
+# common a substring to match loosely (e.g. "Non-GST Expenses"), so these
+# are matched as whole names / prefixes instead.
+SYSTEM_ACCOUNT_EXACT = {
+    "gst",
+    "gst payable",
+    "gst collected",
+    "gst paid",
+    "gst control",
+    "gst (non-registered)",
+}
+
+
+def is_system_account(account: Account) -> bool:
+    """True if Xero manages this account itself (so it must not be imported)."""
+    name = account.name.strip().lower()
+    # A provision/doubtful-debts account is a real, importable contra-asset
+    # even though its name contains "accounts receivable".
+    if "provision" in name or "doubtful" in name:
+        return False
+    if name in SYSTEM_ACCOUNT_EXACT:
+        return True
+    return any(kw in name for kw in SYSTEM_ACCOUNT_KEYWORDS)
+
+
 def infer_xero_type(account: Account) -> Tuple[str, bool]:
     """Return (xero_type, confident). ``confident`` is False when the type
     came from a fallback rather than a clear name match, so callers can flag
@@ -210,38 +256,57 @@ def infer_xero_type(account: Account) -> Tuple[str, bool]:
 
 
 def build_rows(mye: MyeFile):
-    """Yield (import_row, confident) for each account."""
+    """Yield (account, xero_type, confident, is_system) for each account."""
     for account in mye.accounts:
+        system = is_system_account(account)
         xtype, confident = infer_xero_type(account)
-        row = [
-            account.code,
-            account.name,
-            xtype,
-            DEFAULT_TAX_CODE,
-            "",  # Description
-            "",  # Dashboard
-            "",  # Expense Claims
-            "",  # Enable Payments
-        ]
-        yield row, confident
+        yield account, xtype, confident, system
 
 
-def export_xero_coa(mye: MyeFile, path: str) -> str:
-    """Write a Xero (AU) chart-of-accounts import CSV (the clean import file)."""
+def _import_row(account: Account, xtype: str) -> list:
+    return [
+        account.code,
+        account.name,
+        xtype,
+        DEFAULT_TAX_CODE,
+        "",  # Description
+        "",  # Dashboard
+        "",  # Expense Claims
+        "",  # Enable Payments
+    ]
+
+
+def export_xero_coa(mye: MyeFile, path: str, exclude_system: bool = True) -> str:
+    """Write the Xero (AU) chart-of-accounts import CSV.
+
+    Xero-managed system accounts (Accounts Receivable, GST, Retained
+    Earnings, ...) are excluded by default because they already exist in
+    the target org and cannot be imported. Pass ``exclude_system=False``
+    to include them anyway.
+    """
     with open(path, "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh)
         w.writerow(XERO_COA_HEADER)
-        for row, _confident in build_rows(mye):
-            w.writerow(row)
+        for account, xtype, _confident, system in build_rows(mye):
+            if system and exclude_system:
+                continue
+            w.writerow(_import_row(account, xtype))
     return path
 
 
 def export_xero_coa_review(mye: MyeFile, path: str) -> str:
-    """Write a companion review CSV with an extra column flagging accounts
-    whose Type was guessed by fallback (so it can be checked before import)."""
+    """Write a companion review CSV flagging accounts whose Type was guessed
+    (``REVIEW``) and Xero-managed accounts excluded from the import
+    (``SYSTEM - excluded``)."""
     with open(path, "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh)
-        w.writerow(["Code", "Name", "Inferred Type", "Tax Code", "needs_review"])
-        for row, confident in build_rows(mye):
-            w.writerow([row[0], row[1], row[2], row[3], "" if confident else "REVIEW"])
+        w.writerow(["Code", "Name", "Inferred Type", "Tax Code", "status"])
+        for account, xtype, confident, system in build_rows(mye):
+            if system:
+                status = "SYSTEM - excluded (Xero manages this account)"
+            elif not confident:
+                status = "REVIEW - type guessed"
+            else:
+                status = ""
+            w.writerow([account.code, account.name, xtype, DEFAULT_TAX_CODE, status])
     return path

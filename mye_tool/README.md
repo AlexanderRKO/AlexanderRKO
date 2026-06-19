@@ -107,6 +107,15 @@ missing fields:
   account number (which a `.mye` doesn't contain). Switch them to the
   Bank type in Xero after import — that's also where the BSB/account
   number is entered.
+- **Xero-managed system accounts are excluded.** Accounts Xero creates
+  and locks itself — Accounts Receivable, Accounts Payable, GST,
+  Retained Earnings, Current Year Earnings, Rounding, Historical
+  Adjustment, Tracking Transfers, Realised/Unrealised Currency Gains,
+  Bank Revaluations, Wages Payable — already exist in every Xero org
+  (including a clean file with the generic chart) and cannot be
+  imported, so importing them makes the whole file fail. They are left
+  out of the import file and listed as `SYSTEM - excluded` in the review
+  file. (Pass `exclude_system=False` to the Python API to keep them.)
 
 ### Editing notes
 
