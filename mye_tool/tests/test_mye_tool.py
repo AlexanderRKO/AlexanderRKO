@@ -390,3 +390,31 @@ def test_xero_coa_renumber_files_and_mapping(tmp_path):
     m = {r[0]: r for r in csv.reader(open(mapping, encoding="utf-8-sig"))}
     assert m["11100"][4] == "renumbered"
     assert m["820"][1] == "" and "system" in m["820"][4]
+
+
+def test_contacts_from_memos(sample_mye, tmp_path):
+    from mye_tool import contacts
+
+    mye = mye_tool.load(sample_mye)
+    rows = contacts.extract_contacts(mye)
+    names = {r["name"] for r in rows}
+    # sample memos are "Widget sale" and "BANK FEE"
+    assert "Widget sale" in names
+    # prefix stripping
+    assert contacts.clean_party("Payment: Flooring FX Pty Ltd") == "Flooring FX Pty Ltd"
+    assert contacts.clean_party("Reversed: Payment: ABC Co") == "ABC Co"
+
+    out = str(tmp_path / "contacts.csv")
+    contacts.export_contacts_csv(mye, out)
+    import csv
+
+    header = next(csv.reader(open(out, encoding="utf-8-sig")))
+    assert header[0] == "*ContactName"
+
+
+def test_cli_contacts(sample_mye, capsys):
+    from mye_tool.cli import main
+
+    assert main(["contacts", sample_mye]) == 0
+    out = capsys.readouterr().out
+    assert "no contacts table" in out

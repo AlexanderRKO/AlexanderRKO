@@ -78,6 +78,10 @@ python -m mye_tool export ledger.mye -o exported/ --format xero-coa
 # ...with clean 3-digit account codes (+ a code_mapping.csv)
 python -m mye_tool export ledger.mye -o exported/ --format xero-coa --renumber
 
+# Best-effort party names recovered from journal memos (NOT a real
+# contacts export - a .mye has no contacts table)
+python -m mye_tool contacts ledger.mye
+
 # Edit workflow: unpack -> edit CSVs in Excel -> repack
 python -m mye_tool unpack ledger.mye -o work/
 #   ... edit work/journal.csv, work/accounts.csv, work/company.csv ...
@@ -178,4 +182,8 @@ client data lives in this repository.
 - The MAS export is a *general ledger* extract: chart of accounts +
   journals only. Contacts, invoices and payroll detail are not in the
   file, so no tool can extract them from it — export those separately
-  (see `myob_to_xero_migration/` for the full migration checklist).
+  (see `myob_to_xero_migration/` for the full migration checklist). The
+  `contacts` command recovers *party names* from journal memos as a
+  best-effort cross-check, but it's just names (no emails/addresses/ABNs)
+  and misses anyone not named in a memo — for a real contacts import,
+  export Contacts directly from Xero/MYOB.

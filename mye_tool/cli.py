@@ -110,6 +110,25 @@ def cmd_trial_balance(args) -> int:
     return 0
 
 
+def cmd_contacts(args) -> int:
+    from . import contacts as contacts_mod
+
+    mye = core.load(args.file)
+    rows = contacts_mod.extract_contacts(mye)
+    print(
+        "Note: a .MYE has no contacts table. These names are recovered from "
+        "journal memos (best-effort) - not a real contacts export.\n"
+    )
+    table = [(r["name"], r["transactions"], f"{r['total_value']:,.2f}") for r in rows]
+    if args.limit and len(table) > args.limit:
+        print(_table(table[: args.limit], ["Party name (from memo)", "Txns", "Total value"]))
+        print(f"... {len(table) - args.limit} more (use --limit 0 for all)")
+    else:
+        print(_table(table, ["Party name (from memo)", "Txns", "Total value"]))
+    print(f"\n{len(rows)} distinct parties recovered.")
+    return 0
+
+
 def cmd_check(args) -> int:
     mye = core.load(args.file)
     problems = mye.validate()
@@ -130,7 +149,7 @@ def cmd_export(args) -> int:
     base = os.path.splitext(os.path.basename(args.file))[0]
     os.makedirs(args.out, exist_ok=True)
     written = []
-    formats = {"all": ("csv", "xlsx", "json", "iif", "xero-coa")}.get(
+    formats = {"all": ("csv", "xlsx", "json", "iif", "xero-coa", "contacts")}.get(
         args.format, (args.format,)
     )
     if "csv" in formats:
@@ -141,6 +160,14 @@ def cmd_export(args) -> int:
         written.append(exporters.export_json(mye, os.path.join(args.out, base + ".json")))
     if "iif" in formats:
         written.append(exporters.export_iif(mye, os.path.join(args.out, base + ".iif")))
+    if "contacts" in formats:
+        from . import contacts as contacts_mod
+
+        written.append(
+            contacts_mod.export_contacts_csv(
+                mye, os.path.join(args.out, "contacts_from_memos.csv")
+            )
+        )
     if "xero-coa" in formats:
         renumber = getattr(args, "renumber", False)
         written.append(
@@ -235,15 +262,25 @@ def main(argv=None) -> int:
     p.add_argument("file")
     p.set_defaults(func=cmd_check)
 
+    p = sub.add_parser(
+        "contacts",
+        help="recover party names from journal memos (best-effort; a .MYE "
+        "has no real contacts table)",
+    )
+    p.add_argument("file")
+    p.add_argument("--limit", type=int, default=50, help="max rows (0 = all)")
+    p.set_defaults(func=cmd_contacts)
+
     p = sub.add_parser("export", help="export to csv / xlsx / json / iif")
     p.add_argument("file")
     p.add_argument("-o", "--out", default="mye_export", help="output directory")
     p.add_argument(
         "--format",
-        choices=["csv", "xlsx", "json", "iif", "xero-coa", "all"],
+        choices=["csv", "xlsx", "json", "iif", "xero-coa", "contacts", "all"],
         default="all",
         help="which format(s) to write (default: all). 'xero-coa' writes a "
-        "Xero (AU) chart-of-accounts import CSV plus a review file.",
+        "Xero (AU) chart-of-accounts import CSV plus a review file; "
+        "'contacts' recovers party names from journal memos (best-effort).",
     )
     p.add_argument(
         "--renumber",
