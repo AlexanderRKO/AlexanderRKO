@@ -124,8 +124,8 @@ flowchart TD
 | 3 | Supplier cards | Contacts ▸ Suppliers ▸ Export | `03_contacts_suppliers/` | Contacts (suppliers) |
 | 4 | Employee cards + standard pay | Payroll ▸ Employees ▸ Export | `04_employees/` | Payroll employees |
 | 5 | Inventory items, on-hand qty, avg cost | Inventory ▸ Items List ▸ Export | `05_inventory_items/` | Products & services |
-| 6 | Open invoices / Aged Receivables detail | Sales ▸ Sales Register ▸ Open invoices | `06_open_invoices_AR/` | Sales invoices |
-| 7 | Open bills / Aged Payables detail | Purchases ▸ Purchases Register ▸ Open bills | `07_open_bills_AP/` | Purchase bills |
+| 6 | Open invoices / Aged Receivables detail | Reports ▸ Sales ▸ Receivables ▸ **Receivables Reconciliation [Detail]**, run *as at conversion date* → Send to Excel | `06_open_invoices_AR/` | Sales invoices |
+| 7 | Open bills / Aged Payables detail | Reports ▸ Purchases ▸ Payables ▸ **Payables Reconciliation [Detail]**, run *as at conversion date* → Send to Excel | `07_open_bills_AP/` | Purchase bills |
 | 8 | Bank & credit-card accounts + statements | Banking ▸ Bank Register, plus bank portal CSV/OFX | `08_bank_accounts_statements/` | Bank accounts + statement imports |
 | 9 | General ledger detail (conversion FY) | Reports ▸ Accounts ▸ General Ledger detail | `09_general_ledger/` | Reports / manual journal reference |
 | 10 | Trial Balance at conversion date | Reports ▸ Accounts ▸ Trial Balance | `10_trial_balance/` | Conversion balances |
