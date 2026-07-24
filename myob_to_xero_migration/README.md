@@ -75,6 +75,7 @@ Same data, multiple surfaces:
 | Browser | `streamlit run dashboard.py` | accountant, partner | `pip install -r requirements.txt` |
 | Printable PDF (status) | `python migration.py report -o status.pdf` | client / file | `reportlab` |
 | **Visual onboarding guide** | `python migration.py guide -o guide.pdf` | new team member | `reportlab` |
+| **Hosted status page** | `python migration.py site -o _site/ --include-pdfs` | client / partner firm (URL-share) | none — static HTML |
 | CI artefact | GitHub Actions `Migration status` workflow | reviewers | runs in CI |
 
 ### CLI
@@ -117,6 +118,28 @@ files. **Run it locally only when real client data is loaded**
 on every push that touches the toolkit, publishes the text output to
 the workflow summary, generates the PDF, and uploads both as a
 30-day artefact.
+
+### Hosted status page (GitHub Pages)
+
+The toolkit also publishes a self-contained static HTML status page
+that anyone with the URL can view in a browser — no Python install,
+no terminal, no login. Useful for sharing live progress with the
+client or partner firm.
+
+- **Locally**: `python migration.py site -o _site/ --include-pdfs`,
+  then open `_site/index.html` in your browser.
+- **Auto-hosted on every push**: the
+  `.github/workflows/publish-site.yml` workflow rebuilds the site on
+  every push to `main` and publishes to
+  `https://<owner>.github.io/<repo>/`. To enable it once: in the
+  repo's **Settings → Pages**, change *Source* to **GitHub Actions**;
+  the first successful workflow run prints the URL.
+
+The page surfaces only counts and labels — never raw CSVs, balances,
+or employee data. The four deliverable PDFs (`migration_plan`,
+`action_checklist`, `post_conversion_checklist`,
+`getting_started_visual`) are linked from the page when
+`--include-pdfs` is passed.
 
 > ⚠️ **Before you pull any employee or payroll data, read `PRIVACY.md`.**
 > Payroll exports contain TFNs and identified earnings — they are

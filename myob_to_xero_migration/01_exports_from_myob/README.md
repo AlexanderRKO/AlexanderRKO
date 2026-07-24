@@ -17,6 +17,18 @@ kept in its original, detailed format. Files in this stage are
 > Rule. Read `../PRIVACY.md` and complete its §8 pre-pull sign-off
 > before exporting either.
 
+> ⚠️ **MYOB Business has no CSV export — and Excel will silently
+> corrupt your data.** For every screen below where the source is
+> MYOB Business (not AccountRight), you must copy from the screen.
+> **Do not paste into Excel first** — Excel auto-converts codes like
+> `1-9000` into the date `January 9000` and writes the date serial
+> into the cell. In testing this corrupted 157 of 340 account codes.
+> Paste **directly into the dashboard's "Paste from MYOB Business"
+> page** instead — it reads the clipboard as text. See
+> `01_chart_of_accounts/README.md` for the recommended workflow.
+> The same trap applies to every other MYOB Business list screen
+> (Customers, Suppliers, Items).
+
 ## Subfolders
 
 | Folder | What goes in here | Suggested file |

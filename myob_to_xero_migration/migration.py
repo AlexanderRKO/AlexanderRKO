@@ -6,6 +6,9 @@ Commands:
     init                 fill engagement parameters in INDEX.md and PLAN.md
     validate <csv> <tmpl>  wrap templates/scripts/validate_xero_csv.py
     check                wrap templates/scripts/post_upload_acceptance_check.py
+    report               one-page PDF status report
+    guide                downloadable visual Getting-Started PDF
+    site                 build static HTML status page for GitHub Pages
 
 Run from the toolkit root:
 
@@ -319,6 +322,25 @@ def cmd_guide(args: argparse.Namespace) -> int:
 
 
 # --------------------------------------------------------------------------- #
+# site — static HTML status page (for GitHub Pages / any web host)            #
+# --------------------------------------------------------------------------- #
+
+
+def cmd_site(args: argparse.Namespace) -> int:
+    cmd = [
+        sys.executable,
+        str(SCRIPTS / "build_site.py"),
+        "--root",
+        str(ROOT),
+        "--out",
+        str(args.out),
+    ]
+    if args.include_pdfs:
+        cmd.append("--include-pdfs")
+    return subprocess.call(cmd)
+
+
+# --------------------------------------------------------------------------- #
 # report — one-page PDF status                                                #
 # --------------------------------------------------------------------------- #
 
@@ -569,6 +591,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="output PDF path (default: getting_started_visual.pdf in toolkit root)",
     )
     gui.set_defaults(func=cmd_guide)
+
+    site = sub.add_parser(
+        "site",
+        help="build a static HTML status page for GitHub Pages / any web host",
+    )
+    site.add_argument(
+        "--out",
+        "-o",
+        type=Path,
+        default=ROOT / "_site",
+        help="output directory (default: <toolkit>/_site)",
+    )
+    site.add_argument(
+        "--include-pdfs",
+        action="store_true",
+        help="also copy the deliverable PDFs into <out>/pdfs/",
+    )
+    site.set_defaults(func=cmd_site)
 
     return p
 

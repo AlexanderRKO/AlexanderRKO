@@ -1,0 +1,73 @@
+name: Publish status site
+
+# Builds the static HTML status page (and the four deliverable PDFs) from
+# the MYOB → Xero migration toolkit and publishes the result to GitHub
+# Pages. Triggered on every push to main that touches the toolkit, plus
+# manually via workflow_dispatch.
+#
+# To enable: in the repo's Settings → Pages, set "Source" to
+# "GitHub Actions". The first successful run will give you the URL
+# (typically https://<owner>.github.io/<repo>/).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "myob_to_xero_migration/**"
+      - ".github/workflows/publish-site.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: myob_to_xero_migration
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps for PDF generation
+        run: pip install --quiet reportlab
+
+      # Generate the PDFs the site links to. If `init` hasn't been run
+      # the PDFs will contain placeholder values — the page itself shows
+      # a "template state" banner in that case, so the build still
+      # produces a useful artefact.
+      - name: Build deliverable PDFs
+        run: |
+          python migration.py report || true
+          python migration.py guide || true
+
+      - name: Build static site
+        run: python migration.py site --out _site --include-pdfs
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: myob_to_xero_migration/_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

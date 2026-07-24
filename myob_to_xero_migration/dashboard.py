@@ -20,6 +20,7 @@ import io
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, date
 from pathlib import Path
 
@@ -34,11 +35,18 @@ from migration import (  # type: ignore[import-not-found]
     STATUS_SYMBOLS,
     parse_index,
 )
+from _paste_parser import parse_pasted_table, to_csv_bytes
 
 
 # --------------------------------------------------------------------------- #
 # Page config                                                                 #
 # --------------------------------------------------------------------------- #
+
+# Cross-platform scratch dir. Resolves to /tmp on Linux/macOS, %TEMP% (e.g.
+# C:\Users\<u>\AppData\Local\Temp) on Windows. Hard-coding "/tmp" broke the
+# dashboard on Windows — PDF generation and the preflight validators both
+# write here.
+TMPDIR = Path(tempfile.gettempdir())
 
 st.set_page_config(
     page_title="MYOB → Xero migration",
@@ -278,6 +286,7 @@ with st.sidebar:
             "Stage 02 — Cleansed",
             "Stage 03 — Reports",
             "Stage 04 — Verification",
+            "Paste from MYOB Business",
             "Exceptions",
             "Action Checklist",
             "Downloads",
@@ -531,7 +540,7 @@ def page_stage(stage_num: str, title: str) -> None:
         )
         if cleansed and st.button("Run validator", key="val_run"):
             with st.spinner("Running preflight validation..."):
-                tmp = Path("/tmp") / f"_validate_{cleansed.name}"
+                tmp = TMPDIR / f"_validate_{cleansed.name}"
                 tmp.write_bytes(cleansed.getbuffer())
                 tmpl_path = ROOT / "templates" / "xero_csv_templates" / tmpl_name
                 result = subprocess.run(
@@ -565,8 +574,8 @@ def page_stage(stage_num: str, title: str) -> None:
         tolerance = c3.text_input("Tolerance ($)", value="1.00", key="gate_tol")
         if myob_csv and xero_csv and st.button("Run acceptance gate", key="gate_run"):
             with st.spinner("Diffing trial balances..."):
-                m_tmp = Path("/tmp") / "_gate_myob.csv"
-                x_tmp = Path("/tmp") / "_gate_xero.csv"
+                m_tmp = TMPDIR / "_gate_myob.csv"
+                x_tmp = TMPDIR / "_gate_xero.csv"
                 m_tmp.write_bytes(myob_csv.getbuffer())
                 x_tmp.write_bytes(xero_csv.getbuffer())
                 out_dir = (
@@ -689,8 +698,8 @@ def page_action_checklist() -> None:
 
 
 def _generate_pdf(subcommand: str, output_name: str) -> bytes | None:
-    """Run `python migration.py <subcommand> -o /tmp/<output_name>` and return bytes."""
-    out = Path("/tmp") / output_name
+    """Run `python migration.py <subcommand>` into the OS scratch dir, return bytes."""
+    out = TMPDIR / output_name
     result = subprocess.run(
         [sys.executable, str(ROOT / "migration.py"), subcommand, "-o", str(out)],
         capture_output=True,
@@ -767,6 +776,176 @@ def page_downloads() -> None:
 # --------------------------------------------------------------------------- #
 
 
+def page_paste_myob() -> None:
+    st.title("📋 Paste from MYOB Business")
+    st.caption(
+        "MYOB Business has no CSV export for chart of accounts, customers, "
+        "suppliers, or items — you copy from the screen and the clipboard "
+        "pastes one cell per line into Excel. Paste that mess here and we "
+        "reshape it into a clean table you can fix in-place, then save."
+    )
+
+    st.warning(
+        "**Paste directly into the box below — do not paste into Excel first.** "
+        "Excel auto-converts MYOB codes like `1-9000` into dates "
+        "(`1950-01-01`), silently corrupting your chart of accounts. "
+        "This dashboard reads the clipboard as text and preserves the "
+        "original codes."
+    )
+
+    with st.expander("How to copy from MYOB Business", expanded=False):
+        st.markdown(
+            "1. Open the screen you want (e.g. **Accounting ▸ Chart of accounts**).\n"
+            "2. Click into the table, press **Ctrl+A** then **Ctrl+C** "
+            "(macOS: **⌘+A** / **⌘+C**).\n"
+            "3. Paste **directly into the box below** — not into Excel.\n"
+            "4. The parser auto-detects the layout:\n"
+            "   - the MYOB Business 'Select row N' format (chart of accounts, "
+            "contacts, items — every list screen),\n"
+            "   - tab-separated rows,\n"
+            "   - multi-space-separated rows,\n"
+            "   - or generic single-column reshape from account-code pattern.\n"
+            "5. Fix any misparsed cells in the editor that appears.\n"
+            "6. Save to a Stage 01 sub-folder.\n"
+            "\n"
+            "**If you've already pasted into Excel** and want to recover what "
+            "you can: copy column A from Excel and paste it here. The parser "
+            "will still align the columns correctly and flag every code "
+            "Excel turned into a date so you can fix them manually."
+        )
+
+    if "paste_text" not in st.session_state:
+        st.session_state["paste_text"] = ""
+    if "paste_df" not in st.session_state:
+        st.session_state["paste_df"] = None
+
+    text = st.text_area(
+        "Paste here",
+        value=st.session_state["paste_text"],
+        height=240,
+        placeholder="Paste the copied table here — header row + data, "
+        "or one cell per line if you copied from MYOB Business.",
+        key="paste_input",
+    )
+
+    c1, c2 = st.columns([1, 5])
+    if c1.button("Parse", type="primary"):
+        st.session_state["paste_text"] = text
+        df, meta = parse_pasted_table(text)
+        st.session_state["paste_df"] = df
+        st.session_state["paste_meta"] = meta
+
+    if c2.button("Clear"):
+        st.session_state["paste_text"] = ""
+        st.session_state["paste_df"] = None
+        st.session_state.pop("paste_meta", None)
+        st.rerun()
+
+    df = st.session_state.get("paste_df")
+    if df is None or df.empty:
+        if df is not None and df.empty and st.session_state.get("paste_meta"):
+            st.warning(
+                "Could not detect a tabular structure. Try copying again "
+                "with all rows selected, or paste a header row above the "
+                "data."
+            )
+        return
+
+    meta = st.session_state.get("paste_meta", {})
+    strat = meta.get("strategy", "?")
+    stride = meta.get("stride")
+    label = {
+        "tab": "tab-separated",
+        "pipe": "pipe-separated",
+        "multispace": "multi-space-separated",
+        "single_column_reshape": f"single-column → reshaped to {stride} columns",
+        "myob_business": "MYOB Business 'Select row N' format",
+    }.get(strat, strat)
+    dropped = meta.get("dropped", 0)
+    note = f"Detected layout: **{label}** · {len(df)} row(s) parsed"
+    if dropped:
+        note += f" · {dropped} group-heading row(s) dropped"
+    st.info(note)
+
+    corrupted = meta.get("date_corrupted_codes", 0)
+    if corrupted:
+        st.error(
+            f"⚠ Excel date-corruption detected: **{corrupted}** account code(s) "
+            "look like dates (e.g. `1950-01-01`). This happens when "
+            "MYOB codes like `1-9000` are pasted through Excel — Excel "
+            "interprets them as January 9000 and rewrites them as date "
+            "serials. Fix these in the **Code** column below before "
+            "saving, or re-copy from MYOB Business and paste directly here."
+        )
+
+    st.subheader("Review & fix")
+    st.caption(
+        "Edit any cell directly. Click a column header to rename it — "
+        "Xero is picky about column names later, so set them now."
+    )
+    edited = st.data_editor(
+        df,
+        width="stretch",
+        num_rows="dynamic",
+        key="paste_editor",
+    )
+
+    st.subheader("Save")
+    save_choice = st.radio(
+        "Where should this go?",
+        options=[
+            "Download CSV (don't save to the project)",
+            "Save into a Stage 01 sub-folder",
+        ],
+        horizontal=False,
+        key="paste_save_choice",
+    )
+
+    if save_choice.startswith("Download"):
+        filename = st.text_input(
+            "File name", value="chart_of_accounts_pasted.csv", key="paste_dl_name"
+        )
+        st.download_button(
+            "⬇ Download CSV",
+            data=to_csv_bytes(edited),
+            file_name=filename or "pasted.csv",
+            mime="text/csv",
+        )
+    else:
+        stage_dir = ROOT / "01_exports_from_myob"
+        subfolders = sorted(
+            p.name for p in stage_dir.iterdir() if p.is_dir() and not p.name.startswith(".")
+        )
+        default_idx = (
+            subfolders.index("01_chart_of_accounts")
+            if "01_chart_of_accounts" in subfolders
+            else 0
+        )
+        sub = st.selectbox(
+            "Sub-folder", options=subfolders, index=default_idx, key="paste_subdir"
+        )
+        default_name = (
+            "chart_of_accounts_pasted.csv"
+            if sub == "01_chart_of_accounts"
+            else f"{sub}_pasted.csv"
+        )
+        filename = st.text_input(
+            "File name", value=default_name, key="paste_save_name"
+        )
+        if st.button("💾 Save to project", type="primary", key="paste_save_btn"):
+            target = safe_subpath(stage_dir, sub, filename or "pasted.csv")
+            if target is None:
+                st.error(f"Refused unsafe path: {filename}")
+            else:
+                target.write_bytes(to_csv_bytes(edited))
+                rel = target.relative_to(ROOT)
+                st.success(f"Saved → `{rel}`")
+                st.caption(
+                    "Don't forget to tick the corresponding row on the "
+                    "**Stage 01 — Exports** page."
+                )
+
+
 def page_about() -> None:
     st.title("About this workspace")
     st.markdown(
@@ -807,6 +986,7 @@ PAGES = {
     "Stage 02 — Cleansed": lambda: page_stage("02", "Cleansed for Xero"),
     "Stage 03 — Reports": lambda: page_stage("03", "Finalized reports"),
     "Stage 04 — Verification": lambda: page_stage("04", "Xero post-upload checks"),
+    "Paste from MYOB Business": page_paste_myob,
     "Exceptions": page_exceptions,
     "Action Checklist": page_action_checklist,
     "Downloads": page_downloads,
