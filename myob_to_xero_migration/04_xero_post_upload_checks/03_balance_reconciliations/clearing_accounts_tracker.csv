@@ -1,0 +1,7 @@
+account_code,account_name,purpose,opening_balance,target_balance,current_balance,clearing_journal_ref,status,owner,due_date,notes
+,Suspense (default),Holds txns with uncertain mapping; must be zero before sign-off,,0.00,,,⬜,,,
+,Payroll clearing,Holds deduction/reimbursement pay items linked to bank/asset in MYOB,,0.00,,,⬜,,,
+,GST clearing,Carries GST timing differences across the conversion date,,0.00,,,⬜,,,
+,Electronic clearing,Bank EFT in-transit at conversion date,,0.00,,,⬜,,,
+,Undeposited funds,Customer receipts not yet banked at conversion date,,0.00,,,⬜,,,
+,Inter-entity clearing,Cross-entity balances pending elimination,,0.00,,,⬜,,,

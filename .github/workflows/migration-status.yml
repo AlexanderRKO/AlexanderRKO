@@ -1,0 +1,64 @@
+name: Migration status
+
+# Runs the MYOB → Xero migration toolkit's status command on every push and
+# publishes the dashboard output to the workflow summary plus a downloadable
+# PDF artefact. The toolkit's core status command has no external deps; the
+# PDF step installs reportlab into a per-run venv.
+
+on:
+  push:
+    paths:
+      - "myob_to_xero_migration/**"
+      - ".github/workflows/migration-status.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: myob_to_xero_migration
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run status (text)
+        id: status
+        run: |
+          python migration.py status | tee status.txt
+
+      - name: Publish status to workflow summary
+        if: always()
+        run: |
+          {
+            echo "# MYOB → Xero migration status"
+            echo
+            echo "_Generated on push to \`${GITHUB_REF_NAME}\` at \`${GITHUB_SHA::8}\`._"
+            echo
+            echo '```'
+            cat status.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install reportlab for PDF report
+        run: pip install --no-cache-dir reportlab>=4.0
+
+      - name: Generate PDF status report
+        run: python migration.py report --output status_report.pdf
+
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-status-${{ github.run_number }}
+          path: |
+            myob_to_xero_migration/status.txt
+            myob_to_xero_migration/status_report.pdf
+          retention-days: 30

@@ -1,0 +1,2 @@
+period,p_and_l_net_profit,opening_retained_earnings,closing_retained_earnings,equity_movement,variance,status,notes
+,,,,,,⬜,P&L Net Profit should equal closing-opening retained earnings within tolerance

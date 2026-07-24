@@ -1,0 +1,69 @@
+# Real client data must NEVER be committed to this repo.
+# Only the folder structure, READMEs, and templates are version-controlled.
+# See PRIVACY.md for the full rationale.
+
+# --- Launcher-created environment & generated artefacts ---
+.venv/
+__pycache__/
+*.pyc
+status_report.pdf
+getting_started_visual.pdf
+status.txt
+
+# --- Payroll & employee data (highest sensitivity, TFN Rule applies) ---
+01_exports_from_myob/04_employees/*
+01_exports_from_myob/12_payroll_history/*
+02_cleansed_for_xero/03_employees/*
+02_cleansed_for_xero/12_payroll_opening_balances/*
+
+# --- All other raw exports and cleansed outputs ---
+01_exports_from_myob/00_company_file_info/*
+01_exports_from_myob/01_chart_of_accounts/*
+01_exports_from_myob/02_contacts_customers/*
+01_exports_from_myob/03_contacts_suppliers/*
+01_exports_from_myob/05_inventory_items/*
+01_exports_from_myob/06_open_invoices_AR/*
+01_exports_from_myob/07_open_bills_AP/*
+01_exports_from_myob/08_bank_accounts_statements/*
+01_exports_from_myob/09_general_ledger/*
+01_exports_from_myob/10_trial_balance/*
+01_exports_from_myob/11_tax_GST_BAS/*
+01_exports_from_myob/13_fixed_assets/*
+01_exports_from_myob/14_jobs_tracking/*
+01_exports_from_myob/15_recurring_transactions/*
+01_exports_from_myob/16_attachments_documents/*
+
+02_cleansed_for_xero/01_chart_of_accounts/*
+02_cleansed_for_xero/02_contacts/*
+02_cleansed_for_xero/04_inventory_items/*
+02_cleansed_for_xero/05_conversion_balances/*
+02_cleansed_for_xero/06_open_invoices_AR/*
+02_cleansed_for_xero/07_open_bills_AP/*
+02_cleansed_for_xero/08_bank_statements/*
+02_cleansed_for_xero/09_manual_journals/*
+02_cleansed_for_xero/10_tracking_categories/*
+02_cleansed_for_xero/11_fixed_assets_register/*
+02_cleansed_for_xero/_validation_logs/*
+
+03_finalized_reports/01_pre_conversion_snapshots/*
+03_finalized_reports/02_reconciliation_reports/*
+03_finalized_reports/03_trial_balance_comparisons/*
+03_finalized_reports/04_conversion_date_balance_sheet/*
+03_finalized_reports/05_sign_off_documents/*
+
+04_xero_post_upload_checks/02_contact_verifications/*
+04_xero_post_upload_checks/03_balance_reconciliations/*
+04_xero_post_upload_checks/04_transaction_spot_checks/*
+04_xero_post_upload_checks/06_final_sign_off/*
+
+# --- Always keep scaffolding ---
+# Re-include nested scaffolding dirs first so their contents become reachable.
+!02_cleansed_for_xero/05_conversion_balances/monthly_comparatives/
+!**/.gitkeep
+!**/README.md
+!02_cleansed_for_xero/01_chart_of_accounts/coa_mapping_template.csv
+!04_xero_post_upload_checks/01_account_by_account_checklists/trial_balance_diff.csv
+!04_xero_post_upload_checks/03_balance_reconciliations/clearing_accounts_tracker.csv
+!04_xero_post_upload_checks/03_balance_reconciliations/equity_vs_net_profit_check.csv
+!04_xero_post_upload_checks/05_exception_log/exceptions.csv
+!04_xero_post_upload_checks/06_final_sign_off/action_checklist_template.md
