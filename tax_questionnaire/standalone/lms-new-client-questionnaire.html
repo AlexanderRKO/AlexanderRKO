@@ -1,0 +1,1514 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#002555" />
+  <title>LMS Advisory — New Client Tax Questionnaire</title>
+  <style>
+:root {
+  /* LMS Advisory official brand palette
+     Dark Navy  PMS 7463  (CMYK 100/62/12/62)
+     Orange     PMS 144c  (CMYK 0/50/100/0)
+     Grey       PMS 432   (CMYK 0/0/0/80) */
+  --navy: #002555;          /* primary brand — buttons, selected states, headings */
+  --navy-deep: #001a3d;     /* hover / pressed */
+  --navy-soft: #e4ebf3;     /* selected backgrounds, soft fills */
+  --orange: #ed8b00;        /* accent — progress, required marks, highlights */
+  --orange-deep: #c77600;
+  --orange-soft: #fdf1db;
+  --grey: #333f48;          /* PMS 432 — strong secondary */
+
+  --bg: #f5f6f9;
+  --surface: #ffffff;
+  --ink: #1f2a38;           /* body text */
+  --muted: #5b6573;
+  --line: #dde1ea;
+  --accent: var(--navy);    /* engine uses --accent for primary actions */
+  --accent-ink: var(--navy-deep);
+  --accent-soft: var(--navy-soft);
+  --done: #16a34a;
+  --warn: var(--orange);
+  --error: #dc2626;
+  --error-soft: #fef2f2;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 30px rgba(21, 41, 78, 0.08);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  /* LMS primary typeface: Georgia (web-safe serif, no external dependency) */
+  font: 16px/1.6 Georgia, "Times New Roman", "Liberation Serif", serif;
+  color: var(--ink);
+  background: var(--bg);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app { max-width: 680px; margin: 0 auto; padding: 24px 16px 64px; }
+
+/* Header & progress */
+header.top { padding: 4px 4px 18px; }
+.brand { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+/* LMS logo mark: navy tile with an orange vertical bar, echoing the logo */
+.logo-mark {
+  display: inline-flex; align-items: center;
+  background: var(--navy); color: #fff;
+  border-radius: 8px; padding: 9px 14px 9px 11px; gap: 10px;
+  box-shadow: 0 2px 8px rgba(21, 41, 78, 0.25);
+}
+.logo-mark::before {
+  content: ""; width: 4px; align-self: stretch; min-height: 22px;
+  background: var(--orange); border-radius: 2px;
+}
+.logo-mark .lm-l { font-weight: 800; letter-spacing: 0.12em; font-size: 19px; line-height: 1; }
+.logo-mark .lm-s { font-size: 9.5px; letter-spacing: 0.34em; opacity: 0.85; margin-top: 3px; }
+.logo-mark .lm-stack { display: flex; flex-direction: column; }
+
+.brand .titles h1 { margin: 0; font-size: 17px; font-weight: 700; color: var(--navy); letter-spacing: -0.01em; }
+.brand .titles .tag { color: var(--muted); font-size: 13px; }
+
+.progress { margin-top: 18px; }
+.progress-track {
+  height: 8px; background: var(--line); border-radius: 999px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--orange), var(--orange-deep));
+  border-radius: 999px; transition: width 0.35s ease;
+}
+.progress-label { margin-top: 8px; font-size: 13px; color: var(--muted); font-weight: 500; }
+
+/* Card */
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 24px; margin-top: 16px;
+}
+/* Honeypot — pushed off-screen, never shown to real users */
+.hp-field { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+/* Consent row on the review step */
+.consent-row { margin: 18px 0 4px; }
+.consent-row .opt { align-items: flex-start; }
+.consent-row a { color: var(--navy); font-weight: 700; }
+.consent-row.invalid .opt { border-color: var(--error); }
+
+.intro-note {
+  margin: 0 0 18px; padding: 14px 16px; font-size: 14.5px; line-height: 1.55;
+  color: var(--navy); background: var(--navy-soft); border-radius: var(--radius-sm);
+  border-left: 4px solid var(--orange);
+}
+.step-head h2 { margin: 0 0 4px; font-size: 21px; letter-spacing: -0.01em; color: var(--navy); }
+.step-head p { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+
+/* Questions */
+.q { padding: 18px 0; border-top: 1px solid var(--line); }
+.q:first-of-type { border-top: 0; padding-top: 8px; }
+.q-label { display: block; font-weight: 600; margin-bottom: 4px; }
+.q-label .req { color: var(--orange); margin-left: 2px; font-weight: 700; }
+.q-help { color: var(--muted); font-size: 13.5px; margin: 0 0 12px; }
+
+input[type="text"], input[type="tel"], input[type="email"],
+input[type="date"], select, textarea {
+  width: 100%; font: inherit; color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  padding: 11px 13px; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+textarea { resize: vertical; min-height: 92px; }
+.invalid input, .invalid select, .invalid textarea,
+.invalid .yesno, .invalid .bank, .invalid .opt-list {
+  border-color: var(--error);
+}
+.field-error { color: var(--error); font-size: 13px; margin-top: 6px; display: none; }
+.invalid .field-error { display: block; }
+
+/* Yes/No segmented control */
+.yesno { display: inline-flex; border: 1.5px solid var(--line); border-radius: 999px; overflow: hidden; }
+.yesno button {
+  appearance: none; border: 0; background: var(--surface); cursor: pointer;
+  font: inherit; font-weight: 600; padding: 9px 26px; color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+.yesno button + button { border-left: 1.5px solid var(--line); }
+.yesno button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+
+/* Checkbox / acknowledge list */
+.opt-list { display: flex; flex-direction: column; gap: 8px; }
+.opt {
+  display: flex; gap: 11px; align-items: flex-start;
+  border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  padding: 12px 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.opt:hover { border-color: var(--accent); }
+.opt.checked { border-color: var(--accent); background: var(--accent-soft); }
+.opt input { margin: 3px 0 0; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.opt span { font-size: 14.5px; }
+.ack span { font-size: 14px; color: var(--ink); }
+
+/* Bank group */
+.bank { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.bank .full { grid-column: 1 / -1; }
+.bank label { font-size: 12.5px; color: var(--muted); display: block; margin-bottom: 4px; font-weight: 600; }
+
+/* File input */
+.file-drop {
+  border: 1.5px dashed var(--line); border-radius: var(--radius-sm);
+  padding: 20px; text-align: center; color: var(--muted); cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.file-drop:hover { border-color: var(--accent); background: var(--accent-soft); }
+.file-drop input { display: none; }
+.file-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.file-chip {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13.5px;
+}
+.file-chip button { appearance: none; border: 0; background: none; color: var(--error); cursor: pointer; font-weight: 600; }
+
+/* Navigation */
+.nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; }
+.btn {
+  appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 600;
+  border-radius: var(--radius-sm); padding: 13px 24px; transition: background 0.15s, opacity 0.15s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-ink); }
+.btn-ghost { background: var(--surface); color: var(--ink); border: 1.5px solid var(--line); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.nav .spacer { flex: 1; }
+
+/* Review */
+.review-item { padding: 12px 0; border-top: 1px solid var(--line); }
+.review-item:first-child { border-top: 0; }
+.review-q { font-size: 13px; color: var(--muted); }
+.review-a { font-weight: 600; margin-top: 2px; white-space: pre-wrap; }
+.review-edit { float: right; font-size: 13px; color: var(--accent); background: none; border: 0; cursor: pointer; font-weight: 600; }
+
+/* Status / banners */
+.banner { border-radius: var(--radius-sm); padding: 12px 14px; font-size: 14px; margin-top: 16px; }
+.banner-error { background: var(--error-soft); color: var(--error); border: 1px solid #fecaca; }
+.banner-info { background: var(--accent-soft); color: var(--accent-ink); }
+
+/* Success screen */
+.success { text-align: center; padding: 16px 8px; }
+.success .check {
+  width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  display: grid; place-items: center; font-size: 32px;
+}
+.success h2 { margin: 0 0 8px; }
+.success p { color: var(--muted); margin: 0 auto; max-width: 42ch; }
+.ref { display: inline-block; margin-top: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 12px; }
+
+.footnote { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 20px; }
+.footnote.firm { margin-top: 6px; font-size: 11px; opacity: 0.85; }
+
+/* ---------------------------------------------------- Staff results view */
+.results-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.results-head .meta { color: var(--muted); font-size: 13px; }
+.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); font-weight: 700; margin: 22px 0 6px; }
+
+/* Xero quick-copy card */
+.xero-card { background: var(--navy-soft); border: 1px solid #c3d0e2; border-radius: var(--radius);
+  padding: 16px; margin-top: 8px; }
+.xero-card h3 { margin: 0 0 4px; font-size: 16px; color: var(--navy); }
+.xero-card .hint { margin: 0 0 12px; font-size: 13px; color: var(--navy); opacity: 0.85; }
+.copy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+
+/* A click-to-copy field */
+.cp {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; text-align: left; cursor: pointer; font: inherit;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  padding: 9px 12px; transition: border-color 0.15s, background 0.15s;
+}
+.cp:hover { border-color: var(--accent); }
+.cp.copied { border-color: var(--done); background: #f0fdf4; }
+.cp .cp-body { min-width: 0; }
+.cp .cp-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); font-weight: 700; }
+.cp .cp-val { font-size: 14.5px; font-weight: 600; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp .cp-val.empty { color: var(--muted); font-weight: 400; font-style: italic; }
+.cp .cp-icon { flex: none; color: var(--muted); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+.cp.copied .cp-icon { color: var(--done); }
+
+/* Full answer rows */
+.ans-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 11px 0; border-top: 1px solid var(--line); }
+.ans-row:first-child { border-top: 0; }
+.ans-row .ans-q { font-size: 13px; color: var(--muted); max-width: 60%; }
+.ans-row .ans-right { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ans-row .ans-v { font-weight: 600; white-space: pre-wrap; text-align: right; }
+.mini-copy { appearance: none; border: 1.5px solid var(--line); background: var(--surface);
+  border-radius: 8px; padding: 8px 14px; min-height: 38px; font: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--muted); cursor: pointer; flex: none; transition: all 0.15s; }
+.mini-copy:hover { border-color: var(--accent); color: var(--accent); }
+.mini-copy.copied { border-color: var(--done); color: var(--done); background: #f0fdf4; }
+
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px;
+  font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 50; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.paste-area textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; min-height: 120px; }
+
+.attachments a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.attachments a:hover { text-decoration: underline; }
+
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Printing the staff results view: drop interactive chrome, keep the content */
+@media print {
+  body { background: #fff; }
+  .toast, .mini-copy, .head-actions, .review-edit, .cp .cp-icon { display: none !important; }
+  .card { box-shadow: none; border-color: #ccc; break-inside: avoid; }
+  .cp { border-color: #ccc; }
+  .xero-card { background: #fff; border-color: #ccc; }
+}
+
+@media (max-width: 480px) {
+  .app { padding: 18px 12px 56px; }
+  .card { padding: 18px; }
+  .bank { grid-template-columns: 1fr; }
+  .yesno { display: flex; width: 100%; }
+  .yesno button { flex: 1; padding: 12px 0; }
+  /* Full-width, evenly split navigation buttons are easier to thumb-tap */
+  .nav .spacer { display: none; }
+  .nav .btn { flex: 1; }
+  .head-actions { width: 100%; }
+  .head-actions .btn { flex: 1; }
+  .results-head { gap: 10px; }
+}
+
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div class="brand">
+        <div class="logo-mark" aria-hidden="true">
+          <div class="lm-stack">
+            <span class="lm-l">LMS</span>
+            <span class="lm-s">ADVISORY</span>
+          </div>
+        </div>
+        <div class="titles">
+          <h1 id="brand-name">LMS Advisory</h1>
+          <span class="tag" id="brand-tag">New Client Questionnaire — Tax Preparation</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Honeypot: hidden from people, but bots tend to fill it. If it arrives
+         with a value, the submission is treated as spam. Do not remove. -->
+    <div class="hp-field" aria-hidden="true">
+      <label>Company website (leave this field blank)
+        <input type="text" id="hp_field" name="company_website" tabindex="-1" autocomplete="off" />
+      </label>
+    </div>
+
+    <div id="form-root" aria-live="polite"></div>
+
+    <p class="footnote">
+      Your answers are saved on this device as you go. Need a hand? Call our office on 02 9891 9333.
+    </p>
+    <p class="footnote firm">
+      LMS Advisory Pty Ltd — Certified Practising Accountants | Registered Tax Agent | ABN 65 302 567 149
+    </p>
+  </main>
+
+  <!-- Configuration & questions are kept separate so non-developers can edit them. -->
+  <script>
+/*
+ * LMS Advisory — Tax Questionnaire configuration
+ * ----------------------------------------------
+ * Edit these settings to point the form at your backend and brand it.
+ */
+
+const FORM_CONFIG = {
+  // Where submissions are POSTed (JSON). See server/submit-handler.js for a
+  // reference implementation that emails your team and updates Xero.
+  // Leave as "" to run in DEMO mode: the form validates and shows the payload
+  // on screen without sending anything anywhere.
+  submitEndpoint: "",
+
+  // Branding shown in the form header.
+  brandName: "LMS Advisory",
+  brandTagline: "New Client Questionnaire — Tax Preparation",
+
+  // Maximum total size of uploaded files (MB). Keep modest for email/JSON.
+  maxUploadMb: 15,
+
+  // Require a privacy/consent tick before the client can submit.
+  requireConsent: true,
+  privacyPolicyUrl: "https://www.lmsadvisory.com.au/privacy-policy/",
+
+  // Optional Cloudflare Turnstile (free, privacy-friendly CAPTCHA). Leave blank
+  // to rely on the built-in honeypot + timing trap only. If you paste a site key
+  // here, also add this once to index.html's <head>:
+  //   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer><\/script>
+  // and verify the token server-side (see server/submit-handler.js).
+  turnstileSiteKey: "",
+
+  // Key used to autosave progress in the browser (localStorage).
+  storageKey: "lms_tax_questionnaire_v1",
+};
+
+if (typeof module !== "undefined") module.exports = FORM_CONFIG;
+
+  </script>
+  <script>
+/*
+ * LMS Advisory — New Client Questionnaire (Tax Preparation)
+ * Mirrors the Paperform "NEW CLIENT QUESTIONNAIRE - TAX PREPARATION" (v2026.01.25).
+ * ----------------------------------------------------------------------------
+ * Non-developers can safely edit labels, help text, options and ordering here
+ * without touching the form engine (app.js).
+ *
+ * Question types:
+ *   text | tel | email | textarea | date | select | radio | yesno |
+ *   checkboxes | bank | file | acknowledge
+ *
+ * showIf conditions (a question only shows/required when matched):
+ *   { field: 'id', equals: 'Yes' }
+ *   { field: 'id', in: ['A','B'] }
+ *   { field: 'id', contains: 'Option text' }   // for checkboxes (array) fields
+ */
+
+const FORM_SCHEMA = {
+  title: "New Client Questionnaire — Tax Preparation",
+  version: "v2026.01.25",
+  intro:
+    "Welcome to LMS Advisory. Please complete the questions below so we can prepare " +
+    "your income tax return. Your progress is saved automatically on this device — " +
+    "you can return and finish later.",
+
+  steps: [
+    {
+      id: "about_you",
+      title: "About you",
+      subtitle: "So we know who we're acting for and can meet our verification obligations.",
+      questions: [
+        {
+          id: "full_name",
+          type: "text",
+          label: "What is your full name including any middle names?",
+          help:
+            "Please ensure this matches your drivers licence or passport. We will need to " +
+            "contact you to verify these details as per our AML/CTF obligations.",
+          required: true,
+          autocomplete: "name",
+          placeholder: "e.g. Owen James Smith",
+        },
+        {
+          id: "date_of_birth",
+          type: "date",
+          label: "What is your Date of Birth?",
+          required: true,
+          autocomplete: "bday",
+        },
+        {
+          id: "residential_address",
+          type: "textarea",
+          label: "Please confirm your current residential address to include in the return.",
+          help: "We will also treat this as your postal address.",
+          required: true,
+          autocomplete: "street-address",
+          placeholder: "Unit / Street / Suburb / State / Postcode",
+        },
+        {
+          id: "mobile",
+          type: "tel",
+          label:
+            "Confirm Mobile Phone number to access secure documents and complete " +
+            "electronic signature verification?",
+          help:
+            "We use Fusesign for digital signatures. The added layer of SMS authentication " +
+            "ensures that your Tax File Number will always be secure to you. Every individual " +
+            "return lodged needs its own unique email address and unique mobile phone number.",
+          required: true,
+          validate: "mobile",
+          autocomplete: "tel-national",
+          placeholder: "04xx xxx xxx",
+        },
+        {
+          id: "occupation",
+          type: "text",
+          label: "What would you describe as your Primary Occupation?",
+          help:
+            "It is important we select the right occupation code in your return, as the ATO " +
+            "will benchmark the usual deductions claimed in different industries against your peers.",
+          required: true,
+          autocomplete: "organization-title",
+          placeholder: "e.g. Landscaper",
+        },
+        {
+          id: "signing_email",
+          type: "email",
+          label: "Preferred email address for electronic signing of documents?",
+          help:
+            "Every return lodged for each taxpayer needs its own unique email address and " +
+            "mobile phone number.",
+          required: true,
+          validate: "email",
+          autocomplete: "email",
+          placeholder: "name@example.com",
+        },
+      ],
+    },
+
+    {
+      id: "year_refund",
+      title: "Tax year & refund",
+      subtitle: "The year(s) we're lodging and where any refund should go.",
+      questions: [
+        {
+          id: "tax_year",
+          type: "checkboxes",
+          label: "What Tax Year are we completing for you?",
+          help: "Select all that apply.",
+          required: true,
+          options: ["2026", "2025", "2024", "2023", "2022", "Multiple Years", "Other"],
+        },
+        {
+          id: "tax_year_other",
+          type: "text",
+          label: "Which other year(s) should we complete?",
+          required: false,
+          showIf: { field: "tax_year", contains: "Other" },
+        },
+        {
+          // Free-text in the original form. Captured as structured fields here so
+          // staff can copy Account name / BSB / Account number straight into Xero.
+          id: "bank",
+          type: "bank",
+          label:
+            "What is your preferred Bank Account for your refund? Please provide even if you " +
+            "anticipate your return being payable this year.",
+          help: "Please provide Account Name, BSB and Account Number.",
+          required: true,
+        },
+        {
+          id: "use_trust_account",
+          type: "yesno",
+          label:
+            "If your return is refundable, do you intend to use the LMS Trust Account service " +
+            "to pay your tax return fee from your refund?",
+          help:
+            "Our fees will be quoted in advance wherever possible. If your return is refundable " +
+            "and you wish to use the Trust Account Service, the ATO will pay your refund into our " +
+            "Trust Account first. Your agreed fee is then transferred to LMS and the balance " +
+            "returned to you. This may delay receipt of your refund by up to 1 week. There is no " +
+            "charge for using the Trust Account service. We will send you a Trust Authority " +
+            "document to complete with your tax paperwork.",
+          required: true,
+        },
+      ],
+    },
+
+    {
+      id: "getting_started",
+      title: "Getting started",
+      subtitle: "A couple of quick questions before we dig in.",
+      questions: [
+        {
+          id: "received_checklist",
+          type: "yesno",
+          label:
+            "Have you received a copy of our Tax Checklist for completion to assist you in " +
+            "providing us with the documents we'll need to complete your return?",
+          help:
+            "Copies can also be downloaded from the LMS website: " +
+            "https://www.lmsadvisory.com.au/knowledge/taxpreparation/",
+          required: false,
+        },
+        {
+          id: "consultation",
+          type: "radio",
+          label:
+            "Do you require a consultation with an accountant in relation to your tax affairs?",
+          help:
+            "In-person appointments are not necessary to progress tax return preparation. If you " +
+            "are looking to book an in-person advice consultation with one of our accountants, you " +
+            "can schedule once your returns are complete. Appointments outside of office hours and " +
+            "on Saturdays are available by Zoom only. Please note additional fees may apply for " +
+            "consultations.",
+          required: true,
+          options: ["Yes", "No", "Unsure, I'd like a phone call to discuss"],
+        },
+      ],
+    },
+
+    {
+      id: "about_return",
+      title: "About your return",
+      subtitle: "This helps us tailor our advice to your circumstances.",
+      questions: [
+        {
+          id: "significant_items",
+          type: "checkboxes",
+          label: "Do any of these significant items apply to you?",
+          help: "Multiple answers could apply — this will help guide us in advising you on your tax affairs.",
+          required: true,
+          options: [
+            "I am a sole trader",
+            "Bought/Sold a Significant Asset required a Capital Gains Tax calculation (investment property/shares)",
+            "Own 1 or more investment properties",
+            "Got Married in the financial year",
+            "Separated from your spouse in the financial year",
+            "Welcomed a new child into the world",
+            "Moved House (changed my main residence)",
+            "Started a new job / Retired",
+            "Started my own business",
+            "Commenced new studies / Finalised my studies",
+            "Paid out my HECS Debt",
+            "Refinanced a home loan or investment loan",
+            "Invest or Trade in Crypto",
+            "Make additional contributions to super",
+            "Unsure",
+            "Other",
+          ],
+        },
+        // --- Conditional follow-ups driven by the significant items above ---
+        {
+          id: "sole_trader_abn",
+          type: "text",
+          label: "As a sole trader, what is your ABN?",
+          required: false,
+          validate: "abn",
+          placeholder: "11 digits",
+          showIf: { field: "significant_items", contains: "I am a sole trader" },
+        },
+        {
+          id: "rental_summary_ready",
+          type: "yesno",
+          label:
+            "Do you have your agent's Annual Rental Summary, loan statements and out-of-pocket " +
+            "expenses ready to provide?",
+          help: "Our checklist has a detailed rental schedule you can complete.",
+          required: false,
+          showIf: { field: "significant_items", contains: "Own 1 or more investment properties" },
+        },
+        {
+          id: "crypto_detail",
+          type: "textarea",
+          label: "Tell us briefly about your crypto activity.",
+          help: "Which exchanges you used and roughly how many transactions — we'll follow up for detail.",
+          required: false,
+          showIf: { field: "significant_items", contains: "Invest or Trade in Crypto" },
+        },
+        {
+          id: "significant_items_other",
+          type: "text",
+          label: "Please tell us about the other significant item.",
+          required: false,
+          showIf: { field: "significant_items", contains: "Other" },
+        },
+        {
+          id: "questions_for_us",
+          type: "textarea",
+          label:
+            "Do you have any questions in particular related to this year's return or your tax " +
+            "affairs in general?",
+          help:
+            "Please list your questions separated by a comma, e.g. (1. Can I claim this? 2. What " +
+            "are the 2 alternate work-from-home claim methods?). It's OK if you have no questions!",
+          required: false,
+        },
+      ],
+    },
+
+    {
+      id: "documents_services",
+      title: "Documents & services",
+      subtitle: "Share anything useful and tell us where else we can help.",
+      questions: [
+        {
+          id: "documents",
+          type: "file",
+          label: "Would you like to upload any documents linked to the questions above for us to consider?",
+          help:
+            "You are welcome to upload any documentation referred to in the checklist. We'd also " +
+            "love a copy of last year's tax return lodged.",
+          required: false,
+        },
+        {
+          id: "last_year_return",
+          type: "yesno",
+          label: "Do you have a copy of last year's tax return on hand in case we need it?",
+          help:
+            "Providing last year's return helps us ensure we address all applicable aspects of " +
+            "your return. Email us or upload it using the link above.",
+          required: true,
+        },
+        {
+          id: "other_services",
+          type: "checkboxes",
+          label: "Are you interested in any of the other services LMS can provide?",
+          help:
+            "If you do not require any additional services, please select 'No Thanks'. You may " +
+            "select as many services as you need — we'll be in touch!",
+          required: true,
+          options: [
+            "No Thanks",
+            "Financial Planning",
+            "Budgeting / Cashflow Forecasting",
+            "Asset purchase structuring and entity formations",
+            "Referral to Mortgage Brokers in our network",
+            "Referral to Solicitors",
+            "Bookkeeping Services",
+            "Self Managed Superannuation Creation and Advice",
+            "Wealth Creation Strategies",
+            "Property Portfolio Review and Growth Strategies",
+            "Starting a new business or side hustle",
+            "Other",
+          ],
+        },
+        {
+          id: "other_services_other",
+          type: "text",
+          label: "Which other service are you interested in?",
+          required: false,
+          showIf: { field: "other_services", contains: "Other" },
+        },
+      ],
+    },
+
+    {
+      id: "last_things",
+      title: "A few last things",
+      subtitle: "Almost done.",
+      questions: [
+        {
+          id: "how_heard",
+          type: "radio",
+          label: "How did you hear about us?",
+          help: "If you were referred to LMS, we would love to thank the person who passed on our details.",
+          required: true,
+          options: [
+            "Referral",
+            "LMS Website",
+            "LinkedIn",
+            "Facebook",
+            "Instagram",
+            "Saw us in a magazine or online publication",
+            "Other",
+          ],
+        },
+        {
+          id: "referrer_name",
+          type: "text",
+          label: "Who can we thank for referring you?",
+          required: false,
+          showIf: { field: "how_heard", equals: "Referral" },
+        },
+        {
+          id: "how_heard_other",
+          type: "text",
+          label: "Please tell us how you heard about us.",
+          required: false,
+          showIf: { field: "how_heard", equals: "Other" },
+        },
+        {
+          id: "google_review",
+          type: "yesno",
+          label:
+            "If we provide you an outstanding service, would you be willing to leave us a Google review?",
+          help:
+            "Our business grows when our valued customers share their positive experience with us. " +
+            "We look forward to working with you!",
+          required: false,
+        },
+        {
+          id: "other_entities",
+          type: "yesno",
+          label: "Do you have any other entities that you would like us to look after?",
+          help:
+            "You may have associated companies, trusts or an SMSF. We have expertise in all of the " +
+            "above and would love to help.",
+          required: true,
+        },
+        {
+          id: "other_entities_detail",
+          type: "textarea",
+          label: "Tell us about the entities you'd like us to look after.",
+          required: false,
+          showIf: { field: "other_entities", equals: "Yes" },
+        },
+      ],
+    },
+
+    // ---------------------------------------------------------------------
+    // ACKNOWLEDGEMENTS — the client must confirm each of these to submit.
+    // (Confirmed for use on the New Client form.)
+    // ---------------------------------------------------------------------
+    {
+      id: "acknowledgements",
+      title: "Acknowledgements",
+      subtitle: "Please read and confirm each of the following to continue.",
+      questions: [
+        {
+          id: "ack_tax_ready",
+          type: "acknowledge",
+          required: true,
+          label:
+            "I understand that LMS cannot commence working on my return until my Income Tax " +
+            "Finalisation for the year is noted as 'Tax Ready' in myGov or on the ATO Prefill report.",
+        },
+        {
+          id: "ack_info_received",
+          type: "acknowledge",
+          required: true,
+          label:
+            "I understand that LMS will start working on my return when all of the information " +
+            "requested from me has been received.",
+        },
+        {
+          id: "ack_source_documents",
+          type: "acknowledge",
+          required: true,
+          label:
+            "Where source documents have not been provided (for example, items listed on a " +
+            "spreadsheet without a receipt), I confirm the source documents are in my possession " +
+            "and can be provided on request by LMS Advisory Pty Limited, the Australian Taxation " +
+            "Office, or any other party with authority to request them.",
+        },
+        {
+          id: "ack_withhold_lodgement",
+          type: "acknowledge",
+          required: true,
+          label:
+            "I understand LMS Advisory reserves the right to withhold lodgement of my return until " +
+            "any outstanding invoice(s) for the preparation of that return have been paid.",
+        },
+      ],
+    },
+  ],
+};
+
+if (typeof module !== "undefined") module.exports = FORM_SCHEMA;
+
+  </script>
+  <script>
+/*
+ * LMS Advisory — Tax Questionnaire form engine
+ * Schema-driven, dependency-free. Renders FORM_SCHEMA using FORM_CONFIG.
+ */
+(function () {
+  "use strict";
+
+  const schema = FORM_SCHEMA;
+  const cfg = FORM_CONFIG;
+  const root = document.getElementById("form-root");
+
+  const REVIEW = schema.steps.length; // virtual step index for the review page
+
+  const state = {
+    stepIndex: 0,
+    answers: {}, // id -> value
+    files: [], // {name, size, type, data} for the 'documents' question
+    submitting: false,
+    startTime: Date.now(), // for the timing-based spam trap
+    consent: false,
+  };
+
+  /* ---------------------------------------------------------------- utils */
+  const flatQuestions = schema.steps.flatMap((s) => s.questions);
+  const byId = (id) => flatQuestions.find((q) => q.id === id);
+
+  function isActive(q) {
+    if (!q.showIf) return true;
+    const v = state.answers[q.showIf.field];
+    if ("equals" in q.showIf) return v === q.showIf.equals;
+    if ("in" in q.showIf) return q.showIf.in.includes(v);
+    if ("contains" in q.showIf) return Array.isArray(v) && v.includes(q.showIf.contains);
+    return true;
+  }
+
+  function activeQuestions(step) {
+    return step.questions.filter(isActive);
+  }
+
+  function normalizeMobile(v) {
+    let d = String(v || "").replace(/\D/g, "");
+    if (d.startsWith("61") && d.length === 11) d = "0" + d.slice(2);
+    return d;
+  }
+
+  const validators = {
+    mobile: (v) => /^04\d{8}$/.test(normalizeMobile(v)),
+    bsb: (v) => /^\d{6}$/.test(String(v || "").replace(/\D/g, "")),
+    account: (v) => /^\d{5,12}$/.test(String(v || "").replace(/\D/g, "")),
+    abn: (v) => /^\d{11}$/.test(String(v || "").replace(/\D/g, "")),
+    email: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim()),
+  };
+
+  function isAnswered(q) {
+    const v = state.answers[q.id];
+    if (q.type === "bank") {
+      return v && v.bsb && v.account_number && v.account_name;
+    }
+    if (q.type === "checkboxes") return Array.isArray(v) && v.length > 0;
+    if (q.type === "acknowledge") return v === true;
+    if (q.type === "file") return state.files.length > 0;
+    return v !== undefined && v !== null && String(v).trim() !== "";
+  }
+
+  function questionError(q) {
+    const v = state.answers[q.id];
+    if (q.required && !isAnswered(q)) {
+      return q.type === "acknowledge"
+        ? "Please confirm to continue."
+        : "This field is required.";
+    }
+    if (!isAnswered(q)) return null; // optional & empty
+    if (q.type === "bank") {
+      if (!validators.bsb(v.bsb)) return "BSB should be 6 digits (e.g. 062-000).";
+      if (!validators.account(v.account_number)) return "Account number looks incorrect.";
+      return null;
+    }
+    if (q.validate && validators[q.validate]) {
+      if (!validators[q.validate](v)) {
+        if (q.validate === "mobile") return "Enter a valid Australian mobile (04xx xxx xxx).";
+        if (q.validate === "abn") return "An ABN is 11 digits.";
+        if (q.validate === "email") return "Enter a valid email address.";
+        return "That value doesn't look right.";
+      }
+    }
+    return null;
+  }
+
+  /* --------------------------------------------------------------- storage */
+  function save() {
+    try {
+      const data = { stepIndex: state.stepIndex, answers: state.answers };
+      localStorage.setItem(cfg.storageKey, JSON.stringify(data));
+    } catch (e) {
+      /* storage full or unavailable — non-fatal */
+    }
+  }
+  function restore() {
+    try {
+      const raw = localStorage.getItem(cfg.storageKey);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      state.answers = data.answers || {};
+      state.stepIndex = Math.min(data.stepIndex || 0, schema.steps.length - 1);
+    } catch (e) {
+      /* ignore corrupt state */
+    }
+  }
+  function clearSaved() {
+    try { localStorage.removeItem(cfg.storageKey); } catch (e) {}
+  }
+
+  /* ------------------------------------------------------------ rendering */
+  function el(tag, attrs, children) {
+    const n = document.createElement(tag);
+    if (attrs) {
+      for (const k in attrs) {
+        if (k === "class") n.className = attrs[k];
+        else if (k === "html") n.innerHTML = attrs[k];
+        else if (k.startsWith("on") && typeof attrs[k] === "function")
+          n.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+        else if (attrs[k] != null) n.setAttribute(k, attrs[k]);
+      }
+    }
+    (children || []).forEach((c) => {
+      if (c == null) return;
+      n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  // Once the user has tried to advance (state.showErrors), give live feedback on
+  // text fields without a full re-render (which would steal focus): clear the
+  // error optimistically as they type, and re-check when they leave the field.
+  function clearQError(target) {
+    if (!state.showErrors || !target.closest) return;
+    const w = target.closest(".q"); if (!w) return;
+    w.classList.remove("invalid");
+    const fe = w.querySelector(".field-error"); if (fe) fe.textContent = "";
+    target.removeAttribute("aria-invalid");
+  }
+  function revalidateQ(q, target) {
+    if (!state.showErrors || !target.closest) return;
+    const w = target.closest(".q"); if (!w) return;
+    const err = questionError(q);
+    w.classList.toggle("invalid", !!err);
+    const fe = w.querySelector(".field-error"); if (fe) fe.textContent = err || "";
+    if (err) target.setAttribute("aria-invalid", "true");
+    else target.removeAttribute("aria-invalid");
+  }
+  // Suggest the right mobile keyboard for a given field type.
+  const INPUTMODE = { tel: "tel", email: "email" };
+
+  function renderField(q) {
+    const set = (val) => { state.answers[q.id] = val; save(); };
+
+    switch (q.type) {
+      case "text":
+      case "tel":
+      case "email": {
+        return el("input", {
+          type: q.type, value: state.answers[q.id] || "",
+          placeholder: q.placeholder || "",
+          autocomplete: q.autocomplete || null,
+          inputmode: INPUTMODE[q.type] || null,
+          oninput: (e) => { set(e.target.value); clearQError(e.target); },
+          onblur: (e) => revalidateQ(q, e.target),
+        });
+      }
+      case "textarea":
+        return el("textarea", {
+          placeholder: q.placeholder || "",
+          autocomplete: q.autocomplete || null,
+          oninput: (e) => { set(e.target.value); clearQError(e.target); },
+          onblur: (e) => revalidateQ(q, e.target),
+        }, [state.answers[q.id] || ""]);
+
+      case "date":
+        return el("input", {
+          type: "date", value: state.answers[q.id] || "",
+          autocomplete: q.autocomplete || null,
+          oninput: (e) => { set(e.target.value); clearQError(e.target); },
+          onblur: (e) => revalidateQ(q, e.target),
+        });
+
+      case "select": {
+        const sel = el("select", { onchange: (e) => set(e.target.value) }, [
+          el("option", { value: "" }, ["Please choose…"]),
+          ...q.options.map((o) =>
+            el("option", { value: o, selected: state.answers[q.id] === o ? "selected" : null }, [o])
+          ),
+        ]);
+        return sel;
+      }
+
+      case "yesno": {
+        const wrap = el("div", { class: "yesno", role: "group" });
+        ["Yes", "No"].forEach((opt) => {
+          wrap.appendChild(
+            el("button", {
+              type: "button",
+              "aria-pressed": state.answers[q.id] === opt ? "true" : "false",
+              onclick: () => { set(opt); renderStep(); },
+            }, [opt])
+          );
+        });
+        return wrap;
+      }
+
+      case "radio": {
+        const list = el("div", { class: "opt-list" });
+        q.options.forEach((opt) => {
+          const checked = state.answers[q.id] === opt;
+          list.appendChild(
+            el("label", { class: "opt" + (checked ? " checked" : "") }, [
+              el("input", {
+                type: "radio", name: q.id, checked: checked ? "checked" : null,
+                onchange: () => { set(opt); renderStep(); },
+              }),
+              el("span", {}, [opt]),
+            ])
+          );
+        });
+        return list;
+      }
+
+      case "checkboxes": {
+        const list = el("div", { class: "opt-list" });
+        const current = Array.isArray(state.answers[q.id]) ? state.answers[q.id] : [];
+        q.options.forEach((opt) => {
+          const exclusive = /^no thanks$/i.test(opt);
+          const checked = current.includes(opt);
+          const row = el("label", { class: "opt" + (checked ? " checked" : "") }, [
+            el("input", {
+              type: "checkbox", checked: checked ? "checked" : null,
+              onchange: (e) => {
+                let next = Array.isArray(state.answers[q.id]) ? [...state.answers[q.id]] : [];
+                if (e.target.checked) {
+                  next = exclusive ? [opt] : next.filter((x) => !/^no thanks$/i.test(x));
+                  if (!next.includes(opt)) next.push(opt);
+                } else {
+                  next = next.filter((x) => x !== opt);
+                }
+                set(next); renderStep();
+              },
+            }),
+            el("span", {}, [opt]),
+          ]);
+          list.appendChild(row);
+        });
+        return list;
+      }
+
+      case "acknowledge": {
+        const checked = state.answers[q.id] === true;
+        return el("label", { class: "opt ack" + (checked ? " checked" : "") }, [
+          el("input", {
+            type: "checkbox", checked: checked ? "checked" : null,
+            onchange: (e) => { set(e.target.checked); renderStep(); },
+          }),
+          el("span", {}, [q.label]),
+        ]);
+      }
+
+      case "bank": {
+        const v = state.answers[q.id] || {};
+        const upd = (k, val) => { set({ ...(state.answers[q.id] || {}), [k]: val }); };
+        return el("div", { class: "bank" }, [
+          el("div", {}, [
+            el("label", {}, ["BSB"]),
+            el("input", { type: "text", inputmode: "numeric", placeholder: "062-000",
+              value: v.bsb || "", oninput: (e) => upd("bsb", e.target.value) }),
+          ]),
+          el("div", {}, [
+            el("label", {}, ["Account number"]),
+            el("input", { type: "text", inputmode: "numeric", placeholder: "12345678",
+              value: v.account_number || "", oninput: (e) => upd("account_number", e.target.value) }),
+          ]),
+          el("div", { class: "full" }, [
+            el("label", {}, ["Account name"]),
+            el("input", { type: "text", placeholder: "Name on the account",
+              value: v.account_name || "", oninput: (e) => upd("account_name", e.target.value) }),
+          ]),
+        ]);
+      }
+
+      case "file": {
+        const wrap = el("div");
+        const input = el("input", {
+          type: "file", multiple: "multiple",
+          onchange: (e) => addFiles(e.target.files),
+        });
+        const drop = el("label", { class: "file-drop" }, [
+          "Tap to choose files, or drag them here", input,
+        ]);
+        wrap.appendChild(drop);
+        const list = el("div", { class: "file-list" });
+        state.files.forEach((f, i) => {
+          list.appendChild(el("div", { class: "file-chip" }, [
+            el("span", {}, [`${f.name} · ${(f.size / 1024).toFixed(0)} KB`]),
+            el("button", { type: "button", onclick: () => { state.files.splice(i, 1); renderStep(); } }, ["Remove"]),
+          ]));
+        });
+        wrap.appendChild(list);
+        return wrap;
+      }
+
+      default:
+        return el("div", {}, [String(state.answers[q.id] || "")]);
+    }
+  }
+
+  function addFiles(fileList) {
+    const maxBytes = cfg.maxUploadMb * 1024 * 1024;
+    let total = state.files.reduce((s, f) => s + f.size, 0);
+    const arr = Array.from(fileList);
+    if (arr.length === 0) return;
+    // Only accept files that keep the running total under the cap; tell the user
+    // which were skipped rather than silently bloating the submission.
+    const accepted = [];
+    const skipped = [];
+    arr.forEach((file) => {
+      if (total + file.size > maxBytes) { skipped.push(file.name); return; }
+      total += file.size;
+      accepted.push(file);
+    });
+    let queued = accepted.length;
+    if (queued === 0) {
+      alert(`These files would exceed the ${cfg.maxUploadMb} MB limit, so they weren't added. Please upload smaller files or email them to us.`);
+      return;
+    }
+    accepted.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.files.push({ name: file.name, size: file.size, type: file.type, data: reader.result });
+        if (--queued === 0) {
+          renderStep();
+          if (skipped.length) {
+            alert(`Added ${accepted.length} file(s). Skipped (over ${cfg.maxUploadMb} MB): ${skipped.join(", ")}.`);
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Types backed by a single native control we can associate a <label for> with.
+  const SINGLE_CONTROL = ["text", "tel", "email", "textarea", "date", "select"];
+  // Composite controls exposed as an ARIA group/radiogroup.
+  const GROUP_ROLE = { yesno: "radiogroup", radio: "radiogroup", checkboxes: "group", bank: "group", file: "group" };
+
+  function renderQuestion(q) {
+    const err = state.showErrors ? questionError(q) : null;
+    const labelId = "lbl_" + q.id, errId = "err_" + q.id, helpId = "help_" + q.id, fieldId = "f_" + q.id;
+    const wrap = el("div", { class: "q" + (err ? " invalid" : ""), "data-qid": q.id });
+
+    if (q.type !== "acknowledge") {
+      wrap.appendChild(
+        el("label", {
+          class: "q-label", id: labelId,
+          for: SINGLE_CONTROL.includes(q.type) ? fieldId : null,
+        }, [q.label, q.required ? el("span", { class: "req", title: "Required" }, ["*"]) : null])
+      );
+    }
+    if (q.help) wrap.appendChild(el("p", { class: "q-help", id: helpId }, [q.help]));
+
+    const field = renderField(q);
+    const describedBy = [q.help ? helpId : null, err ? errId : null].filter(Boolean).join(" ") || null;
+
+    // Wire ARIA: associate the control(s) with the label, help and error text.
+    if (SINGLE_CONTROL.includes(q.type)) {
+      const ctrl = field.matches && field.matches("input,select,textarea") ? field : field.querySelector("input,select,textarea");
+      if (ctrl) {
+        ctrl.id = fieldId;
+        if (q.required) ctrl.setAttribute("aria-required", "true");
+        if (err) ctrl.setAttribute("aria-invalid", "true");
+        if (describedBy) ctrl.setAttribute("aria-describedby", describedBy);
+      }
+    } else if (GROUP_ROLE[q.type]) {
+      field.setAttribute("role", GROUP_ROLE[q.type]);
+      field.setAttribute("aria-labelledby", labelId);
+      if (q.required) field.setAttribute("aria-required", "true");
+      if (err) field.setAttribute("aria-invalid", "true");
+      if (describedBy) field.setAttribute("aria-describedby", describedBy);
+    }
+
+    wrap.appendChild(field);
+    wrap.appendChild(el("div", { class: "field-error", id: errId, role: "alert" }, [err || ""]));
+    return wrap;
+  }
+
+  /* --------------------------------------------------------- review page */
+  function answerText(q) {
+    const v = state.answers[q.id];
+    if (q.type === "bank" && v) {
+      const bsb = String(v.bsb || "").replace(/\D/g, "").replace(/(\d{3})(\d{3})/, "$1-$2");
+      return `BSB ${bsb}  Acc ${v.account_number}\n${v.account_name}`;
+    }
+    if (q.type === "checkboxes" && Array.isArray(v)) return v.join(", ");
+    if (q.type === "acknowledge") return v ? "Agreed" : "—";
+    if (q.type === "file") return state.files.length ? `${state.files.length} file(s) attached` : "—";
+    return v ? String(v) : "—";
+  }
+
+  function renderReview() {
+    const card = el("div", { class: "card" });
+    card.appendChild(el("div", { class: "step-head" }, [
+      el("h2", {}, ["Review your answers"]),
+      el("p", {}, ["Please check everything below, then submit. You can jump back to edit any section."]),
+    ]));
+    schema.steps.forEach((step, i) => {
+      activeQuestions(step).forEach((q) => {
+        if (q.type === "info") return;
+        card.appendChild(el("div", { class: "review-item" }, [
+          el("button", { class: "review-edit", type: "button",
+            onclick: () => { state.stepIndex = i; state.showErrors = false; render(); } }, ["Edit"]),
+          el("div", { class: "review-q" }, [q.label]),
+          el("div", { class: "review-a" }, [answerText(q)]),
+        ]));
+      });
+    });
+
+    // Privacy / consent — required immediately before submitting.
+    if (cfg.requireConsent) {
+      const checked = state.consent === true;
+      const consentRow = el("div", { class: "consent-row" + (state.consentError ? " invalid" : "") }, [
+        el("label", { class: "opt ack" + (checked ? " checked" : "") }, [
+          el("input", {
+            type: "checkbox", checked: checked ? "checked" : null,
+            onchange: (e) => { state.consent = e.target.checked; state.consentError = false; render(); },
+          }),
+          el("span", {}, [
+            "I consent to LMS Advisory collecting and handling the information in this form to " +
+            "prepare my tax return, in line with the ",
+            el("a", { href: cfg.privacyPolicyUrl, target: "_blank", rel: "noopener" }, ["Privacy Policy"]),
+            ".",
+          ]),
+        ]),
+        state.consentError
+          ? el("div", { class: "field-error", role: "alert", style: "display:block" },
+              ["Please confirm your consent to continue."])
+          : null,
+      ]);
+      card.appendChild(consentRow);
+    }
+
+    if (state.errorBanner) {
+      card.appendChild(el("div", { class: "banner banner-error" }, [state.errorBanner]));
+    }
+
+    const nav = el("div", { class: "nav" }, [
+      el("button", { class: "btn btn-ghost", type: "button",
+        onclick: () => { state.stepIndex = schema.steps.length - 1; render(); } }, ["Back"]),
+      el("div", { class: "spacer" }),
+      el("button", {
+        class: "btn btn-primary", type: "button",
+        disabled: state.submitting ? "disabled" : null,
+        onclick: submit,
+      }, [state.submitting ? "Submitting…" : "Submit questionnaire"]),
+    ]);
+    card.appendChild(nav);
+    return card;
+  }
+
+  /* ------------------------------------------------------------ step view */
+  function renderStep() { render(); }
+
+  function render() {
+    root.innerHTML = "";
+    root.appendChild(renderProgress());
+
+    if (state.done) { root.appendChild(renderSuccess()); postHeight(); return; }
+    if (state.stepIndex === REVIEW) { root.appendChild(renderReview()); postHeight(); return; }
+
+    const step = schema.steps[state.stepIndex];
+    const card = el("div", { class: "card" });
+    // Welcome note on the first step (uses the schema intro if present).
+    if (state.stepIndex === 0 && schema.intro) {
+      card.appendChild(el("p", { class: "intro-note" }, [schema.intro]));
+    }
+    card.appendChild(el("div", { class: "step-head" }, [
+      el("h2", {}, [step.title]),
+      step.subtitle ? el("p", {}, [step.subtitle]) : null,
+    ]));
+
+    activeQuestions(step).forEach((q) => card.appendChild(renderQuestion(q)));
+
+    if (state.showErrors && stepHasErrors(step)) {
+      card.appendChild(el("div", { class: "banner banner-error" }, [
+        "Please complete the highlighted questions above.",
+      ]));
+    }
+
+    const isFirst = state.stepIndex === 0;
+    const nav = el("div", { class: "nav" }, [
+      el("button", { class: "btn btn-ghost", type: "button", disabled: isFirst ? "disabled" : null,
+        onclick: prev }, ["Back"]),
+      el("div", { class: "spacer" }),
+      el("button", { class: "btn btn-primary", type: "button", onclick: next },
+        [state.stepIndex === schema.steps.length - 1 ? "Review" : "Continue"]),
+    ]);
+    card.appendChild(nav);
+    root.appendChild(card);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    postHeight();
+  }
+
+  // When embedded in an iframe, tell the parent page our height so it can size
+  // the iframe with no inner scrollbar. The parent listens for this message
+  // (see the embed snippet in README.md). Harmless when not embedded.
+  function postHeight() {
+    if (window.parent === window) return;
+    requestAnimationFrame(() => {
+      const h = document.body.scrollHeight;
+      window.parent.postMessage({ type: "lms-form-height", height: h }, "*");
+    });
+  }
+
+  function renderProgress() {
+    const total = schema.steps.length + 1; // + review
+    const current = Math.min(state.stepIndex, schema.steps.length) + 1;
+    const pct = state.done ? 100 : ((current - 1) / total) * 100 + 8;
+    const label = state.done
+      ? "Complete"
+      : state.stepIndex === REVIEW
+        ? "Final step · Review & submit"
+        : `Step ${current} of ${total} · ${schema.steps[state.stepIndex].title}`;
+    const pctClamped = Math.round(Math.min(pct, 100));
+    return el("div", { class: "progress" }, [
+      el("div", {
+        class: "progress-track", role: "progressbar",
+        "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(pctClamped),
+        "aria-label": label,
+      }, [
+        el("div", { class: "progress-fill", style: `width:${Math.min(pct, 100)}%` }),
+      ]),
+      el("div", { class: "progress-label" }, [label]),
+    ]);
+  }
+
+  function stepHasErrors(step) {
+    return activeQuestions(step).some((q) => questionError(q));
+  }
+
+  // After a failed validation, move keyboard focus to the first problem field
+  // and bring it into view — clearer than a generic banner alone.
+  function focusFirstInvalid() {
+    const bad = root.querySelector(".q.invalid");
+    if (!bad) return;
+    const ctrl = bad.querySelector("input,select,textarea,button");
+    if (ctrl) {
+      ctrl.focus({ preventScroll: true });
+      bad.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
+  function prev() {
+    state.showErrors = false;
+    state.errorBanner = null;
+    if (state.stepIndex > 0) state.stepIndex -= 1;
+    save();
+    render();
+  }
+
+  function next() {
+    const step = schema.steps[state.stepIndex];
+    if (stepHasErrors(step)) {
+      state.showErrors = true;
+      render();
+      focusFirstInvalid();
+      return;
+    }
+    state.showErrors = false;
+    state.stepIndex += 1;
+    save();
+    render();
+  }
+
+  /* -------------------------------------------------------------- submit */
+  function buildPayload() {
+    const answers = {};
+    flatQuestions.forEach((q) => {
+      if (!isActive(q)) return;
+      if (q.type === "file") return; // handled separately
+      answers[q.id] = state.answers[q.id] ?? null;
+    });
+    if (answers.mobile) answers.mobile = normalizeMobile(answers.mobile);
+    const hp = document.getElementById("hp_field");
+    const turnstile = document.querySelector('[name="cf-turnstile-response"]');
+    return {
+      form: schema.title,
+      submitted_at: new Date().toISOString(),
+      answers,
+      files: state.files.map((f) => ({ name: f.name, type: f.type, size: f.size, data: f.data })),
+      consent: state.consent === true,
+      // Anti-spam signals the backend checks (never shown to the client).
+      _meta: {
+        hp: hp ? hp.value : "",
+        elapsed_ms: Date.now() - state.startTime,
+        turnstile_token: turnstile ? turnstile.value : "",
+      },
+    };
+  }
+
+  // Stash the most recent submission so the staff results view (results.html)
+  // can open it locally. Files can be large, so retry without their data if the
+  // browser's storage quota is exceeded.
+  function saveLastSubmission(payload) {
+    try {
+      localStorage.setItem("lms_last_submission", JSON.stringify(payload));
+    } catch (e) {
+      try {
+        const slim = { ...payload, files: (payload.files || []).map((f) => ({ name: f.name, type: f.type, size: f.size })) };
+        localStorage.setItem("lms_last_submission", JSON.stringify(slim));
+      } catch (_) {}
+    }
+  }
+
+  async function submit() {
+    // Consent is required and sits on this review step — check it first.
+    if (cfg.requireConsent && !state.consent) {
+      state.consentError = true;
+      render();
+      const c = root.querySelector(".consent-row");
+      if (c) c.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    // Final full validation across all steps.
+    const firstBadStep = schema.steps.findIndex((s) => stepHasErrors(s));
+    if (firstBadStep !== -1) {
+      state.stepIndex = firstBadStep;
+      state.showErrors = true;
+      state.errorBanner = null;
+      render();
+      focusFirstInvalid();
+      return;
+    }
+
+    const payload = buildPayload();
+
+    if (!cfg.submitEndpoint) {
+      // DEMO mode — no backend configured.
+      console.log("Submission payload (demo mode):", payload);
+      saveLastSubmission(payload);
+      state.reference = "DEMO-" + Date.now().toString(36).toUpperCase();
+      state.done = true;
+      clearSaved();
+      render();
+      return;
+    }
+
+    state.submitting = true;
+    state.errorBanner = null;
+    render();
+    try {
+      const res = await fetch(cfg.submitEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json().catch(() => ({}));
+      saveLastSubmission(payload);
+      state.reference = data.reference || "LMS-" + Date.now().toString(36).toUpperCase();
+      state.done = true;
+      clearSaved();
+    } catch (err) {
+      state.errorBanner =
+        "Sorry — we couldn't submit your questionnaire just now. Please try again, " +
+        "or email us and we'll help. (" + err.message + ")";
+    } finally {
+      state.submitting = false;
+      render();
+    }
+  }
+
+  function renderSuccess() {
+    return el("div", { class: "card success" }, [
+      el("div", { class: "check" }, ["✓"]),
+      el("h2", {}, ["Thanks — we've got what we need to get started"]),
+      el("p", {}, [
+        "One of our team will be in touch shortly to begin preparing your return. A quick " +
+        "reminder: we can only start once your income shows as 'Tax Ready' in myGov and we " +
+        "have all of your information.",
+      ]),
+      el("div", { class: "ref" }, ["Reference: " + state.reference]),
+      // In demo mode (no backend) offer a quick link to preview the staff
+      // copy-paste results view. This block does not appear once an endpoint
+      // is configured, so clients never see it in production.
+      !cfg.submitEndpoint
+        ? el("p", { style: "margin-top:18px" }, [
+            el("a", { href: "results.html", class: "review-edit", style: "float:none" },
+              ["Staff preview: open copy-paste results →"]),
+          ])
+        : null,
+    ]);
+  }
+
+  /* ---------------------------------------------------------------- init */
+  document.getElementById("brand-name").textContent = cfg.brandName;
+  document.getElementById("brand-tag").textContent = cfg.brandTagline;
+  restore();
+  render();
+})();
+
+  </script>
+</body>
+</html>

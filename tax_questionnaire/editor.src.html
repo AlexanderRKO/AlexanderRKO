@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#002555" />
+  <title>LMS Form Editor</title>
+  <style>
+    :root { --navy:#002555; --navy-deep:#001a3d; --orange:#ed8b00; --line:#dde1ea;
+      --bg:#f5f6f9; --ink:#1f2a38; --muted:#5b6573; --surface:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:15px/1.5 Georgia,"Times New Roman",serif; color:var(--ink); background:var(--bg); }
+    .topbar { background:var(--navy); color:#fff; padding:12px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; position:sticky; top:0; z-index:10; }
+    .topbar .mark { font-weight:800; letter-spacing:.12em; border-left:4px solid var(--orange); padding-left:8px; }
+    .topbar .sub { color:#b9c4d6; font-size:13px; }
+    .topbar .grow { flex:1; }
+    .btn { font:inherit; font-weight:700; border:0; border-radius:8px; padding:9px 16px; cursor:pointer; }
+    .btn-primary { background:var(--orange); color:#fff; }
+    .btn-primary:hover { background:#cf7c08; }
+    .btn-light { background:#fff; color:var(--navy); }
+    .btn-ghost { background:transparent; color:#fff; border:1.5px solid #3b5076; }
+    .btn-ghost:hover { border-color:#fff; }
+    .btn-sm { padding:5px 10px; font-size:13px; border-radius:6px; }
+    .wrap { display:grid; grid-template-columns: 1fr 1fr; gap:0; height:calc(100vh - 56px); }
+    .pane { overflow:auto; padding:18px; }
+    .pane.edit { border-right:1px solid var(--line); }
+    .pane.preview { background:#e9edf3; }
+    h2.sect { color:var(--navy); font-size:16px; margin:6px 0 10px; border-bottom:2px solid var(--orange); padding-bottom:4px; }
+    .panel { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
+    .field { margin-bottom:10px; }
+    .field label { display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-bottom:3px; }
+    .field input[type=text], .field input[type=url], .field textarea, .field select {
+      width:100%; font:inherit; font-size:14px; border:1.5px solid var(--line); border-radius:8px; padding:8px 10px; background:#fff; color:var(--ink); }
+    .field textarea { resize:vertical; min-height:54px; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .chk { display:flex; align-items:center; gap:7px; font-size:14px; }
+    .chk input { width:17px; height:17px; accent-color:var(--navy); }
+    .step-card { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:16px; }
+    .step-head { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .step-head .grow { flex:1; }
+    .q-card { border:1px solid var(--line); border-left:4px solid var(--navy); border-radius:8px; padding:11px; margin:10px 0; background:#fbfcfe; }
+    .q-top { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .badge { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#fff; background:var(--navy); border-radius:999px; padding:2px 9px; }
+    .badge.cond { background:var(--orange); }
+    .q-top .grow { flex:1; }
+    .iconbtn { border:1px solid var(--line); background:#fff; color:var(--muted); border-radius:6px; cursor:pointer; font-size:13px; padding:3px 8px; font-family:inherit; }
+    .iconbtn:hover { border-color:var(--navy); color:var(--navy); }
+    .iconbtn.danger:hover { border-color:#dc2626; color:#dc2626; }
+    .hint { font-size:12.5px; color:var(--muted); margin:4px 0 12px; }
+    .add-row { display:flex; gap:8px; margin-top:8px; }
+    .add-row select { flex:1; }
+    iframe { width:100%; height:100%; border:0; background:#fff; border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.1); }
+    .preview-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .preview-head .t { font-weight:700; color:var(--navy); }
+    .saved-note { font-size:12px; color:var(--muted); }
+    @media (max-width:900px) { .wrap { grid-template-columns:1fr; height:auto; } .pane { height:auto; } .pane.preview { min-height:70vh; } iframe { height:70vh; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="mark">LMS</span>
+    <span class="sub">Form Editor — edit questions and download a ready-to-use form</span>
+    <span class="grow"></span>
+    <button class="btn btn-ghost btn-sm" id="loadBtn">Open saved</button>
+    <button class="btn btn-light btn-sm" id="saveBtn">Save working copy</button>
+    <button class="btn btn-primary" id="downloadBtn">⤓ Download form</button>
+    <input type="file" id="loadFile" accept=".json" style="display:none" />
+  </div>
+
+  <div class="wrap">
+    <div class="pane edit">
+      <h2 class="sect">Settings</h2>
+      <div class="panel" id="settings"></div>
+
+      <h2 class="sect">Questions</h2>
+      <p class="hint">Edit any wording below and the preview on the right updates. Use “Download form” when you’re happy.
+        Advanced logic (e.g. follow-up questions that only appear after a “Yes”) is preserved but edited in the schema file.</p>
+      <div id="steps"></div>
+      <button class="btn btn-light btn-sm" id="addStep">+ Add a section</button>
+    </div>
+
+    <div class="pane preview">
+      <div class="preview-head">
+        <span class="t">Live preview</span>
+        <button class="btn btn-light btn-sm" id="refreshBtn">↻ Refresh</button>
+        <span class="saved-note" id="savedNote"></span>
+      </div>
+      <iframe id="preview" title="Form preview"></iframe>
+    </div>
+  </div>
+
+  <!-- Default questions & settings are injected here at build time -->
+  <script>/*@@SCHEMA@@*/</script>
+  <script>/*@@CONFIG@@*/</script>
+
+  <script>
+  (function () {
+    "use strict";
+    // Engine + shell embedded at build time (so this editor is one self-contained file).
+    var ENGINE_CSS = "@@CSS@@";
+    var ENGINE_APP = "@@APP@@";
+    var FORM_SHELL = "@@SHELL@@";
+
+    var TYPES = ["text","textarea","tel","email","date","select","radio","yesno","checkboxes","acknowledge","file","bank"];
+    var CHOICE = ["select","radio","checkboxes"];
+
+    // Working model — a deep copy of the defaults so edits don't touch the originals.
+    var model = {
+      schema: JSON.parse(JSON.stringify(window.FORM_SCHEMA)),
+      config: JSON.parse(JSON.stringify(window.FORM_CONFIG)),
+    };
+
+    var $ = function (id) { return document.getElementById(id); };
+    function elem(tag, attrs, kids) {
+      var n = document.createElement(tag);
+      if (attrs) for (var k in attrs) {
+        if (k === "class") n.className = attrs[k];
+        else if (k.slice(0,2) === "on" && typeof attrs[k] === "function") n.addEventListener(k.slice(2), attrs[k]);
+        else if (attrs[k] != null) n.setAttribute(k, attrs[k]);
+      }
+      (kids||[]).forEach(function(c){ if(c!=null) n.appendChild(typeof c==="string"?document.createTextNode(c):c); });
+      return n;
+    }
+    var debounce = function (fn, ms) { var t; return function(){ clearTimeout(t); t=setTimeout(fn, ms); }; };
+
+    /* ---- generate the standalone form from the current model ---- */
+    function generate() {
+      var html = FORM_SHELL;
+      html = html.replace(/[ \t]*<link[^>]*styles\.css[^>]*>\s*/i, "<style>\n" + ENGINE_CSS + "\n</style>\n");
+      html = html.replace(/[ \t]*<script[^>]*src=["']config\.js["'][^>]*>\s*<\/script>\s*/i,
+        "<script>window.FORM_CONFIG = " + JSON.stringify(model.config) + ";</" + "script>\n");
+      html = html.replace(/[ \t]*<script[^>]*src=["']schema\.js["'][^>]*>\s*<\/script>\s*/i,
+        "<script>window.FORM_SCHEMA = " + JSON.stringify(model.schema) + ";</" + "script>\n");
+      html = html.replace(/[ \t]*<script[^>]*src=["']app\.js["'][^>]*>\s*<\/script>\s*/i,
+        "<script>\n" + ENGINE_APP.replace(/<\/script>/gi, "<\\/script>") + "\n</" + "script>\n");
+      return html;
+    }
+
+    var refreshPreview = debounce(function () { $("preview").srcdoc = generate(); }, 250);
+
+    /* ---- settings panel ---- */
+    function textField(labelText, value, oninput, type) {
+      var inp = elem("input", { type: type || "text", value: value || "" });
+      inp.addEventListener("input", function (e) { oninput(e.target.value); refreshPreview(); });
+      return elem("div", { class: "field" }, [ elem("label", {}, [labelText]), inp ]);
+    }
+
+    function renderSettings() {
+      var c = model.config, host = $("settings"); host.innerHTML = "";
+      host.appendChild(textField("Firm name (header)", c.brandName, function(v){ c.brandName=v; }));
+      host.appendChild(textField("Subtitle (header)", c.brandTagline, function(v){ c.brandTagline=v; }));
+      host.appendChild(textField("Privacy Policy link", c.privacyPolicyUrl, function(v){ c.privacyPolicyUrl=v; }, "url"));
+      host.appendChild(textField("Where answers are sent (submit endpoint) — leave blank for demo", c.submitEndpoint, function(v){ c.submitEndpoint=v; }, "url"));
+      var consent = elem("input", { type: "checkbox" }); consent.checked = c.requireConsent !== false;
+      consent.addEventListener("change", function(){ c.requireConsent = consent.checked; refreshPreview(); });
+      host.appendChild(elem("label", { class:"chk" }, [consent, "Require a privacy/consent tick before submitting"]));
+    }
+
+    /* ---- questions ---- */
+    function slug(s){ return (s||"question").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,40) || "question"; }
+    function uniqueId(base){ var ids={}; model.schema.steps.forEach(function(st){st.questions.forEach(function(q){ids[q.id]=1;});});
+      var id=base, i=2; while(ids[id]){ id=base+"_"+i; i++; } return id; }
+
+    function questionCard(step, q, qi) {
+      var card = elem("div", { class: "q-card" });
+      var top = elem("div", { class: "q-top" }, [
+        elem("span", { class: "badge" + (q.showIf ? " cond" : "") }, [q.type + (q.showIf ? " · conditional" : "")]),
+        elem("span", { class: "grow" }),
+        elem("button", { class: "iconbtn", title: "Move up", onclick: function(){ moveQ(step, qi, -1); } }, ["↑"]),
+        elem("button", { class: "iconbtn", title: "Move down", onclick: function(){ moveQ(step, qi, 1); } }, ["↓"]),
+        elem("button", { class: "iconbtn danger", title: "Delete", onclick: function(){ if(confirm("Delete this question?")){ step.questions.splice(qi,1); renderSteps(); refreshPreview(); } } }, ["✕"]),
+      ]);
+      card.appendChild(top);
+
+      // Label
+      var lab = elem("textarea", {}); lab.value = q.label || "";
+      lab.addEventListener("input", function(){ q.label = lab.value; refreshPreview(); });
+      card.appendChild(elem("div", { class:"field" }, [ elem("label", {}, ["Question text"]), lab ]));
+
+      // Help
+      var help = elem("input", { type:"text", value: q.help || "" });
+      help.addEventListener("input", function(){ q.help = help.value; refreshPreview(); });
+      card.appendChild(elem("div", { class:"field" }, [ elem("label", {}, ["Help text (optional)"]), help ]));
+
+      // Options for choice types
+      if (CHOICE.indexOf(q.type) !== -1) {
+        var opts = elem("textarea", {}); opts.value = (q.options || []).join("\n");
+        opts.addEventListener("input", function(){ q.options = opts.value.split("\n").map(function(s){return s.trim();}).filter(Boolean); refreshPreview(); });
+        card.appendChild(elem("div", { class:"field" }, [ elem("label", {}, ["Options (one per line)"]), opts ]));
+      }
+
+      // Required
+      if (q.type !== "acknowledge") {
+        var req = elem("input", { type:"checkbox" }); req.checked = !!q.required;
+        req.addEventListener("change", function(){ q.required = req.checked; refreshPreview(); });
+        card.appendChild(elem("label", { class:"chk" }, [req, "Required"]));
+      }
+      return card;
+    }
+
+    function moveQ(step, qi, dir) {
+      var ni = qi + dir; if (ni < 0 || ni >= step.questions.length) return;
+      var tmp = step.questions[qi]; step.questions[qi] = step.questions[ni]; step.questions[ni] = tmp;
+      renderSteps(); refreshPreview();
+    }
+    function moveStep(si, dir) {
+      var ni = si + dir; if (ni < 0 || ni >= model.schema.steps.length) return;
+      var s = model.schema.steps; var t = s[si]; s[si] = s[ni]; s[ni] = t; renderSteps(); refreshPreview();
+    }
+
+    function renderSteps() {
+      var host = $("steps"); host.innerHTML = "";
+      model.schema.steps.forEach(function (step, si) {
+        var card = elem("div", { class: "step-card" });
+        var title = elem("input", { type:"text", value: step.title || "" });
+        title.addEventListener("input", function(){ step.title = title.value; refreshPreview(); });
+        var sub = elem("input", { type:"text", value: step.subtitle || "" });
+        sub.addEventListener("input", function(){ step.subtitle = sub.value; refreshPreview(); });
+
+        card.appendChild(elem("div", { class:"step-head" }, [
+          elem("span", { class:"badge" }, ["Section " + (si+1)]),
+          elem("span", { class:"grow" }),
+          elem("button", { class:"iconbtn", title:"Move section up", onclick:function(){ moveStep(si,-1); } }, ["↑"]),
+          elem("button", { class:"iconbtn", title:"Move section down", onclick:function(){ moveStep(si,1); } }, ["↓"]),
+          elem("button", { class:"iconbtn danger", title:"Delete section", onclick:function(){ if(confirm("Delete this whole section and its questions?")){ model.schema.steps.splice(si,1); renderSteps(); refreshPreview(); } } }, ["✕"]),
+        ]));
+        card.appendChild(elem("div", { class:"field" }, [ elem("label", {}, ["Section title"]), title ]));
+        card.appendChild(elem("div", { class:"field" }, [ elem("label", {}, ["Section subtitle"]), sub ]));
+
+        step.questions.forEach(function (q, qi) { card.appendChild(questionCard(step, q, qi)); });
+
+        // add question
+        var typeSel = elem("select", {}, TYPES.map(function(t){ return elem("option", { value:t }, [t]); }));
+        var addBtn = elem("button", { class:"btn btn-light btn-sm", onclick: function(){
+          var t = typeSel.value;
+          var nq = { id: uniqueId(slug("question")), type: t, label: "New question", required: false };
+          if (CHOICE.indexOf(t) !== -1) nq.options = ["Option 1", "Option 2"];
+          step.questions.push(nq); renderSteps(); refreshPreview();
+        } }, ["+ Add question"]);
+        card.appendChild(elem("div", { class:"add-row" }, [typeSel, addBtn]));
+
+        host.appendChild(card);
+      });
+    }
+
+    /* ---- toolbar actions ---- */
+    function download(filename, text, mime) {
+      var blob = new Blob([text], { type: mime || "text/html" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = filename;
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    }
+    function note(msg){ var n=$("savedNote"); n.textContent=msg; setTimeout(function(){ if(n.textContent===msg) n.textContent=""; }, 2500); }
+
+    $("downloadBtn").addEventListener("click", function(){ download("lms-new-client-questionnaire.html", generate()); note("Downloaded the form."); });
+    $("saveBtn").addEventListener("click", function(){ download("lms-questionnaire-working-copy.json", JSON.stringify(model, null, 2), "application/json"); note("Saved working copy."); });
+    $("loadBtn").addEventListener("click", function(){ $("loadFile").click(); });
+    $("loadFile").addEventListener("change", function(e){
+      var f = e.target.files[0]; if(!f) return;
+      var r = new FileReader();
+      r.onload = function(){ try { var d = JSON.parse(r.result); if(!d.schema||!d.config) throw 0; model = d; renderSettings(); renderSteps(); refreshPreview(); note("Loaded saved copy."); }
+        catch(err){ alert("That doesn't look like a saved working copy."); } };
+      r.readAsText(f); e.target.value = "";
+    });
+    $("refreshBtn").addEventListener("click", function(){ $("preview").srcdoc = generate(); });
+    $("addStep").addEventListener("click", function(){ model.schema.steps.push({ id: uniqueId("section"), title:"New section", subtitle:"", questions:[] }); renderSteps(); refreshPreview(); });
+
+    /* ---- init ---- */
+    renderSettings(); renderSteps(); $("preview").srcdoc = generate();
+  })();
+  </script>
+</body>
+</html>
