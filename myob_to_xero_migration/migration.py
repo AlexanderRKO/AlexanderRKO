@@ -309,6 +309,24 @@ def cmd_check(args: argparse.Namespace) -> int:
     return subprocess.call(cmd)
 
 
+def cmd_convert(args: argparse.Namespace) -> int:
+    cmd = [
+        sys.executable,
+        str(SCRIPTS / "convert_myob_open_items.py"),
+        "--report", str(args.report),
+        "--side", args.side,
+        "--out", str(args.out),
+        "--account-code", args.account_code,
+        "--tax-type", args.tax_type,
+        "--default-terms", str(args.default_terms),
+    ]
+    if args.terms_report:
+        cmd += ["--terms-report", str(args.terms_report)]
+    if args.force:
+        cmd.append("--force")
+    return subprocess.call(cmd)
+
+
 def cmd_guide(args: argparse.Namespace) -> int:
     out = args.output or str(ROOT / "getting_started_visual.pdf")
     return subprocess.call(
@@ -609,6 +627,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="also copy the deliverable PDFs into <out>/pdfs/",
     )
     site.set_defaults(func=cmd_site)
+
+    conv = sub.add_parser(
+        "convert",
+        help="convert a MYOB open-items report to a Xero import (with recon gate)",
+    )
+    conv.add_argument("--report", required=True,
+                      help="MYOB Receivables/Payables Reconciliation [Detail] export")
+    conv.add_argument("--side", choices=["AR", "AP"], default="AR",
+                      help="AR = sales invoices (default), AP = supplier bills")
+    conv.add_argument("--out", default="./converted",
+                      help="output directory (default: %(default)s)")
+    conv.add_argument("--terms-report", default=None,
+                      help="Aged [Detail] report, read for payment terms only")
+    conv.add_argument("--account-code", default="200",
+                      help="Xero account code for every line (default: %(default)s)")
+    conv.add_argument("--tax-type", default="GST on Income",
+                      help="Xero tax type (default: %(default)s)")
+    conv.add_argument("--default-terms", type=int, default=14,
+                      help="fallback due-date days (default: %(default)s)")
+    conv.add_argument("--force", action="store_true",
+                      help="write files even if the reconciliation gate fails")
+    conv.set_defaults(func=cmd_convert)
 
     return p
 
