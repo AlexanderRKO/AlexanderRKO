@@ -1,0 +1,8 @@
+Created: 01/07/2026 9:00 AM,MIXED SUPPLY PTY LTD
+Sales [Customer Detail]
+ID No.,Date,Qty,Item/Acct/Activity,Description,Orig. Curr.,Amount,Tax,Status
+INV2001,30/06/2026,,4-1000,Taxable service,AUD,"1,000.00",GST,Open
+INV2002,30/06/2026,,4-1000,Medical service,AUD,500.00,FRE,Open
+INV2003,30/06/2026,,4-1000,Export sale,AUD,"2,000.00",EXP,Open
+INV2004,30/06/2026,,4-1000,Taxable part,AUD,700.00,GST,Open
+INV2004,30/06/2026,,4-1000,GST-free part,AUD,100.00,FRE,Open

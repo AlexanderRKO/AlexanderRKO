@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import re
 import sys
 from collections import Counter
@@ -60,6 +61,30 @@ XERO_COLS = [
     "*AccountCode", "*TaxType", "TrackingName1", "TrackingOption1",
     "TrackingName2", "TrackingOption2", "Currency", "BrandingTheme",
 ]
+
+# MYOB tax code -> Xero tax type. Australian GST codes; review against the
+# client's own tax-code list before relying on it, since MYOB files can carry
+# custom codes. Anything not in this map is reported rather than guessed.
+TAX_MAP_AR = {
+    "GST": "GST on Income",
+    "FRE": "GST Free Income",
+    "EXP": "GST Free Exports",
+    "INP": "Input Taxed",
+    "ITS": "Input Taxed",
+    "N-T": "BAS Excluded",
+    "NT": "BAS Excluded",
+    "GNR": "BAS Excluded",
+}
+TAX_MAP_AP = {
+    "GST": "GST on Expenses",
+    "CAP": "GST on Capital",
+    "FRE": "GST Free Expenses",
+    "INP": "Input Taxed",
+    "ITS": "Input Taxed",
+    "N-T": "BAS Excluded",
+    "NT": "BAS Excluded",
+    "GNR": "BAS Excluded",
+}
 
 DATE_RE = re.compile(r"^\d{1,2}/\d{1,2}/\d{4}$")
 TERMS_RE = re.compile(r"^\d+%.*Net", re.IGNORECASE)
@@ -256,12 +281,52 @@ def build_terms_map(path: Path) -> dict[str, str]:
     return terms
 
 
+def build_tax_map(path: Path) -> tuple[dict[str, str], set[str]]:
+    """Extract per-invoice MYOB tax codes from a Sales/Purchases [Detail] report.
+
+    The Reconciliation and Aged reports carry no tax column, so a file with
+    mixed tax treatment cannot be converted correctly from those alone. The
+    Sales [Customer Detail] / Purchases [Supplier Detail] report does carry
+    it, one row per invoice LINE.
+
+    Returns (invoice_id -> tax code, set of ids whose lines disagree). An
+    invoice with more than one tax code across its lines cannot collapse to
+    a single import line and is reported rather than silently flattened.
+    """
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    hdr_i = tax_i = None
+    for i, ln in enumerate(lines):
+        if not ln.startswith("ID No."):
+            continue
+        cols = [c.strip().lower() for c in next(csv.reader([ln]))]
+        if "tax" in cols:
+            hdr_i, tax_i = i, cols.index("tax")
+        break
+    if hdr_i is None or tax_i is None:
+        return {}, set()
+
+    seen: dict[str, set[str]] = {}
+    for raw in lines[hdr_i + 1:]:
+        row = next(csv.reader([raw])) if raw.strip() else []
+        if len(row) <= tax_i:
+            continue
+        inv_id, code = row[0].strip(), row[tax_i].strip()
+        if not inv_id or not code or inv_id.startswith(","):
+            continue
+        if DATE_RE.match(inv_id) or inv_id.lower().startswith("total"):
+            continue
+        seen.setdefault(inv_id, set()).add(code)
+
+    mixed = {k for k, v in seen.items() if len(v) > 1}
+    return {k: sorted(v)[0] for k, v in seen.items()}, mixed
+
+
 # --------------------------------------------------------------------------- #
 # output                                                                      #
 # --------------------------------------------------------------------------- #
 
 def write_xero_csv(path: Path, rows: list[dict], amount_fn, description: str,
-                   account_code: str, tax_type: str) -> None:
+                   account_code: str, tax_fn) -> None:
     with path.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(XERO_COLS)
@@ -276,7 +341,7 @@ def write_xero_csv(path: Path, rows: list[dict], amount_fn, description: str,
                 "*Quantity": "1",
                 "*UnitAmount": f"{amount_fn(r):.2f}",
                 "*AccountCode": account_code,
-                "*TaxType": tax_type,
+                "*TaxType": tax_fn(r),
             })
             w.writerow([d[c] for c in XERO_COLS])
 
@@ -290,6 +355,13 @@ def main(argv=None) -> int:
     p.add_argument("--out", type=Path, required=True, help="output directory")
     p.add_argument("--terms-report", type=Path, default=None,
                    help="Aged [Detail] report, used only to read payment terms")
+    p.add_argument("--tax-report", type=Path, default=None,
+                   help="Sales [Customer Detail] / Purchases [Supplier Detail] "
+                        "report, read for PER-INVOICE tax codes. Strongly "
+                        "recommended: the Reconciliation and Aged reports carry "
+                        "no tax column, so without this every line gets "
+                        "--tax-type, which is wrong for any client with mixed "
+                        "GST treatment.")
     p.add_argument("--account-code", default="200",
                    help="Xero account code for every line (default: %(default)s)")
     p.add_argument("--tax-type", default="GST on Income",
@@ -300,6 +372,11 @@ def main(argv=None) -> int:
                         "(default: %(default)s)")
     p.add_argument("--force", action="store_true",
                    help="continue even if the reconciliation gate fails")
+    p.add_argument("--json-summary", type=Path, default=None,
+                   help="also write a machine-readable summary. This is the "
+                        "conformance contract: any other implementation of this "
+                        "conversion should be able to emit the same shape and be "
+                        "checked by templates/conformance/run_conformance.py")
     args = p.parse_args(argv)
 
     if not args.report.exists():
@@ -310,10 +387,30 @@ def main(argv=None) -> int:
     if args.terms_report and args.terms_report.exists():
         terms_map = build_terms_map(args.terms_report)
 
+    tax_map: dict[str, str] = {}
+    mixed_tax: set[str] = set()
+    if args.tax_report and args.tax_report.exists():
+        tax_map, mixed_tax = build_tax_map(args.tax_report)
+
     records, grand, meta = parse_open_items(args.report, args.default_terms, terms_map)
     if not records:
         print("ERROR: no open items parsed — wrong report type?", file=sys.stderr)
         return 1
+
+    # Resolve a Xero tax type per line.
+    xero_map = TAX_MAP_AR if args.side == "AR" else TAX_MAP_AP
+    unmapped: Counter = Counter()
+    for r in records:
+        code = tax_map.get(r["id"])
+        r["myob_tax"] = code
+        if code is None:
+            r["tax_type"] = args.tax_type      # no per-line data available
+        elif code in xero_map:
+            r["tax_type"] = xero_map[code]
+        else:
+            r["tax_type"] = args.tax_type
+            unmapped[code] += 1
+    codes_seen = Counter(r["myob_tax"] for r in records if r["myob_tax"])
 
     pos = [r for r in records if r["amt"] > 0]
     neg = [r for r in records if r["amt"] < 0]
@@ -354,9 +451,95 @@ def main(argv=None) -> int:
     else:
         print("  MYOB Out of Balance            (not on this report — run the")
         print("                                  Reconciliation [Detail] to check)")
+
+    # ---- Gate 3: tax treatment is known, not assumed ----
+    ok_tax = True
+    if not tax_map:
+        ok_tax = False
+        print("-" * 68)
+        print("  Tax codes                      NOT VERIFIED")
+        print(f"    No --tax-report supplied, so every line was set to")
+        print(f"    '{args.tax_type}'. That is only correct if the client's")
+        print("    sales are uniformly GST. Supply the Sales [Customer Detail]")
+        print("    report to resolve tax codes per invoice.")
+    else:
+        summary = ", ".join(f"{c}x{n}" for c, n in codes_seen.most_common())
+        resolved = sum(1 for r in records if r["myob_tax"])
+        print("-" * 68)
+        print(f"  Tax codes found                {summary}")
+        print(f"  Tax coverage                   {resolved}/{len(records)} lines")
+        if resolved < len(records):
+            ok_tax = False
+            missing = len(records) - resolved
+            print(f"  Lines with NO tax code         {missing}   FAIL")
+            print("    The tax report does not cover every open item — it is")
+            print("    usually date-limited (e.g. 'July 2025 To June 2026') while")
+            print("    open items can be far older. Re-run it over a date range")
+            print("    wide enough to cover the oldest open item, or those lines")
+            print(f"    silently default to '{args.tax_type}'.")
+        if len(codes_seen) > 1:
+            print("    Mixed GST treatment — resolved per invoice from the tax")
+            print("    report. Verify a sample of the non-GST lines.")
+        if unmapped:
+            ok_tax = False
+            print(f"  Unmapped MYOB tax codes        "
+                  f"{', '.join(sorted(unmapped))}   FAIL")
+            print("    These are not in the MYOB->Xero tax map, so they fell back")
+            print(f"    to '{args.tax_type}'. Add them to TAX_MAP before importing.")
+        if mixed_tax:
+            ok_tax = False
+            print(f"  Invoices w/ mixed tax lines    {len(mixed_tax)}   FAIL")
+            print("    These carry more than one tax code across their lines and")
+            print("    cannot collapse to a single import line: "
+                  f"{', '.join(sorted(mixed_tax)[:5])}"
+                  f"{' ...' if len(mixed_tax) > 5 else ''}")
     print("=" * 68)
 
-    if not (ok_self and ok_gl):
+    if args.json_summary:
+        summary = {
+            "side": args.side,
+            "as_of": meta["as_of"].isoformat() if meta["as_of"] else None,
+            "gate": {
+                "passes": bool(ok_self and ok_gl and ok_tax),
+                "self_check": bool(ok_self),
+                "gl_balance": bool(ok_gl),
+                "tax": bool(ok_tax),
+                "out_of_balance": oob,
+                "grand_total": grand,
+                "parsed_total": round(total, 2),
+            },
+            "totals": {
+                "invoice_count": len(pos),
+                "invoice_total": round(sum(r["amt"] for r in pos), 2),
+                "credit_count": len(neg),
+                "credit_total": round(sum(r["amt"] for r in neg), 2),
+                "net_total": round(total, 2),
+                "contacts": contacts,
+            },
+            "tax": {
+                "codes": dict(codes_seen),
+                "coverage": sum(1 for r in records if r["myob_tax"]),
+                "unmapped": sorted(unmapped),
+                "mixed_invoices": sorted(mixed_tax),
+            },
+            "lines": [
+                {
+                    "id": r["id"],
+                    "contact": r["name"],
+                    "amount": round(abs(r["amt"]), 2),
+                    "route": "credit" if r["amt"] < 0 else "invoice",
+                    "invoice_date": r["inv"].strftime("%d/%m/%Y"),
+                    "due_date": r["due"].strftime("%d/%m/%Y"),
+                    "due_quality": r["quality"],
+                    "tax_type": r.get("tax_type"),
+                }
+                for r in sorted(records, key=lambda r: r["id"])
+            ],
+        }
+        args.json_summary.parent.mkdir(parents=True, exist_ok=True)
+        args.json_summary.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    if not (ok_self and ok_gl and ok_tax):
         print()
         print("  RECONCILIATION GATE FAILED.")
         if not ok_gl:
@@ -367,25 +550,32 @@ def main(argv=None) -> int:
         if not ok_self:
             print("  Parsed total does not equal the report's Grand Total, so some")
             print("  lines were not captured. Do not import this file.")
+        if not ok_tax:
+            print("  Tax treatment is unverified or unmappable. Importing now")
+            print("  risks a wrong first Activity Statement out of Xero.")
         if not args.force:
             print("\n  No files written. Re-run with --force to override.")
             return 2
         print("\n  --force given: writing files anyway. Do not import without review.")
+        forced = True
+    else:
+        forced = False
 
     args.out.mkdir(parents=True, exist_ok=True)
     stem = "open_invoices" if args.side == "AR" else "open_bills"
     conv = meta["as_of"].strftime("%Y%m%d") if meta["as_of"] else "undated"
     desc = f"Balance brought forward from MYOB at conversion {as_of}"
 
+    tax_fn = lambda r: r.get("tax_type") or args.tax_type
     inv_path = args.out / f"xero_{stem}_{conv}.csv"
     write_xero_csv(inv_path, sorted(pos, key=lambda r: (r["name"], r["inv"])),
-                   lambda r: r["amt"], desc, args.account_code, args.tax_type)
+                   lambda r: r["amt"], desc, args.account_code, tax_fn)
 
     files = [inv_path]
     if neg:
         cr_path = args.out / f"xero_credit_notes_{stem}_{conv}_REVIEW.csv"
         write_xero_csv(cr_path, sorted(neg, key=lambda r: r["amt"]),
-                       lambda r: abs(r["amt"]), desc, args.account_code, args.tax_type)
+                       lambda r: abs(r["amt"]), desc, args.account_code, tax_fn)
         files.append(cr_path)
 
     q = Counter(r["quality"] for r in pos)
@@ -409,6 +599,12 @@ def main(argv=None) -> int:
               f"before converting.")
     print(f"  AccountCode is '{args.account_code}' on every line — confirm this "
           f"matches\n    your conversion method before importing.")
+    if forced:
+        print()
+        print("  NOTE: written with --force past a FAILED gate. Exit code 3 marks")
+        print("  this run as needing review, so a batch across many client files")
+        print("  can tell it apart from a clean conversion.")
+        return 3
     return 0
 
 

@@ -1,0 +1,22 @@
+{
+  "description": "Clean AR file. Exercises quoted contact names, end-of-month vs Net-N terms, a credit note, and an item over two years old.",
+  "args": { "side": "AR", "terms_report": "terms.txt", "tax_report": "tax.txt" },
+  "expect": {
+    "exit_code": 0,
+    "gate": { "passes": true, "gl_balance": true, "self_check": true, "tax": true },
+    "totals": { "invoice_count": 4, "invoice_total": 4180.00, "credit_count": 1,
+                "credit_total": -165.00, "net_total": 4015.00, "contacts": 3 },
+    "lines": [
+      { "id": "INV1001", "contact": "Alpha Holdings Pty Ltd", "amount": 1100.00,
+        "route": "invoice", "due_date": "30/07/2026", "due_quality": "eom-assumed",
+        "tax_type": "GST on Income" },
+      { "id": "INV1002", "contact": "Beta, Robert", "amount": 550.00,
+        "route": "invoice", "due_date": "29/06/2026", "due_quality": "terms" },
+      { "id": "INV1003", "contact": "Beta, Robert", "amount": 330.00,
+        "route": "invoice", "due_date": "04/07/2026" },
+      { "id": "INV0500", "contact": "Gamma Trust", "amount": 2200.00,
+        "route": "invoice", "due_quality": "default" },
+      { "id": "CR0001", "contact": "Gamma Trust", "amount": 165.00, "route": "credit" }
+    ]
+  }
+}

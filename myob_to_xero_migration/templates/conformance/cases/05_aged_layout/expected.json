@@ -1,0 +1,26 @@
+{
+  "description": "Aged [Detail] layout, where Total Due sits at a different column index than the Reconciliation report. Parsing must key off the header, not a fixed index. Aged reports carry no out-of-balance line, so the GL check cannot run and the tax gate fails with no tax report - that is expected here.",
+  "args": {
+    "side": "AR",
+    "force": true
+  },
+  "expect": {
+    "exit_code": 3,
+    "gate": {
+      "passes": false,
+      "self_check": true
+    },
+    "totals": {
+      "invoice_count": 1,
+      "invoice_total": 1100.0,
+      "net_total": 1100.0
+    },
+    "lines": [
+      {
+        "id": "INV1001",
+        "contact": "Alpha Holdings Pty Ltd",
+        "amount": 1100.0
+      }
+    ]
+  }
+}

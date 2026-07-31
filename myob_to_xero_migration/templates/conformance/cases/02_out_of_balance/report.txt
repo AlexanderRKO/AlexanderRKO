@@ -1,0 +1,15 @@
+Created: 01/08/2026 9:00 AM,SAMPLE PTY LTD
+Receivables Reconciliation [Detail]
+As of 31/07/2026
+ID No.,Date,Orig. Curr.,Total Due,Current,1 - 30,31 - 60,60+
+
+
+Alpha Holdings Pty Ltd
+A001
+
+
+INV1001,30/06/2026,AUD,"1,100.00",0.00,"1,100.00",0.00,0.00
+,Total:,,"1,100.00",0.00,"1,100.00",0.00,0.00
+,Grand Total:,,"1,100.00",0.00,"1,100.00",0.00,0.00
+,Receivables Account:,,"1,025.00"
+,Out of Balance Amount:,,75.00

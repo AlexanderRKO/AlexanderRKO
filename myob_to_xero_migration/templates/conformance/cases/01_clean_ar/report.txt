@@ -1,0 +1,32 @@
+Created: 01/07/2026 9:00 AM,SAMPLE PTY LTD
+1 Example Street SYDNEY NSW 2000
+Receivables Reconciliation [Detail]
+ABN: 11 111 111 111
+As of 30/06/2026
+Email: sample@example.com
+ID No.,Date,Orig. Curr.,Total Due,Current,1 - 30,31 - 60,60+
+
+
+Alpha Holdings Pty Ltd
+A001
+
+
+INV1001,30/06/2026,AUD,"1,100.00","1,100.00",0.00,0.00,0.00
+,Total:,,"1,100.00","1,100.00",0.00,0.00,0.00
+"Beta, Robert"
+B002
+
+
+INV1002,15/06/2026,AUD,550.00,0.00,550.00,0.00,0.00
+INV1003,20/06/2026,AUD,330.00,0.00,330.00,0.00,0.00
+,Total:,,880.00,0.00,880.00,0.00,0.00
+Gamma Trust
+G003
+
+
+INV0500,10/01/2023,AUD,"2,200.00",0.00,0.00,0.00,"2,200.00"
+CR0001,25/06/2026,AUD,-165.00,0.00,-165.00,0.00,0.00
+,Total:,,"2,035.00",0.00,-165.00,0.00,"2,200.00"
+,Grand Total:,,"4,015.00","1,100.00",715.00,0.00,"2,200.00"
+,Receivables Account:,,"4,015.00"
+,Out of Balance Amount:,,0.00

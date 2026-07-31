@@ -1,0 +1,43 @@
+{
+  "description": "Mixed GST treatment: GST, FRE and EXP across invoices, plus one invoice (INV2004) carrying two different tax codes across its lines. That invoice cannot collapse to a single import line and must be flagged, not flattened.",
+  "args": {
+    "side": "AR",
+    "tax_report": "tax.txt",
+    "force": true
+  },
+  "expect": {
+    "exit_code": 3,
+    "gate": {
+      "passes": false,
+      "tax": false,
+      "gl_balance": true
+    },
+    "tax": {
+      "mixed_invoices": [
+        "INV2004"
+      ]
+    },
+    "totals": {
+      "invoice_count": 4,
+      "net_total": 4480.0,
+      "contacts": 2
+    },
+    "lines": [
+      {
+        "id": "INV2001",
+        "amount": 1100.0,
+        "tax_type": "GST on Income"
+      },
+      {
+        "id": "INV2002",
+        "amount": 500.0,
+        "tax_type": "GST Free Income"
+      },
+      {
+        "id": "INV2003",
+        "amount": 2000.0,
+        "tax_type": "GST Free Exports"
+      }
+    ]
+  }
+}

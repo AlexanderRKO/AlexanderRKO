@@ -1,0 +1,15 @@
+{
+  "description": "Payables side. Same report family, but tax codes must map to the expenses side of the Xero tax list.",
+  "args": { "side": "AP", "tax_report": "tax.txt", "tax_type": "GST on Expenses" },
+  "expect": {
+    "exit_code": 0,
+    "gate": { "passes": true, "gl_balance": true },
+    "totals": { "invoice_count": 2, "invoice_total": 1980.00, "credit_count": 0,
+                "net_total": 1980.00, "contacts": 2 },
+    "lines": [
+      { "id": "BILL900", "contact": "Supplier One Pty Ltd", "amount": 660.00,
+        "tax_type": "GST on Expenses" },
+      { "id": "BILL901", "contact": "Supplier Two Pty Ltd", "amount": 1320.00 }
+    ]
+  }
+}

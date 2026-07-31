@@ -1,0 +1,21 @@
+Created: 01/07/2026 9:00 AM,SAMPLE PTY LTD
+Payables Reconciliation [Detail]
+As of 30/06/2026
+ID No.,Date,Orig. Curr.,Total Due,Current,1 - 30,31 - 60,60+
+
+
+Supplier One Pty Ltd
+S001
+
+
+BILL900,30/06/2026,AUD,660.00,660.00,0.00,0.00,0.00
+,Total:,,660.00,660.00,0.00,0.00,0.00
+Supplier Two Pty Ltd
+S002
+
+
+BILL901,01/06/2026,AUD,"1,320.00",0.00,"1,320.00",0.00,0.00
+,Total:,,"1,320.00",0.00,"1,320.00",0.00,0.00
+,Grand Total:,,"1,980.00",660.00,"1,320.00",0.00,0.00
+,Payables Account:,,"1,980.00"
+,Out of Balance Amount:,,0.00

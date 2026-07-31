@@ -1,0 +1,9 @@
+{
+  "description": "Subledger disagrees with the GL control by $75. The gate must fail and nothing may be written, whatever the line detail looks like.",
+  "args": { "side": "AR" },
+  "expect": {
+    "exit_code": 2,
+    "files_written": false,
+    "gate": { "passes": false, "gl_balance": false, "out_of_balance": 75.00 }
+  }
+}

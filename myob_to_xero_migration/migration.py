@@ -322,8 +322,23 @@ def cmd_convert(args: argparse.Namespace) -> int:
     ]
     if args.terms_report:
         cmd += ["--terms-report", str(args.terms_report)]
+    if args.tax_report:
+        cmd += ["--tax-report", str(args.tax_report)]
+    if args.json_summary:
+        cmd += ["--json-summary", str(args.json_summary)]
     if args.force:
         cmd.append("--force")
+    return subprocess.call(cmd)
+
+
+def cmd_conformance(args: argparse.Namespace) -> int:
+    cmd = [sys.executable, str(ROOT / "templates" / "conformance" / "run_conformance.py")]
+    if args.adapter:
+        cmd += ["--adapter", args.adapter]
+    if args.case:
+        cmd += ["--case", args.case]
+    if args.verbose:
+        cmd.append("--verbose")
     return subprocess.call(cmd)
 
 
@@ -640,6 +655,12 @@ def build_parser() -> argparse.ArgumentParser:
                       help="output directory (default: %(default)s)")
     conv.add_argument("--terms-report", default=None,
                       help="Aged [Detail] report, read for payment terms only")
+    conv.add_argument("--tax-report", default=None,
+                      help="Sales/Purchases [Detail] report, read for per-invoice "
+                           "tax codes (strongly recommended — without it the tax "
+                           "gate fails, since uniform GST cannot be verified)")
+    conv.add_argument("--json-summary", default=None,
+                      help="also write a machine-readable summary of the run")
     conv.add_argument("--account-code", default="200",
                       help="Xero account code for every line (default: %(default)s)")
     conv.add_argument("--tax-type", default="GST on Income",
@@ -649,6 +670,17 @@ def build_parser() -> argparse.ArgumentParser:
     conv.add_argument("--force", action="store_true",
                       help="write files even if the reconciliation gate fails")
     conv.set_defaults(func=cmd_convert)
+
+    cf = sub.add_parser(
+        "conformance",
+        help="run the conversion conformance suite (any implementation)",
+    )
+    cf.add_argument("--adapter", default=None,
+                    help="command implementing the conversion CLI contract; "
+                         "defaults to this toolkit's Python converter")
+    cf.add_argument("--case", default=None, help="run a single case by name")
+    cf.add_argument("--verbose", "-v", action="store_true")
+    cf.set_defaults(func=cmd_conformance)
 
     return p
 

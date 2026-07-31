@@ -1,0 +1,19 @@
+Created: 01/07/2026 9:00 AM,SAMPLE PTY LTD
+Aged Receivables [Detail]
+As of 30/06/2026
+ID No.,Date,Total Due,0 - 30,31 - 60,61 - 90,90+
+
+
+Alpha Holdings Pty Ltd
+A001
+
+0% 1st Net 30th after EOM
+INV1001,30/06/2026,"1,100.00","1,100.00",0.00,0.00,0.00
+,Total:,"1,100.00","1,100.00",0.00,0.00,0.00
+"Beta, Robert"
+B002
+
+0%  Net 14
+INV1002,15/06/2026,550.00,550.00,0.00,0.00,0.00
+,Total:,550.00,550.00,0.00,0.00,0.00
+,Grand Total:,"1,650.00","1,650.00",0.00,0.00,0.00

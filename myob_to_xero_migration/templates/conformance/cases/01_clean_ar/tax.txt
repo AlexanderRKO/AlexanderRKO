@@ -1,0 +1,8 @@
+Created: 01/07/2026 9:00 AM,SAMPLE PTY LTD
+Sales [Customer Detail]
+ID No.,Date,Qty,Item/Acct/Activity,Description,Orig. Curr.,Amount,Tax,Status
+INV1001,30/06/2026,,4-1000,Fees,AUD,"1,000.00",GST,Open
+INV1002,15/06/2026,,4-1000,Fees,AUD,500.00,GST,Open
+INV1003,20/06/2026,,4-1000,Fees,AUD,300.00,GST,Open
+INV0500,10/01/2023,,4-1000,Fees,AUD,"2,000.00",GST,Open
+CR0001,25/06/2026,,4-1000,Credit,AUD,-150.00,GST,Open

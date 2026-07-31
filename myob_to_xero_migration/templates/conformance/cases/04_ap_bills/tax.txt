@@ -1,0 +1,5 @@
+Created: 01/07/2026 9:00 AM,SAMPLE PTY LTD
+Purchases [Supplier Detail]
+ID No.,Date,Qty,Item/Acct/Activity,Description,Orig. Curr.,Amount,Tax,Status
+BILL900,30/06/2026,,6-1000,Supplies,AUD,600.00,GST,Open
+BILL901,01/06/2026,,6-1000,Supplies,AUD,"1,200.00",GST,Open
