@@ -104,6 +104,13 @@ required for the conversion-date cut-over:
 - Documents/attachments (visas, contracts) — upload only those the
   client explicitly nominates.
 
+> **Tooling architecture.** Client files are processed locally or
+> in-browser and are never stored on a server — see
+> `SECURITY_POSTURE.md` for the decision, the conditions it depends on,
+> and what may and may not be persisted. That decision is what keeps
+> APP 8 (cross-border disclosure) and the TFN Rule's storage and
+> destruction requirements out of scope for the tooling itself.
+
 ## 5. Retention & destruction
 
 | Artefact | Retain for | Then |
